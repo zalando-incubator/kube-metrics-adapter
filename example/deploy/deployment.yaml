@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-metrics-consumer
+  labels:
+    application: custom-metrics-consumer
+    version: latest
+spec:
+  selector:
+    matchLabels:
+      application: custom-metrics-consumer
+  template:
+    metadata:
+      labels:
+        application: custom-metrics-consumer
+        version: latest
+    spec:
+      containers:
+      - name: custom-metrics-consumer
+        image: mikkeloscar/custom-metrics-consumer:latest
+        args:
+        - --fake-queue-length=2000
+        resources:
+          limits:
+            cpu: 10m
+            memory: 25Mi
+          requests:
+            cpu: 10m
+            memory: 25Mi

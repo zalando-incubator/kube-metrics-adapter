@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: custom-metrics-consumer
+  labels:
+    application: custom-metrics-consumer
+spec:
+  rules:
+  - host: custom-metrics.example.org
+    http:
+      paths:
+      - backend:
+          serviceName: custom-metrics-consumer
+          servicePort: 80

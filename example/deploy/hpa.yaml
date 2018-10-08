@@ -1,0 +1,48 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: custom-metrics-consumer
+  namespace: default
+  labels:
+    application: custom-metrics-consumer
+  annotations:
+    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    metric-config.pods.queue-length.json-path/json-key: "$.queue.length"
+    metric-config.pods.queue-length.json-path/path: /metrics
+    metric-config.pods.queue-length.json-path/port: "9090"
+    # metric-config.object.requests-per-second.prometheus/query: |
+    #   scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="custom-metrics_example_org"}[1m])))
+    # metric-config.object.requests-per-second.prometheus/per-replica: "true"
+    # metric-config.object.requests-per-second.skipper/interval: "1s"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: custom-metrics-consumer
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  # - type: Resource
+  #   resource:
+  #     name: cpu
+  #     targetAverageUtilization: 50
+  - type: Pods
+    pods:
+      metricName: queue-length
+      targetAverageValue: 1k
+  - type: Object
+    object:
+      metricName: requests-per-second
+      target:
+        apiVersion: extensions/v1beta1
+        kind: Ingress
+        name: custom-metrics-consumer
+      targetValue: 10 # this will be treated as targetAverageValue
+  - type: External
+    external:
+      metricName: sqs-queue-length
+      metricSelector:
+        matchLabels:
+          queue-name: foobar
+          region: eu-central-1
+      targetAverageValue: 30
