@@ -294,3 +294,44 @@ The AWS account of the queue currently depends on how `kube-metrics-adapter` is
 configured to get AWS credentials. The normal assumption is that you run the
 adapter in a cluster running in the AWS account where the queue is defined.
 Please open an issue if you would like support for other use cases.
+
+## ZMON collector
+
+The ZMON collector allows scaling based on external metrics exposed by
+[ZMON](https://github.com/zalando/zmon) checks.
+
+### Supported metrics
+
+| Metric | Description | Type |
+| ------------ | ------- | -- |
+| `zmon-check` | Scale based on any ZMON check results | External |
+
+### Example
+
+This is an example of an HPA that will scale based on the specifed value
+exposed by a ZMON check with id `1234`.
+
+```yaml
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: custom-metrics-consumer
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: External
+    external:
+      metricName: zmon-check
+      metricSelector:
+        matchLabels:
+          check-id: "1234" # the ZMON check to query for metrics
+          key: "custom.value"
+          entity-type: kube_pod
+          entity-application: my-custom-app
+      targetAverageValue: 30
+```
