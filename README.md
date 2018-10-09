@@ -1,5 +1,5 @@
 # kube-metrics-adapter
-[![Build Status](https://travis-ci.com/mikkeloscar/kube-metrics-adapter.svg?branch=master)](https://travis-ci.com/mikkeloscar/kube-metrics-adapter)
+[![Build Status](https://travis-ci.com/zalando-incubator/kube-metrics-adapter.svg?branch=master)](https://travis-ci.com/zalando-incubator/kube-metrics-adapter)
 
 Kube Metrics Adapter is a general purpose metrics adapter for Kubernetes that
 can collect and serve custom and external metrics for Horizontal Pod
