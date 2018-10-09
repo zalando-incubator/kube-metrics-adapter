@@ -1,0 +1,20 @@
+version: "2017-09-20"
+pipeline:
+- id: build
+  overlay: ci/golang
+  type: script
+  commands:
+  - desc: test
+    cmd: |
+      make test
+  - desc: build
+    cmd: |
+      make build.docker
+  - desc: push
+    cmd: |
+      if [[ $CDP_TARGET_BRANCH == master && ! $CDP_PULL_REQUEST_NUMBER ]]; then
+        IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter
+      else
+        IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter-test
+      fi
+      IMAGE=$IMAGE VERSION=$CDP_BUILD_VERSION make build.push
