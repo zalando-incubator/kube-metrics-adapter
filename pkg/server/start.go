@@ -24,8 +24,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
-	"github.com/mikkeloscar/kube-metrics-adapter/pkg/collector"
-	"github.com/mikkeloscar/kube-metrics-adapter/pkg/provider"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/provider"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"

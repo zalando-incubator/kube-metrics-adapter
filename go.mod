@@ -1,4 +1,4 @@
-module github.com/mikkeloscar/kube-metrics-adapter
+module github.com/zalando-incubator/kube-metrics-adapter
 
 require (
 	bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c // indirect
