@@ -2,7 +2,7 @@
 
 BINARY        ?= kube-metrics-adapter
 VERSION       ?= $(shell git describe --tags --always --dirty)
-IMAGE         ?= mikkeloscar/$(BINARY)
+IMAGE         ?= registry-write.opensource.zalan.do/teapot/$(BINARY)
 TAG           ?= $(VERSION)
 SOURCES       = $(shell find . -name '*.go')
 DOCKERFILE    ?= Dockerfile

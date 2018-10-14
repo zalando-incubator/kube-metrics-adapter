@@ -21,7 +21,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/mikkeloscar/kube-metrics-adapter/pkg/server"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/server"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/util/logs"
 )
