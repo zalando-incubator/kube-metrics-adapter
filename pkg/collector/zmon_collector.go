@@ -22,6 +22,7 @@ const (
 	zmonDurationLabelKey     = "duration"
 	zmonAggregatorsLabelKey  = "aggregators"
 	zmonEntityPrefixLabelKey = "entity-"
+	defaultQueryDuration     = 10 * time.Minute
 )
 
 // ZMONCollectorPlugin defines a plugin for creating collectors that can get
@@ -82,7 +83,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Durati
 		key = k
 	}
 
-	duration := 10 * time.Minute
+	duration := defaultQueryDuration
 
 	// parse optional duration value
 	if d, ok := config.Labels[zmonDurationLabelKey]; ok {

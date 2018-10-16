@@ -13,6 +13,7 @@ import (
 
 var (
 	// set of valid aggregators that can be used in queries
+	// https://kairosdb.github.io/docs/build/html/restapi/Aggregators.html
 	validAggregators = map[string]struct{}{
 		"avg":   struct{}{},
 		"dev":   struct{}{},

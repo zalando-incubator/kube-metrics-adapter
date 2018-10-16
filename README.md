@@ -333,5 +333,44 @@ spec:
           key: "custom.value"
           entity-type: kube_pod
           entity-application: my-custom-app
+          aggregators: avg # comma separated list of aggregation functions, default: last
+          duration: 5m # default: 10m
       targetAverageValue: 30
 ```
+
+The `check-id` specifies the ZMON check to query for the metrics. `key`
+specifies the JSON key in the check output to extract the metric value from.
+E.g. if you have a check which returns the following data:
+
+```json
+{
+    "custom": {
+        "value": 1.0
+    },
+    "other": {
+        "value": 3.0
+    }
+}
+```
+
+Then the value `1.0` would be returned when the key is defined as `custom.value`.
+
+The `entity-<name>` labels defines the entity filter used for looking up check
+entities in ZMON before the query. e.g. the above example would result in the
+entity filter: `type=kube_pod,application=my-custom-app` which would limit the
+resulting query to entities matching that entity filter.
+
+`aggregators` defines the aggregation functions applied to the metrics query.
+For instance if you define the entity filter
+`type=kube_pod,application=my-custom-app` you might get three entities back and
+then you might want to get an average over the metrics for those three
+entities. This would be possible by using the `avg` aggrator. The default
+aggregator is `last` which returns only the lastest metric point from the
+query. The supported aggregation functions are `avg`, `dev`, `count`,
+`first`, `last`, `max`, `min`, `sum`, `diff`. See the [KariosDB docs](https://kairosdb.github.io/docs/build/html/restapi/Aggregators.html) for
+details.
+
+The `duration` defines the duration used for the timeseries query. E.g. if you
+specify a duration of `5m` then the query will return metric points for the
+last 5 minutes and apply the specified aggration with the same duration .e.g
+`max(5m)`.
