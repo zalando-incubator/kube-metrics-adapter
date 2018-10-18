@@ -8,6 +8,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +18,29 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+)
+
+var (
+	// CollectionSuccesses is the total number of successful collections.
+	CollectionSuccesses = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "kube_metrics_adapter_collections_success",
+		Help: "The total number of successful collections",
+	})
+	// CollectionErrors is the total number of failed collection attempts.
+	CollectionErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "kube_metrics_adapter_collections_error",
+		Help: "The total number of failed collection attempts",
+	})
+	// UpdateSuccesses is the total number of successful HPA updates.
+	UpdateSuccesses = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "kube_metrics_adapter_updates_success",
+		Help: "The total number of successful HPA updates",
+	})
+	// UpdateErrors is the total number of failed HPA update attempts.
+	UpdateErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "kube_metrics_adapter_updates_error",
+		Help: "The total number of failed HPA update attempts",
+	})
 )
 
 type objectCollector struct {
@@ -66,6 +91,9 @@ func (p *HPAProvider) Run(ctx context.Context) {
 		err := p.updateHPAs()
 		if err != nil {
 			glog.Error(err)
+			UpdateErrors.Inc()
+		} else {
+			UpdateSuccesses.Inc()
 		}
 
 		select {
@@ -180,6 +208,9 @@ func (p *HPAProvider) collectMetrics(ctx context.Context) {
 		case collection := <-p.metricSink:
 			if collection.Error != nil {
 				glog.Errorf("Failed to collect metrics: %v", collection.Error)
+				CollectionErrors.Inc()
+			} else {
+				CollectionSuccesses.Inc()
 			}
 
 			glog.Infof("Collected %d new metric(s)", len(collection.Values))
