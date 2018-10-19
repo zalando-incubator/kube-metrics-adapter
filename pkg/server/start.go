@@ -19,14 +19,17 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
+	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/cobra"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/provider"
-	"github.com/spf13/cobra"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -44,6 +47,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		CustomMetricsAdapterServerOptions: baseOpts,
 		EnableCustomMetricsAPI:            true,
 		EnableExternalMetricsAPI:          true,
+		MetricsAddress:                    ":7979",
 	}
 
 	cmd := &cobra.Command{
@@ -83,11 +87,17 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.BoolVar(&o.AWSExternalMetrics, "aws-external-metrics", o.AWSExternalMetrics, ""+
 		"whether to enable AWS external metrics")
 	flags.StringSliceVar(&o.AWSRegions, "aws-region", o.AWSRegions, "the AWS regions which should be monitored. eg: eu-central, eu-west-1")
+	flags.StringVar(&o.MetricsAddress, "metrics-address", o.MetricsAddress, "The address where to serve prometheus metrics")
 
 	return cmd
 }
 
 func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct{}) error {
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		glog.Fatal(http.ListenAndServe(o.MetricsAddress, nil))
+	}()
+
 	config, err := o.Config()
 	if err != nil {
 		return err
@@ -210,4 +220,6 @@ type AdapterServerOptions struct {
 	AWSExternalMetrics bool
 	// AWSRegions the AWS regions which are supported for monitoring.
 	AWSRegions []string
+	// MetricsAddress is the address where to serve prometheus metrics.
+	MetricsAddress string
 }
