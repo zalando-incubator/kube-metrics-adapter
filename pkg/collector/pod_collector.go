@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	log "github.com/sirupsen/logrus"
 	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -36,6 +36,7 @@ type PodCollector struct {
 	metricName       string
 	metricType       autoscalingv2beta1.MetricSourceType
 	interval         time.Duration
+	logger           *log.Entry
 }
 
 type PodMetricsGetter interface {
@@ -56,6 +57,7 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2beta1.Horizo
 		metricType:       config.Type,
 		interval:         interval,
 		podLabelSelector: selector,
+		logger:           log.WithFields(log.Fields{"Collector": "Pod"}),
 	}
 
 	var getter PodMetricsGetter
@@ -91,7 +93,7 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 	for _, pod := range pods.Items {
 		value, err := c.Getter.GetMetric(&pod)
 		if err != nil {
-			glog.Errorf("Failed to get metrics from pod '%s/%s': %v", pod.Namespace, pod.Name, err)
+			c.logger.Errorf("Failed to get metrics from pod '%s/%s': %v", pod.Namespace, pod.Name, err)
 			continue
 		}
 
