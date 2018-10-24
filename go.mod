@@ -6,7 +6,7 @@ require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.0 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
-	github.com/aws/aws-sdk-go v1.15.21
+	github.com/aws/aws-sdk-go v1.15.61
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/coreos/bbolt v1.3.0 // indirect
@@ -22,6 +22,7 @@ require (
 	github.com/evanphx/json-patch v3.0.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-ini/ini v1.25.4 // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20180322222829-3a0015ad55fa // indirect
 	github.com/go-openapi/jsonreference v0.0.0-20180322222742-3fb327e6747d // indirect
 	github.com/go-openapi/spec v0.0.0-20180801175345-384415f06ee2 // indirect
@@ -60,7 +61,7 @@ require (
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 // indirect
 	github.com/prometheus/common v0.0.0-20180801064454-c7de2306084e
 	github.com/prometheus/procfs v0.0.0-20180725123919-05ee40e3a273 // indirect
-	github.com/sirupsen/logrus v1.0.6 // indirect
+	github.com/sirupsen/logrus v1.0.6
 	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
@@ -70,7 +71,7 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
 	github.com/ugorji/go v1.1.1 // indirect
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
-	golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac // indirect
+	golang.org/x/crypto v0.0.0-20181015023909-0c41d7ab0a0e // indirect
 	golang.org/x/net v0.0.0-20180824152047-4bcd98cce591 // indirect
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20180824143301-4910a1d54f87 // indirect
