@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -93,7 +92,7 @@ type queryResp struct {
 	} `json:"queries"`
 }
 
-// Query queries the ZMON KariosDB endpoint and returns the resulting list of
+// Query queries the ZMON KairosDB endpoint and returns the resulting list of
 // data points for the query.
 //
 // https://kairosdb.github.io/docs/build/html/restapi/QueryMetrics.html
@@ -202,15 +201,6 @@ func (c *Client) Query(checkID int, key string, tags map[string]string, aggregat
 	}
 
 	return dataPoints, nil
-}
-
-// KairosDBEntityFormat converts an entity id to the kairosDB compatible
-// format.
-func KairosDBEntityFormat(id string) string {
-	e := strings.Replace(id, "[", "_", -1)
-	e = strings.Replace(e, "]", "_", -1)
-	e = strings.Replace(e, ":", "_", -1)
-	return e
 }
 
 const (

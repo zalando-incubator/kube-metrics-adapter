@@ -146,11 +146,6 @@ func TestQuery(tt *testing.T) {
 
 }
 
-func TestKariosDBEntityFormat(t *testing.T) {
-	entity := "aws:1234567:eu-central-1:kube-1[pod-1]"
-	assert.Equal(t, "aws_1234567_eu-central-1_kube-1_pod-1_", KairosDBEntityFormat(entity))
-}
-
 func TestDurationToSampling(tt *testing.T) {
 	for _, ti := range []struct {
 		msg      string
