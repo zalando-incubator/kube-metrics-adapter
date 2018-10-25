@@ -90,8 +90,6 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"url of prometheus server to query")
 	flags.StringVar(&o.ZMONKariosDBEndpoint, "zmon-kariosdb-endpoint", o.ZMONKariosDBEndpoint, ""+
 		"url of ZMON KariosDB endpoint to query for ZMON checks")
-	flags.StringVar(&o.ZMONEndpoint, "zmon-endpoint", o.ZMONEndpoint, ""+
-		"url of ZMON endpoint to query for ZMON checks")
 	flags.StringVar(&o.ZMONTokenName, "zmon-token-name", o.ZMONTokenName, ""+
 		"name of the token used to query ZMON")
 	flags.StringVar(&o.Token, "token", o.Token, ""+
@@ -180,7 +178,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 	}
 
 	// enable ZMON based metrics
-	if o.ZMONKariosDBEndpoint != "" && o.ZMONEndpoint != "" {
+	if o.ZMONKariosDBEndpoint != "" {
 		var tokenSource oauth2.TokenSource
 		if o.Token != "" {
 			tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: o.Token})
@@ -190,7 +188,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 
 		httpClient := newOauth2HTTPClient(ctx, tokenSource)
 
-		zmonClient := zmon.NewZMONClient(o.ZMONEndpoint, o.ZMONKariosDBEndpoint, httpClient)
+		zmonClient := zmon.NewZMONClient(o.ZMONKariosDBEndpoint, httpClient)
 
 		zmonPlugin, err := collector.NewZMONCollectorPlugin(zmonClient)
 		if err != nil {
@@ -291,8 +289,6 @@ type AdapterServerOptions struct {
 	// ZMONKariosDBEndpoint enables ZMON check queries to the specified
 	// kariosDB endpoint
 	ZMONKariosDBEndpoint string
-	// ZMONEndpoint enables ZMON check queries
-	ZMONEndpoint string
 	// ZMONTokenName is the name of the token used to query ZMON
 	ZMONTokenName string
 	// Token is an oauth2 token used to authenticate with services like

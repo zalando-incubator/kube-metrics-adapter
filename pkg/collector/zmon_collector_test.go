@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
+	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -16,11 +17,7 @@ type zmonMock struct {
 	entities   []zmon.Entity
 }
 
-func (m zmonMock) Entities(filter map[string]string) ([]zmon.Entity, error) {
-	return m.entities, nil
-}
-
-func (m zmonMock) Query(checkID int, key string, entities, aggregators []string, duration time.Duration) ([]zmon.DataPoint, error) {
+func (m zmonMock) Query(checkID int, key string, tags map[string]string, aggregators []string, duration time.Duration) ([]zmon.DataPoint, error) {
 	return m.dataPoints, nil
 }
 
@@ -32,14 +29,17 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 			Name: ZMONCheckMetric,
 		},
 		Labels: map[string]string{
-			zmonCheckIDLabelKey:                "1234",
-			zmonAggregatorsLabelKey:            "max",
-			zmonEntityPrefixLabelKey + "alias": "cluster_alias",
-			zmonDurationLabelKey:               "5m",
-			zmonKeyLabelKey:                    "key",
+			zmonCheckIDLabelKey:             "1234",
+			zmonAggregatorsLabelKey:         "max",
+			zmonTagPrefixLabelKey + "alias": "cluster_alias",
+			zmonDurationLabelKey:            "5m",
+			zmonKeyLabelKey:                 "key",
 		},
 	}
-	collector, err := collectPlugin.NewCollector(nil, config, 1*time.Second)
+
+	hpa := &autoscalingv2beta1.HorizontalPodAutoscaler{}
+
+	collector, err := collectPlugin.NewCollector(hpa, config, 1*time.Second)
 	require.NoError(t, err)
 	require.NotNil(t, collector)
 	zmonCollector := collector.(*ZMONCollector)
@@ -48,7 +48,21 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 	require.Equal(t, 1*time.Second, zmonCollector.interval)
 	require.Equal(t, 5*time.Minute, zmonCollector.duration)
 	require.Equal(t, []string{"max"}, zmonCollector.aggregators)
-	require.Equal(t, map[string]string{"alias": "cluster_alias"}, zmonCollector.entityFilter)
+	require.Equal(t, map[string]string{"alias": "cluster_alias"}, zmonCollector.tags)
+
+	// check that annotations overwrites labels
+	hpa.ObjectMeta = metav1.ObjectMeta{
+		Annotations: map[string]string{
+			zmonKeyAnnotationKey:                 "annotation_key",
+			zmonTagPrefixAnnotationKey + "alias": "cluster_alias_annotation",
+		},
+	}
+	collector, err = collectPlugin.NewCollector(hpa, config, 1*time.Second)
+	require.NoError(t, err)
+	require.NotNil(t, collector)
+	zmonCollector = collector.(*ZMONCollector)
+	require.Equal(t, "annotation_key", zmonCollector.key)
+	require.Equal(t, map[string]string{"alias": "cluster_alias_annotation"}, zmonCollector.tags)
 
 	// should fail if the metric name isn't ZMON
 	config.Name = "non-zmon-check"
@@ -69,18 +83,17 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 			Type: "foo",
 		},
 		Labels: map[string]string{
-			zmonCheckIDLabelKey:                "1234",
-			zmonAggregatorsLabelKey:            "max",
-			zmonEntityPrefixLabelKey + "alias": "cluster_alias",
-			zmonDurationLabelKey:               "5m",
-			zmonKeyLabelKey:                    "key",
+			zmonCheckIDLabelKey:             "1234",
+			zmonAggregatorsLabelKey:         "max",
+			zmonTagPrefixLabelKey + "alias": "cluster_alias",
+			zmonDurationLabelKey:            "5m",
+			zmonKeyLabelKey:                 "key",
 		},
 	}
 
 	for _, ti := range []struct {
 		msg              string
 		dataPoints       []zmon.DataPoint
-		entities         []zmon.Entity
 		collectedMetrics []CollectedMetric
 	}{
 		{
@@ -89,11 +102,6 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 				{
 					Time:  time.Time{},
 					Value: 1.0,
-				},
-			},
-			entities: []zmon.Entity{
-				{
-					ID: "entity_id",
 				},
 			},
 			collectedMetrics: []CollectedMetric{
@@ -110,20 +118,14 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 		},
 		{
 			msg: "test not getting any metrics",
-			entities: []zmon.Entity{
-				{
-					ID: "entity_id",
-				},
-			},
 		},
 	} {
 		tt.Run(ti.msg, func(t *testing.T) {
 			z := zmonMock{
 				dataPoints: ti.dataPoints,
-				entities:   ti.entities,
 			}
 
-			zmonCollector, err := NewZMONCollector(z, config, 1*time.Second)
+			zmonCollector, err := NewZMONCollector(z, config, nil, 1*time.Second)
 			require.NoError(t, err)
 
 			metrics, _ := zmonCollector.GetMetrics()

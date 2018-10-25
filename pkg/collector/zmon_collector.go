@@ -16,13 +16,15 @@ import (
 const (
 	// ZMONCheckMetric defines the metric name for metrics based on ZMON
 	// checks.
-	ZMONCheckMetric          = "zmon-check"
-	zmonCheckIDLabelKey      = "check-id"
-	zmonKeyLabelKey          = "key"
-	zmonDurationLabelKey     = "duration"
-	zmonAggregatorsLabelKey  = "aggregators"
-	zmonEntityPrefixLabelKey = "entity-"
-	defaultQueryDuration     = 10 * time.Minute
+	ZMONCheckMetric            = "zmon-check"
+	zmonCheckIDLabelKey        = "check-id"
+	zmonKeyLabelKey            = "key"
+	zmonDurationLabelKey       = "duration"
+	zmonAggregatorsLabelKey    = "aggregators"
+	zmonTagPrefixLabelKey      = "tag-"
+	defaultQueryDuration       = 10 * time.Minute
+	zmonKeyAnnotationKey       = "metric-config.external.zmon-check.zmon/key"
+	zmonTagPrefixAnnotationKey = "metric-config.external.zmon-check.zmon/tag-"
 )
 
 // ZMONCollectorPlugin defines a plugin for creating collectors that can get
@@ -42,7 +44,11 @@ func NewZMONCollectorPlugin(zmon zmon.ZMON) (*ZMONCollectorPlugin, error) {
 func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	switch config.Name {
 	case ZMONCheckMetric:
-		return NewZMONCollector(c.zmon, config, interval)
+		annotations := map[string]string{}
+		if hpa != nil {
+			annotations = hpa.Annotations
+		}
+		return NewZMONCollector(c.zmon, config, annotations, interval)
 	}
 
 	return nil, fmt.Errorf("metric '%s' not supported", config.Name)
@@ -50,22 +56,20 @@ func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPod
 
 // ZMONCollector defines a collector that is able to collect metrics from ZMON.
 type ZMONCollector struct {
-	// endpoint    *url.URL
-	// tokenSource oauth2.TokenSource
-	zmon         zmon.ZMON
-	interval     time.Duration
-	checkID      int
-	key          string
-	labels       map[string]string
-	entityFilter map[string]string
-	duration     time.Duration
-	aggregators  []string
-	metricName   string
-	metricType   autoscalingv2beta1.MetricSourceType
+	zmon        zmon.ZMON
+	interval    time.Duration
+	checkID     int
+	key         string
+	labels      map[string]string
+	tags        map[string]string
+	duration    time.Duration
+	aggregators []string
+	metricName  string
+	metricType  autoscalingv2beta1.MetricSourceType
 }
 
 // NewZMONCollector initializes a new ZMONCollector.
-func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Duration) (*ZMONCollector, error) {
+func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[string]string, interval time.Duration) (*ZMONCollector, error) {
 	checkIDStr, ok := config.Labels[zmonCheckIDLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("ZMON check ID not specified on metric")
@@ -83,6 +87,11 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Durati
 		key = k
 	}
 
+	// annotations takes precedence over label
+	if k, ok := annotations[zmonKeyAnnotationKey]; ok {
+		key = k
+	}
+
 	duration := defaultQueryDuration
 
 	// parse optional duration value
@@ -93,12 +102,22 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Durati
 		}
 	}
 
-	// parse entity filters
-	filters := make(map[string]string)
+	// parse tags
+	tags := make(map[string]string)
 	for k, v := range config.Labels {
-		if strings.HasPrefix(k, zmonEntityPrefixLabelKey) {
-			key := strings.TrimPrefix(k, zmonEntityPrefixLabelKey)
-			filters[key] = v
+		if strings.HasPrefix(k, zmonTagPrefixLabelKey) {
+			key := strings.TrimPrefix(k, zmonTagPrefixLabelKey)
+			tags[key] = v
+		}
+	}
+
+	// parse tags from annotations
+	// tags defined in annotations takes precedence over tags defined in
+	// the labels.
+	for k, v := range annotations {
+		if strings.HasPrefix(k, zmonTagPrefixAnnotationKey) {
+			key := strings.TrimPrefix(k, zmonTagPrefixAnnotationKey)
+			tags[key] = v
 		}
 	}
 
@@ -109,33 +128,22 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Durati
 	}
 
 	return &ZMONCollector{
-		zmon:         zmon,
-		interval:     interval,
-		checkID:      checkID,
-		key:          key,
-		entityFilter: filters,
-		duration:     duration,
-		aggregators:  aggregators,
-		metricName:   config.Name,
-		metricType:   config.Type,
-		labels:       config.Labels,
+		zmon:        zmon,
+		interval:    interval,
+		checkID:     checkID,
+		key:         key,
+		tags:        tags,
+		duration:    duration,
+		aggregators: aggregators,
+		metricName:  config.Name,
+		metricType:  config.Type,
+		labels:      config.Labels,
 	}, nil
 }
 
 // GetMetrics returns a list of collected metrics for the ZMON check.
 func (c *ZMONCollector) GetMetrics() ([]CollectedMetric, error) {
-	entities, err := c.zmon.Entities(c.entityFilter)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert to entity ID format stored in KariosDB
-	entityIDs := make([]string, 0, len(entities))
-	for _, entity := range entities {
-		entityIDs = append(entityIDs, zmon.KairosDBEntityFormat(entity.ID))
-	}
-
-	dataPoints, err := c.zmon.Query(c.checkID, c.key, entityIDs, nil, c.duration)
+	dataPoints, err := c.zmon.Query(c.checkID, c.key, c.tags, c.aggregators, c.duration)
 	if err != nil {
 		return nil, err
 	}

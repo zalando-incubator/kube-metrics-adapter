@@ -10,50 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEntities(tt *testing.T) {
-	client := &http.Client{}
-	for _, ti := range []struct {
-		msg      string
-		filters  map[string]string
-		status   int
-		body     string
-		err      error
-		entities []Entity
-	}{
-		{
-			msg:      "test getting back a single entity",
-			filters:  map[string]string{"alias": "stups"},
-			status:   http.StatusOK,
-			body:     `[{"id": "x"}]`,
-			entities: []Entity{{ID: "x"}},
-		},
-		{
-			msg:     "test getting back a 500",
-			filters: map[string]string{"alias": "stups"},
-			status:  http.StatusInternalServerError,
-			body:    `{"error": 500}`,
-			err:     fmt.Errorf("unexpected response code: 500"),
-		},
-	} {
-		tt.Run(ti.msg, func(t *testing.T) {
-			ts := httptest.NewServer(http.HandlerFunc(
-				func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(ti.status)
-					w.Write([]byte(ti.body))
-				}),
-			)
-			defer ts.Close()
-
-			zmonClient := NewZMONClient(ts.URL, "", client)
-			entities, err := zmonClient.Entities(ti.filters)
-			assert.Equal(t, ti.err, err)
-			assert.Len(t, entities, len(ti.entities))
-			assert.Equal(t, ti.entities, entities)
-		})
-	}
-
-}
-
 func TestQuery(tt *testing.T) {
 	client := &http.Client{}
 	for _, ti := range []struct {
@@ -180,7 +136,7 @@ func TestQuery(tt *testing.T) {
 			)
 			defer ts.Close()
 
-			zmonClient := NewZMONClient("", ts.URL, client)
+			zmonClient := NewZMONClient(ts.URL, client)
 			dataPoints, err := zmonClient.Query(1, ti.key, nil, ti.aggregators, ti.duration)
 			assert.Equal(t, ti.err, err)
 			assert.Len(t, dataPoints, len(ti.dataPoints))

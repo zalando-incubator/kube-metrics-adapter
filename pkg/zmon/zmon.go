@@ -34,73 +34,21 @@ type Entity struct {
 
 // ZMON defines an interface for talking to the ZMON API.
 type ZMON interface {
-	Entities(filter map[string]string) ([]Entity, error)
-	Query(checkID int, key string, entities, aggregators []string, duration time.Duration) ([]DataPoint, error)
+	Query(checkID int, key string, tags map[string]string, aggregators []string, duration time.Duration) ([]DataPoint, error)
 }
 
 // Client defines client for interfacing with the ZMON API.
 type Client struct {
-	zmonEndpoint        string
 	dataServiceEndpoint string
 	http                *http.Client
 }
 
 // NewZMONClient initializes a new ZMON Client.
-func NewZMONClient(zmonEndpoint, dataServiceEndpoint string, client *http.Client) *Client {
+func NewZMONClient(dataServiceEndpoint string, client *http.Client) *Client {
 	return &Client{
-		zmonEndpoint:        zmonEndpoint,
 		dataServiceEndpoint: dataServiceEndpoint,
 		http:                client,
 	}
-}
-
-// Entities returns a list of entities based on the passed filter.
-func (c *Client) Entities(filter map[string]string) ([]Entity, error) {
-	endpoint, err := url.Parse(c.zmonEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	filterData, err := json.Marshal(&filter)
-	if err != nil {
-		return nil, err
-	}
-
-	q := endpoint.Query()
-	q.Set("query", string(filterData))
-	endpoint.RawQuery = q.Encode()
-	endpoint.Path = "/api/v1/entities"
-
-	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	d, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response code: %d", resp.StatusCode)
-	}
-
-	var entities []Entity
-	err = json.Unmarshal(d, &entities)
-	if err != nil {
-		return nil, err
-	}
-
-	return entities, nil
 }
 
 // DataPoint defines a single datapoint returned from a query.
@@ -110,7 +58,6 @@ type DataPoint struct {
 }
 
 type metricQuery struct {
-	StartAbsolute int64    `json:"start_absolute"`
 	StartRelative sampling `json:"start_relative"`
 	Metrics       []metric `json:"metrics"`
 }
@@ -121,16 +68,11 @@ type sampling struct {
 }
 
 type metric struct {
-	Name        string       `json:"name"`
-	Limit       int          `json:"limit"`
-	Tags        tags         `json:"tags"`
-	GroupBy     []tagGroup   `json:"group_by"`
-	Aggregators []aggregator `json:"aggregator"`
-}
-
-type tags struct {
-	Key    []string `json:"key,omitempty"`
-	Entity []string `json:"entity,omitempty"`
+	Name        string              `json:"name"`
+	Limit       int                 `json:"limit"`
+	Tags        map[string][]string `json:"tags"`
+	GroupBy     []tagGroup          `json:"group_by"`
+	Aggregators []aggregator        `json:"aggregator"`
 }
 
 type tagGroup struct {
@@ -155,28 +97,29 @@ type queryResp struct {
 // data points for the query.
 //
 // https://kairosdb.github.io/docs/build/html/restapi/QueryMetrics.html
-func (c *Client) Query(checkID int, key string, entities, aggregators []string, duration time.Duration) ([]DataPoint, error) {
+func (c *Client) Query(checkID int, key string, tags map[string]string, aggregators []string, duration time.Duration) ([]DataPoint, error) {
 	endpoint, err := url.Parse(c.dataServiceEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	startTime := time.Now().UTC().Add(-duration)
+	// convert tags map
+	tagsSlice := make(map[string][]string, len(tags))
+	for k, v := range tags {
+		tagsSlice[k] = []string{v}
+	}
 
 	query := metricQuery{
-		StartAbsolute: startTime.UnixNano() / 1000,
+		StartRelative: durationToSampling(duration),
 		Metrics: []metric{
 			{
 				Name:  fmt.Sprintf("zmon.check.%d", checkID),
 				Limit: 10000, // maximum limit of ZMON
-				Tags: tags{
-					Entity: entities,
-				},
+				Tags:  tagsSlice,
 				GroupBy: []tagGroup{
 					{
 						Name: "tag",
 						Tags: []string{
-							"entity",
 							"key",
 						},
 					},
@@ -199,7 +142,7 @@ func (c *Client) Query(checkID int, key string, entities, aggregators []string, 
 
 	// add key to query if defined
 	if key != "" {
-		query.Metrics[0].Tags.Key = []string{key}
+		query.Metrics[0].Tags["key"] = []string{key}
 	}
 
 	body, err := json.Marshal(&query)
