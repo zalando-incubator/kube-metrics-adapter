@@ -294,3 +294,95 @@ The AWS account of the queue currently depends on how `kube-metrics-adapter` is
 configured to get AWS credentials. The normal assumption is that you run the
 adapter in a cluster running in the AWS account where the queue is defined.
 Please open an issue if you would like support for other use cases.
+
+## ZMON collector
+
+The ZMON collector allows scaling based on external metrics exposed by
+[ZMON](https://github.com/zalando/zmon) checks.
+
+### Supported metrics
+
+| Metric | Description | Type |
+| ------------ | ------- | -- |
+| `zmon-check` | Scale based on any ZMON check results | External |
+
+### Example
+
+This is an example of an HPA that will scale based on the specified value
+exposed by a ZMON check with id `1234`.
+
+```yaml
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+  annotations:
+    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    metric-config.external.zmon-check.zmon/key: "custom.*"
+    metric-config.external.zmon-check.zmon/tag-application: "my-custom-app-*"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: custom-metrics-consumer
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: External
+    external:
+      metricName: zmon-check
+      metricSelector:
+        matchLabels:
+          check-id: "1234" # the ZMON check to query for metrics
+          key: "custom.value"
+          tag-application: my-custom-app
+          aggregators: avg # comma separated list of aggregation functions, default: last
+          duration: 5m # default: 10m
+      targetAverageValue: 30
+```
+
+The `check-id` specifies the ZMON check to query for the metrics. `key`
+specifies the JSON key in the check output to extract the metric value from.
+E.g. if you have a check which returns the following data:
+
+```json
+{
+    "custom": {
+        "value": 1.0
+    },
+    "other": {
+        "value": 3.0
+    }
+}
+```
+
+Then the value `1.0` would be returned when the key is defined as `custom.value`.
+
+The `tag-<name>` labels defines the tags used for the kariosDB query. In a
+normal ZMON setup the following tags will be available:
+
+* `application`
+* `alias` (name of Kubernetes cluster)
+* `entity` - full ZMON entity ID.
+
+`aggregators` defines the aggregation functions applied to the metrics query.
+For instance if you define the entity filter
+`type=kube_pod,application=my-custom-app` you might get three entities back and
+then you might want to get an average over the metrics for those three
+entities. This would be possible by using the `avg` aggregator. The default
+aggregator is `last` which returns only the latest metric point from the
+query. The supported aggregation functions are `avg`, `dev`, `count`,
+`first`, `last`, `max`, `min`, `sum`, `diff`. See the [KariosDB docs](https://kairosdb.github.io/docs/build/html/restapi/Aggregators.html) for
+details.
+
+The `duration` defines the duration used for the timeseries query. E.g. if you
+specify a duration of `5m` then the query will return metric points for the
+last 5 minutes and apply the specified aggregation with the same duration .e.g
+`max(5m)`.
+
+The annotations `metric-config.external.zmon-check.zmon/key` and
+`metric-config.external.zmon-check.zmon/tag-<name>` can be optionally used if
+you need to define a `key` or other `tag` with a "star" query syntax like
+`values.*`. This *hack* is in place because it's not allowed to use `*` in the
+metric label definitions. If both annotations and corresponding label is
+defined, then the annotation takes precedence.
