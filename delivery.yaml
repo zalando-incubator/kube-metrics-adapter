@@ -1,7 +1,7 @@
 version: "2017-09-20"
 pipeline:
 - id: build
-  overlay: ci/golang
+  overlay: ci/x-golang-1-11-1
   type: script
   commands:
   - desc: test
