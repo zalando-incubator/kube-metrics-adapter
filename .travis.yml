@@ -1,11 +1,17 @@
 language: go
 
 go:
-  - "1.11"
+  - "1.11.2"
 
 env:
 - GO111MODULE=on
 
+before_install:
+  - go get github.com/mattn/goveralls
+  - go get github.com/lawrencewoodman/roveralls
+
 script:
   - make test
   - make build.docker
+  - roveralls
+  - goveralls -v -coverprofile=roveralls.coverprofile -service=travis-ci
