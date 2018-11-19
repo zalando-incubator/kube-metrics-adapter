@@ -15,6 +15,7 @@ import (
 
 func TestMetricStore(t *testing.T) {
 	var metricStoreTests = []struct {
+		test string
 		insert collector.CollectedMetric
 		list   []provider.CustomMetricInfo
 		byName struct {
@@ -23,14 +24,17 @@ func TestMetricStore(t *testing.T) {
 		}
 	}{
 		{
+			test: "insert/list/get a namespaced resource metric",
 			insert: collector.CollectedMetric{
 				Type: v2beta1.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					MetricName: "metric",
+					MetricName: "metric-per-unit",
 					Value:      *resource.NewQuantity(0, ""),
 					DescribedObject: custom_metrics.ObjectReference{
-						Name:      "metricObject",
-						Namespace: "default",
+						Name:       "metricObject",
+						Namespace:  "default",
+						Kind:       "Deployment",
+						APIVersion: "apps/v1",
 					},
 				},
 			},
@@ -38,7 +42,7 @@ func TestMetricStore(t *testing.T) {
 				{
 					GroupResource: schema.GroupResource{},
 					Namespaced:    true,
-					Metric:        "metric",
+					Metric:        "metric-per-unit",
 				},
 			},
 			byName: struct {
@@ -49,25 +53,63 @@ func TestMetricStore(t *testing.T) {
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{},
 					Namespaced:    true,
-					Metric:        "metric",
+					Metric:        "metric-per-unit",
+				},
+			},
+		},
+		{
+			test: "insert/list/get a non-namespaced resource metric",
+			insert: collector.CollectedMetric{
+				Type: v2beta1.MetricSourceType("Object"),
+				Custom: custom_metrics.MetricValue{
+					MetricName: "metric-per-unit",
+					Value:      *resource.NewQuantity(0, ""),
+					DescribedObject: custom_metrics.ObjectReference{
+						Name:       "metricObject",
+						Kind:       "Node",
+						APIVersion: "core/v1",
+					},
+				},
+			},
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    false,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject", Namespace: ""},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    false,
+					Metric:        "metric-per-unit",
 				},
 			},
 		},
 	}
 
-	metricsStore := NewMetricStore()
+	for _, tc := range metricStoreTests {
+		t.Run(tc.test, func(t *testing.T) {
+			metricsStore := NewMetricStore()
 
-	// Insert a metric with value
-	metricsStore.Insert(metricStoreTests[0].insert)
+			// Insert a metric with value
+			metricsStore.Insert(tc.insert)
 
-	// List a metric with value
-	metricInfos := metricsStore.ListAllMetrics()
-	require.Equal(t, metricStoreTests[0].list, metricInfos)
+			// List a metric with value
+			metricInfos := metricsStore.ListAllMetrics()
+			require.Equal(t, tc.list, metricInfos)
 
-	// Get the metric by name
-	metric := metricsStore.GetMetricsByName(metricStoreTests[0].byName.name, metricStoreTests[0].byName.info)
+			// Get the metric by name
+			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info)
 
-	require.Equal(t, metricStoreTests[0].insert.Custom, *metric)
-	spew.Dump(metric)
+			require.Equal(t, tc.insert.Custom, *metric)
+			spew.Dump(metric)
+
+		})
+	}
 
 }
