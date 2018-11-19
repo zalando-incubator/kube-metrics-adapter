@@ -1,12 +1,12 @@
 package provider
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"k8s.io/api/autoscaling/v2beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
@@ -15,12 +15,17 @@ import (
 
 func TestMetricStore(t *testing.T) {
 	var metricStoreTests = []struct {
-		test string
+		test   string
 		insert collector.CollectedMetric
 		list   []provider.CustomMetricInfo
 		byName struct {
 			name types.NamespacedName
 			info provider.CustomMetricInfo
+		}
+		byLabel struct {
+			namespace string
+			selector  labels.Selector
+			info      provider.CustomMetricInfo
 		}
 	}{
 		{
@@ -50,6 +55,19 @@ func TestMetricStore(t *testing.T) {
 				info provider.CustomMetricInfo
 			}{
 				name: types.NamespacedName{Name: "metricObject", Namespace: "default"},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "default",
+				selector:  labels.Everything(),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{},
 					Namespaced:    true,
@@ -89,6 +107,19 @@ func TestMetricStore(t *testing.T) {
 					Metric:        "metric-per-unit",
 				},
 			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "",
+				selector:  labels.Everything(),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    false,
+					Metric:        "metric-per-unit",
+				},
+			},
 		},
 	}
 
@@ -107,8 +138,11 @@ func TestMetricStore(t *testing.T) {
 			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info)
 
 			require.Equal(t, tc.insert.Custom, *metric)
-			spew.Dump(metric)
+			if tc.byLabel.namespace == "default" {
+				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+				require.Equal(t, tc.insert.Custom, metrics.Items[0])
 
+			}
 		})
 	}
 
