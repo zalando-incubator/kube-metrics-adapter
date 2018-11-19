@@ -6,12 +6,14 @@ import (
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"k8s.io/api/autoscaling/v2beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 	"testing"
+	"time"
 )
 
 func TestInternalMetricStorage(t *testing.T) {
@@ -149,7 +151,7 @@ func TestInternalMetricStorage(t *testing.T) {
 
 func TestExternalMetricStorage(t *testing.T) {
 	var metricStoreTests = []struct {
-		test string
+		test   string
 		insert collector.CollectedMetric
 		list   provider.ExternalMetricInfo
 		get    struct {
@@ -174,11 +176,11 @@ func TestExternalMetricStorage(t *testing.T) {
 				namespace string
 				selector  labels.Selector
 				info      provider.ExternalMetricInfo
-			}{	namespace: "",
+			}{namespace: "",
 				selector: labels.Everything(),
 				info: provider.ExternalMetricInfo{
-				Metric: "metric-per-unit",
-			}},
+					Metric: "metric-per-unit",
+				}},
 		},
 	}
 
@@ -200,5 +202,47 @@ func TestExternalMetricStorage(t *testing.T) {
 
 		})
 	}
+
+}
+
+func TestMetricsExpiration(t *testing.T) {
+	metricStore := NewMetricStore()
+
+	oldTime := v1.Time{Time: time.Now().UTC().Add(time.Hour * -1)}
+
+
+	customMetric := collector.CollectedMetric{
+		Type: v2beta1.MetricSourceType("Object"),
+		Custom: custom_metrics.MetricValue{
+			MetricName: "metric-per-unit",
+			Value:      *resource.NewQuantity(0, ""),
+			DescribedObject: custom_metrics.ObjectReference{
+				Name:       "metricObject",
+				Kind:       "Node",
+				APIVersion: "core/v1",
+			},
+			Timestamp:  oldTime,
+		},
+	}
+
+	externalMetric := collector.CollectedMetric {
+		Type: v2beta1.MetricSourceType("External"),
+		External: external_metrics.ExternalMetricValue{
+			MetricName: "metric-per-unit",
+			Value:      *resource.NewQuantity(0, ""),
+			Timestamp:  oldTime,
+		},
+	}
+
+
+	metricStore.Insert(customMetric)
+	metricStore.Insert(externalMetric)
+	metricStore.RemoveExpired()
+
+	customMetricInfos := metricStore.ListAllMetrics()
+	require.Len(t, customMetricInfos, 0)
+
+	externalMetricInfos := metricStore.ListAllExternalMetrics()
+	require.Len(t, externalMetricInfos, 0)
 
 }
