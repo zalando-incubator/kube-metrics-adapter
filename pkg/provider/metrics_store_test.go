@@ -208,8 +208,10 @@ func TestExternalMetricStorage(t *testing.T) {
 func TestMetricsExpiration(t *testing.T) {
 	metricStore := NewMetricStore()
 
-	oldTime := v1.Time{Time: time.Now().UTC().Add(time.Hour * -1)}
-
+	// Override global TTL to test expiration
+	metricsTTL = func() time.Time {
+		return time.Now().UTC().Add(time.Hour * -1)
+	}
 
 	customMetric := collector.CollectedMetric{
 		Type: v2beta1.MetricSourceType("Object"),
@@ -221,19 +223,18 @@ func TestMetricsExpiration(t *testing.T) {
 				Kind:       "Node",
 				APIVersion: "core/v1",
 			},
-			Timestamp:  oldTime,
+			Timestamp: v1.Time{Time: metricsTTL()},
 		},
 	}
 
-	externalMetric := collector.CollectedMetric {
+	externalMetric := collector.CollectedMetric{
 		Type: v2beta1.MetricSourceType("External"),
 		External: external_metrics.ExternalMetricValue{
 			MetricName: "metric-per-unit",
 			Value:      *resource.NewQuantity(0, ""),
-			Timestamp:  oldTime,
+			Timestamp:  v1.Time{Time: metricsTTL()},
 		},
 	}
-
 
 	metricStore.Insert(customMetric)
 	metricStore.Insert(externalMetric)

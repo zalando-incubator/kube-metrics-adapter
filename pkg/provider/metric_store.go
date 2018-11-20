@@ -17,7 +17,7 @@ import (
 	"k8s.io/metrics/pkg/apis/external_metrics"
 )
 
-// customMetricsStoredMetric is a wrapper around custom_metrics.MetricValue with a TTL used
+// customMetricsStoredMetric is a wrapper around custom_metrics.MetricValue with a metricsTTL used
 // to clean up stale metrics from the customMetricsStore.
 type customMetricsStoredMetric struct {
 	Value  custom_metrics.MetricValue
@@ -35,6 +35,10 @@ type MetricStore struct {
 	customMetricsStore   map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric
 	externalMetricsStore map[string]map[string]externalMetricsStoredMetric
 	sync.RWMutex
+}
+
+var metricsTTL = func() time.Time {
+	return time.Now().UTC().Add(15 * time.Minute)
 }
 
 // NewMetricStore initializes an empty Metrics Store.
@@ -77,7 +81,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 	metric := customMetricsStoredMetric{
 		Value:  value,
 		Labels: labels,
-		TTL:    time.Now().UTC().Add(15 * time.Minute), // TODO: make TTL configurable
+		TTL:    metricsTTL(), // TODO: make metricsTTL configurable
 	}
 
 	metrics, ok := s.customMetricsStore[value.MetricName]
@@ -118,7 +122,7 @@ func (s *MetricStore) insertExternalMetric(metric external_metrics.ExternalMetri
 
 	storedMetric := externalMetricsStoredMetric{
 		Value: metric,
-		TTL:   time.Now().UTC().Add(15 * time.Minute), // TODO: make TTL configurable
+		TTL:   metricsTTL(), // TODO: make metricsTTL configurable
 	}
 
 	labelsKey := hashLabelMap(metric.MetricLabels)
@@ -270,7 +274,7 @@ func (s *MetricStore) ListAllExternalMetrics() []provider.ExternalMetricInfo {
 }
 
 // RemoveExpired removes expired metrics from the Metrics Store. A metric is
-// considered expired if its TTL is before time.Now().
+// considered expired if its metricsTTL is before time.Now().
 func (s *MetricStore) RemoveExpired() {
 	s.Lock()
 	defer s.Unlock()
