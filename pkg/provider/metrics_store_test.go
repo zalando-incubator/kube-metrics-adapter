@@ -6,7 +6,6 @@ import (
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"k8s.io/api/autoscaling/v2beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -128,7 +127,9 @@ func TestInternalMetricStorage(t *testing.T) {
 
 	for _, tc := range metricStoreTests {
 		t.Run(tc.test, func(t *testing.T) {
-			metricsStore := NewMetricStore()
+			metricsStore := NewMetricStore(func() time.Time {
+				return time.Now().UTC().Add(15 * time.Minute)
+			})
 
 			// Insert a metric with value
 			metricsStore.Insert(tc.insert)
@@ -186,7 +187,9 @@ func TestExternalMetricStorage(t *testing.T) {
 
 	for _, tc := range metricStoreTests {
 		t.Run(tc.test, func(t *testing.T) {
-			metricsStore := NewMetricStore()
+			metricsStore := NewMetricStore(func() time.Time {
+				return time.Now().UTC().Add(15 * time.Minute)
+			})
 
 			// Insert a metric with value
 			metricsStore.Insert(tc.insert)
@@ -206,13 +209,10 @@ func TestExternalMetricStorage(t *testing.T) {
 }
 
 func TestMetricsExpiration(t *testing.T) {
-	metricStore := NewMetricStore()
-
 	// Temporarily Override global TTL to test expiration
-	tmpTTL := metricsTTL
-	metricsTTL = func() time.Time {
+	metricStore := NewMetricStore(func() time.Time {
 		return time.Now().UTC().Add(time.Hour * -1)
-	}
+	})
 
 	customMetric := collector.CollectedMetric{
 		Type: v2beta1.MetricSourceType("Object"),
@@ -224,7 +224,6 @@ func TestMetricsExpiration(t *testing.T) {
 				Kind:       "Node",
 				APIVersion: "core/v1",
 			},
-			Timestamp: v1.Time{Time: metricsTTL()},
 		},
 	}
 
@@ -233,7 +232,6 @@ func TestMetricsExpiration(t *testing.T) {
 		External: external_metrics.ExternalMetricValue{
 			MetricName: "metric-per-unit",
 			Value:      *resource.NewQuantity(0, ""),
-			Timestamp:  v1.Time{Time: metricsTTL()},
 		},
 	}
 
@@ -248,12 +246,12 @@ func TestMetricsExpiration(t *testing.T) {
 	externalMetricInfos := metricStore.ListAllExternalMetrics()
 	require.Len(t, externalMetricInfos, 0)
 
-	// set metricTTL to original
-	metricsTTL = tmpTTL
 }
 
 func TestMetricsNonExpiration(t *testing.T) {
-	metricStore := NewMetricStore()
+	metricStore := NewMetricStore(func() time.Time {
+		return time.Now().UTC().Add(15 * time.Minute)
+	})
 
 	customMetric := collector.CollectedMetric{
 		Type: v2beta1.MetricSourceType("Object"),

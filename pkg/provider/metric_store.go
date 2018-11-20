@@ -34,18 +34,16 @@ type externalMetricsStoredMetric struct {
 type MetricStore struct {
 	customMetricsStore   map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric
 	externalMetricsStore map[string]map[string]externalMetricsStoredMetric
+	metricsTTLCalculator func() time.Time
 	sync.RWMutex
 }
 
-var metricsTTL = func() time.Time {
-	return time.Now().UTC().Add(15 * time.Minute)
-}
-
 // NewMetricStore initializes an empty Metrics Store.
-func NewMetricStore() *MetricStore {
+func NewMetricStore(ttlCalculator func() time.Time) *MetricStore {
 	return &MetricStore{
 		customMetricsStore:   make(map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric, 0),
 		externalMetricsStore: make(map[string]map[string]externalMetricsStoredMetric, 0),
+		metricsTTLCalculator: ttlCalculator,
 	}
 }
 
@@ -81,7 +79,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 	metric := customMetricsStoredMetric{
 		Value:  value,
 		Labels: labels,
-		TTL:    metricsTTL(), // TODO: make metricsTTL configurable
+		TTL:    s.metricsTTLCalculator(), // TODO: make TTL configurable
 	}
 
 	metrics, ok := s.customMetricsStore[value.MetricName]
@@ -122,7 +120,7 @@ func (s *MetricStore) insertExternalMetric(metric external_metrics.ExternalMetri
 
 	storedMetric := externalMetricsStoredMetric{
 		Value: metric,
-		TTL:   metricsTTL(), // TODO: make metricsTTL configurable
+		TTL:   s.metricsTTLCalculator(), // TODO: make TTL configurable
 	}
 
 	labelsKey := hashLabelMap(metric.MetricLabels)

@@ -81,10 +81,12 @@ func NewHPAProvider(client kubernetes.Interface, interval, collectorInterval tim
 		interval:          interval,
 		collectorInterval: collectorInterval,
 		metricSink:        metricsc,
-		metricStore:       NewMetricStore(),
-		collectorFactory:  collectorFactory,
-		recorder:          recorder.CreateEventRecorder(client),
-		logger:            log.WithFields(log.Fields{"provider": "hpa"}),
+		metricStore: NewMetricStore(func() time.Time {
+			return time.Now().UTC().Add(15 * time.Minute)
+		}),
+		collectorFactory: collectorFactory,
+		recorder:         recorder.CreateEventRecorder(client),
+		logger:           log.WithFields(log.Fields{"provider": "hpa"}),
 	}
 }
 
