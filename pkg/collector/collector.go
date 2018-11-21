@@ -287,6 +287,8 @@ func ParseHPAMetrics(hpa *autoscalingv2beta1.HorizontalPodAutoscaler) ([]*Metric
 			}
 		case autoscalingv2beta1.ExternalMetricSourceType:
 			typeName.Name = metric.External.MetricName
+		case autoscalingv2beta1.ResourceMetricSourceType:
+			continue // kube-metrics-adapter does not collect resource metrics
 		}
 
 		if config, ok := configs[typeName]; ok {
