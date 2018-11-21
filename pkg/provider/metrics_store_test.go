@@ -624,6 +624,78 @@ func TestExternalMetricStorage(t *testing.T) {
 
 }
 
+func TestMultipleExternalMetricStorage(t *testing.T) {
+	var metricStoreTests = []struct {
+		test   string
+		insert []collector.CollectedMetric
+		list   provider.ExternalMetricInfo
+		get    struct {
+			namespace string
+			selector  labels.Selector
+			info      provider.ExternalMetricInfo
+		}
+	}{
+		{
+			test: "the latest value overrides the last one",
+			insert: []collector.CollectedMetric{
+				{
+					Type: v2beta1.MetricSourceType("External"),
+					External: external_metrics.ExternalMetricValue{
+						MetricName:   "metric-per-unit",
+						Value:        *resource.NewQuantity(0, ""),
+						MetricLabels: map[string]string{"application": "some-app"},
+					},
+				},
+				{
+					Type: v2beta1.MetricSourceType("External"),
+					External: external_metrics.ExternalMetricValue{
+						MetricName:   "metric-per-unit",
+						Value:        *resource.NewQuantity(1, ""),
+						MetricLabels: map[string]string{"application": "some-app"},
+					},
+				},
+			},
+			list: provider.ExternalMetricInfo{
+				Metric: "metric-per-unit",
+			},
+			get: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.ExternalMetricInfo
+			}{namespace: "",
+				selector: labels.Everything(),
+				info: provider.ExternalMetricInfo{
+					Metric: "metric-per-unit",
+				}},
+		},
+	}
+
+	for _, tc := range metricStoreTests {
+		t.Run(tc.test, func(t *testing.T) {
+			metricsStore := NewMetricStore(func() time.Time {
+				return time.Now().UTC().Add(15 * time.Minute)
+			})
+
+			for _, insert := range tc.insert {
+				// Insert a metric with value
+				metricsStore.Insert(insert)
+
+			}
+
+			// Get the metric by name
+			metrics, err := metricsStore.GetExternalMetric(tc.get.namespace, tc.get.selector, tc.get.info)
+			require.NoError(t, err)
+			require.NotContains(t, metrics.Items, tc.insert[0].External)
+			require.Contains(t, metrics.Items, tc.insert[1].External)
+
+			// List a metric with value
+			metricInfos := metricsStore.ListAllExternalMetrics()
+			require.Equal(t, tc.list, metricInfos[0])
+		})
+	}
+
+}
+
 func TestMetricsExpiration(t *testing.T) {
 	// Temporarily Override global TTL to test expiration
 	metricStore := NewMetricStore(func() time.Time {
