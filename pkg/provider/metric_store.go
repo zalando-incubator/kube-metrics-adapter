@@ -101,6 +101,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 				value.DescribedObject.Name: metric,
 			},
 		}
+		return
 	}
 
 	namespace, ok := group[value.DescribedObject.Namespace]
@@ -108,6 +109,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 		group[value.DescribedObject.Namespace] = map[string]customMetricsStoredMetric{
 			value.DescribedObject.Name: metric,
 		}
+		return
 	}
 
 	namespace[value.DescribedObject.Name] = metric

@@ -283,7 +283,7 @@ func TestMultipleMetricValues(t *testing.T) {
 		}
 	}{
 		{
-			test: "insert/list/get an Ingress metric",
+			test: "insert/list/get multiple Ingress metrics",
 			insert: []collector.CollectedMetric{
 				{
 					Type: v2beta1.MetricSourceType("Object"),
@@ -352,7 +352,7 @@ func TestMultipleMetricValues(t *testing.T) {
 			},
 		},
 		{
-			test: "insert/list/get a namespaced resource metric",
+			test: "insert/list/get multiple namespaced resource metrics",
 			insert: []collector.CollectedMetric{
 				{
 					Type: v2beta1.MetricSourceType("Object"),
@@ -563,6 +563,111 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 
 		})
 	}
+	var multiValueTests = []struct {
+		test   string
+		insert []collector.CollectedMetric
+		list   []provider.CustomMetricInfo
+		byName struct {
+			name types.NamespacedName
+			info provider.CustomMetricInfo
+		}
+		byLabel struct {
+			namespace string
+			selector  labels.Selector
+			info      provider.CustomMetricInfo
+		}
+	}{
+		{
+			test: "insert/list/get multiple metrics in different groups",
+			insert: []collector.CollectedMetric{
+				{
+					Type: v2beta1.MetricSourceType("Object"),
+					Custom: custom_metrics.MetricValue{
+						MetricName: "metric-per-unit",
+						Value:      *resource.NewQuantity(0, ""),
+						DescribedObject: custom_metrics.ObjectReference{
+							Name:       "metricObject",
+							Namespace:  "default",
+							Kind:       "Ingress",
+							APIVersion: "extensions/vbeta1",
+						},
+					},
+				},
+				{
+					Type: v2beta1.MetricSourceType("Object"),
+					Custom: custom_metrics.MetricValue{
+						MetricName: "metric-per-unit",
+						Value:      *resource.NewQuantity(1, ""),
+						DescribedObject: custom_metrics.ObjectReference{
+							Name:       "metricObject",
+							Namespace:  "default",
+							Kind:       "Pod",
+							APIVersion: "core/v1",
+						},
+					},
+				},
+				{
+					Type: v2beta1.MetricSourceType("Object"),
+					Custom: custom_metrics.MetricValue{
+						MetricName: "metric-per-unit",
+						Value:      *resource.NewQuantity(1, ""),
+						DescribedObject: custom_metrics.ObjectReference{
+							Name:       "metricObject",
+							Namespace:  "new-namespace",
+							Kind:       "Pod",
+							APIVersion: "core/v1",
+						},
+					},
+				},
+			},
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject", Namespace: "default"},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "default",
+				selector:  labels.Everything(),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+		},
+	}
+
+	for _, tc := range multiValueTests {
+		t.Run(tc.test, func(t *testing.T) {
+			metricsStore := NewMetricStore(func() time.Time {
+				return time.Now().UTC().Add(15 * time.Minute)
+			})
+
+			// Insert a metric with value
+			for _, insert := range tc.insert {
+				metricsStore.Insert(insert)
+			}
+
+		})
+	}
+
 }
 
 func TestExternalMetricStorage(t *testing.T) {
