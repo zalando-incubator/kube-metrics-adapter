@@ -8,7 +8,7 @@ env:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get upgrade -y
+  - sudo apt-get upgrade -y ca-certificates
   - go get github.com/mattn/goveralls
   - go get github.com/lawrencewoodman/roveralls
 
