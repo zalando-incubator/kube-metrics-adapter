@@ -7,6 +7,7 @@ env:
 - GO111MODULE=on
 
 before_install:
+  - sudo pip2 install --upgrade mercurial
   - go get github.com/mattn/goveralls
   - go get github.com/lawrencewoodman/roveralls
 
