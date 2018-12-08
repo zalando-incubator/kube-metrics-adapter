@@ -7,8 +7,9 @@ env:
 - GO111MODULE=on
 
 before_install:
-  - sudo apt-get update
-  - sudo apt-get install --only-upgrade -y libssl-dev openssl
+  - sudo apt-get remove -y mercurial
+  - sudo pip2 install mercurial
+  - echo "[hostsecurity]\ndisabletls10warning = true" >> $HOME/.hgrc
   - go get github.com/mattn/goveralls
   - go get github.com/lawrencewoodman/roveralls
 
