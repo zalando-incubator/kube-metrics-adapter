@@ -152,13 +152,13 @@ func targetRefReplicas(client kubernetes.Interface, hpa *autoscalingv2beta1.Hori
 		if err != nil {
 			return 0, err
 		}
-		replicas = deployment.Status.ReadyReplicas
+		replicas = deployment.Status.Replicas
 	case "StatefulSet":
 		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return 0, err
 		}
-		replicas = sts.Status.ReadyReplicas
+		replicas = sts.Status.Replicas
 	}
 
 	return replicas, nil
