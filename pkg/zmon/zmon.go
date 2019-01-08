@@ -71,7 +71,7 @@ type metric struct {
 	Limit       int                 `json:"limit"`
 	Tags        map[string][]string `json:"tags"`
 	GroupBy     []tagGroup          `json:"group_by"`
-	Aggregators []aggregator        `json:"aggregator"`
+	Aggregators []aggregator        `json:"aggregators"`
 }
 
 type tagGroup struct {
