@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -41,7 +41,7 @@ func NewZMONCollectorPlugin(zmon zmon.ZMON) (*ZMONCollectorPlugin, error) {
 }
 
 // NewCollector initializes a new ZMON collector from the specified HPA.
-func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	switch config.Name {
 	case ZMONCheckMetric:
 		annotations := map[string]string{}
@@ -65,7 +65,7 @@ type ZMONCollector struct {
 	duration    time.Duration
 	aggregators []string
 	metricName  string
-	metricType  autoscalingv2beta1.MetricSourceType
+	metricType  autoscalingv2beta2.MetricSourceType
 }
 
 // NewZMONCollector initializes a new ZMONCollector.

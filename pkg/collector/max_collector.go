@@ -1,24 +1,29 @@
 package collector
 
-import "time"
+import (
+	"k8s.io/apimachinery/pkg/api/resource"
+	"time"
+)
 
 // MaxCollector is a simple aggregator collector that returns the maximum value
 // of metrics from all collectors.
-type MaxCollector struct {
+type WeightedMaxCollector struct {
 	collectors []Collector
 	interval   time.Duration
+	weight     float64
 }
 
 // NewMaxCollector initializes a new MacCollector.
-func NewMaxCollector(interval time.Duration, collectors ...Collector) *MaxCollector {
-	return &MaxCollector{
+func NewWeightedMaxCollector(interval time.Duration, weight float64, collectors ...Collector) *WeightedMaxCollector {
+	return &WeightedMaxCollector{
 		collectors: collectors,
 		interval:   interval,
+		weight:     weight,
 	}
 }
 
 // GetMetrics gets metrics from all collectors and return the higest value.
-func (c *MaxCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *WeightedMaxCollector) GetMetrics() ([]CollectedMetric, error) {
 	var max CollectedMetric
 	for _, collector := range c.collectors {
 		values, err := collector.GetMetrics()
@@ -33,10 +38,12 @@ func (c *MaxCollector) GetMetrics() ([]CollectedMetric, error) {
 		}
 
 	}
+
+	max.Custom.Value = *resource.NewQuantity(int64(float64(max.Custom.Value.MilliValue())*c.weight), resource.DecimalSI)
 	return []CollectedMetric{max}, nil
 }
 
 // Interval returns the interval at which the collector should run.
-func (c *MaxCollector) Interval() time.Duration {
+func (c *WeightedMaxCollector) Interval() time.Duration {
 	return c.interval
 }

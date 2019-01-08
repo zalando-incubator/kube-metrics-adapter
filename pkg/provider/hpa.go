@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -47,7 +47,7 @@ var (
 )
 
 type objectCollector struct {
-	ObjectReference *autoscalingv2beta1.CrossVersionObjectReference
+	ObjectReference *autoscalingv2beta2.CrossVersionObjectReference
 }
 
 // HPAProvider is a base provider for initializing metric collectors based on
@@ -58,7 +58,7 @@ type HPAProvider struct {
 	collectorScheduler *CollectorScheduler
 	collectorInterval  time.Duration
 	metricSink         chan metricCollection
-	hpaCache           map[resourceReference]autoscalingv2beta1.HorizontalPodAutoscaler
+	hpaCache           map[resourceReference]autoscalingv2beta2.HorizontalPodAutoscaler
 	metricStore        *MetricStore
 	collectorFactory   *collector.CollectorFactory
 	recorder           kube_record.EventRecorder
@@ -120,12 +120,12 @@ func (p *HPAProvider) Run(ctx context.Context) {
 func (p *HPAProvider) updateHPAs() error {
 	p.logger.Info("Looking for HPAs")
 
-	hpas, err := p.client.AutoscalingV2beta1().HorizontalPodAutoscalers(metav1.NamespaceAll).List(metav1.ListOptions{})
+	hpas, err := p.client.AutoscalingV2beta2().HorizontalPodAutoscalers(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	newHPACache := make(map[resourceReference]autoscalingv2beta1.HorizontalPodAutoscaler, len(hpas.Items))
+	newHPACache := make(map[resourceReference]autoscalingv2beta2.HorizontalPodAutoscaler, len(hpas.Items))
 
 	newHPAs := 0
 
@@ -187,7 +187,7 @@ func (p *HPAProvider) updateHPAs() error {
 }
 
 // equalHPA returns true if two HPAs are identical (apart from their status).
-func equalHPA(a, b autoscalingv2beta1.HorizontalPodAutoscaler) bool {
+func equalHPA(a, b autoscalingv2beta2.HorizontalPodAutoscaler) bool {
 	// reset resource version to not compare it since this will change
 	// whenever the status of the object is updated. We only want to
 	// compare the metadata and the spec.
@@ -225,15 +225,15 @@ func (p *HPAProvider) collectMetrics(ctx context.Context) {
 			p.logger.Infof("Collected %d new metric(s)", len(collection.Values))
 			for _, value := range collection.Values {
 				switch value.Type {
-				case autoscalingv2beta1.ObjectMetricSourceType, autoscalingv2beta1.PodsMetricSourceType:
+				case autoscalingv2beta2.ObjectMetricSourceType, autoscalingv2beta2.PodsMetricSourceType:
 					p.logger.Infof("Collected new custom metric '%s' (%s) for %s %s/%s",
-						value.Custom.MetricName,
+						value.Custom.Metric.Name,
 						value.Custom.Value.String(),
 						value.Custom.DescribedObject.Kind,
 						value.Custom.DescribedObject.Namespace,
 						value.Custom.DescribedObject.Name,
 					)
-				case autoscalingv2beta1.ExternalMetricSourceType:
+				case autoscalingv2beta2.ExternalMetricSourceType:
 					p.logger.Infof("Collected new external metric '%s' (%s) [%s]",
 						value.External.MetricName,
 						value.External.Value.String(),

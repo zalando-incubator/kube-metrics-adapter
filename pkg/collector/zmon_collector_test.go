@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -37,7 +37,7 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 		},
 	}
 
-	hpa := &autoscalingv2beta1.HorizontalPodAutoscaler{}
+	hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
 
 	collector, err := collectPlugin.NewCollector(hpa, config, 1*time.Second)
 	require.NoError(t, err)

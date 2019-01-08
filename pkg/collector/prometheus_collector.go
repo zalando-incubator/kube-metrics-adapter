@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -38,7 +38,7 @@ func NewPrometheusCollectorPlugin(client kubernetes.Interface, prometheusServer 
 	}, nil
 }
 
-func (p *PrometheusCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (p *PrometheusCollectorPlugin) NewCollector(hpa *autoscalingv2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return NewPrometheusCollector(p.client, p.promAPI, hpa, config, interval)
 }
 
@@ -47,14 +47,14 @@ type PrometheusCollector struct {
 	promAPI         promv1.API
 	query           string
 	metricName      string
-	metricType      autoscalingv2beta1.MetricSourceType
+	metricType      autoscalingv2beta2.MetricSourceType
 	objectReference custom_metrics.ObjectReference
 	interval        time.Duration
 	perReplica      bool
-	hpa             *autoscalingv2beta1.HorizontalPodAutoscaler
+	hpa             *autoscalingv2beta2.HorizontalPodAutoscaler
 }
 
-func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PrometheusCollector, error) {
+func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa *autoscalingv2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PrometheusCollector, error) {
 	c := &PrometheusCollector{
 		client:          client,
 		objectReference: config.ObjectReference,
@@ -117,9 +117,12 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 		Type: c.metricType,
 		Custom: custom_metrics.MetricValue{
 			DescribedObject: c.objectReference,
-			MetricName:      c.metricName,
-			Timestamp:       metav1.Time{Time: time.Now().UTC()},
-			Value:           *resource.NewMilliQuantity(int64(sampleValue*1000), resource.DecimalSI),
+			Metric: custom_metrics.MetricIdentifier{
+				Name:     c.metricName,
+				Selector: nil,
+			},
+			Timestamp: metav1.Time{Time: time.Now().UTC()},
+			Value:     *resource.NewMilliQuantity(int64(sampleValue*1000), resource.DecimalSI),
 		},
 	}
 
@@ -128,4 +131,24 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 
 func (c *PrometheusCollector) Interval() time.Duration {
 	return c.interval
+}
+
+func targetRefReplicas(client kubernetes.Interface, hpa *autoscalingv2beta2.HorizontalPodAutoscaler) (int32, error) {
+	var replicas int32
+	switch hpa.Spec.ScaleTargetRef.Kind {
+	case "Deployment":
+		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return 0, err
+		}
+		replicas = deployment.Status.Replicas
+	case "StatefulSet":
+		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return 0, err
+		}
+		replicas = sts.Status.Replicas
+	}
+
+	return replicas, nil
 }

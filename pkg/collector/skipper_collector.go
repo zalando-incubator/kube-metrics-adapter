@@ -1,12 +1,12 @@
 package collector
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
@@ -33,10 +33,16 @@ func NewSkipperCollectorPlugin(client kubernetes.Interface, prometheusPlugin *Pr
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
-func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	backend := ""
+	if strings.HasPrefix(config.Name, rpsMetricName) {
+		if len(config.Name) > len(rpsMetricName) {
+			backend = config.Name[len(rpsMetricName):]
+		}
+	}
 	switch config.Name {
 	case rpsMetricName:
-		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval)
+		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval, backend)
 	default:
 		return nil, fmt.Errorf("metric '%s' not supported", config.Name)
 	}
@@ -48,14 +54,18 @@ type SkipperCollector struct {
 	client          kubernetes.Interface
 	metricName      string
 	objectReference custom_metrics.ObjectReference
-	hpa             *autoscalingv2beta1.HorizontalPodAutoscaler
+	hpa             *autoscalingv2beta2.HorizontalPodAutoscaler
 	interval        time.Duration
 	plugin          CollectorPlugin
 	config          MetricConfig
+	backend         string
 }
 
 // NewSkipperCollector initializes a new SkipperCollector.
-func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*SkipperCollector, error) {
+func NewSkipperCollector(
+	client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2beta2.HorizontalPodAutoscaler,
+	config *MetricConfig, interval time.Duration, backend string,
+) (*SkipperCollector, error) {
 	return &SkipperCollector{
 		client:          client,
 		objectReference: config.ObjectReference,
@@ -64,14 +74,29 @@ func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hp
 		interval:        interval,
 		plugin:          plugin,
 		config:          *config,
+		backend:         backend,
 	}, nil
 }
+
+const stackTrafficWeight = "zalando.org/stack-traffic-weights"
 
 // getCollector returns a collector for getting the metrics.
 func (c *SkipperCollector) getCollector() (Collector, error) {
 	ingress, err := c.client.ExtensionsV1beta1().Ingresses(c.objectReference.Namespace).Get(c.objectReference.Name, metav1.GetOptions{})
+
 	if err != nil {
 		return nil, err
+	}
+
+	backendWeight := 1.0
+	var stackWeights map[string]int
+	if weightAnnotation, ok := ingress.Annotations[stackTrafficWeight]; ok {
+		err = json.Unmarshal([]byte(weightAnnotation), &stackWeights)
+		if err == nil {
+			if _, ok := stackWeights[c.backend]; ok {
+				backendWeight = float64(stackWeights[c.backend]) / 100
+			}
+		}
 	}
 
 	config := c.config
@@ -93,7 +118,7 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 		collectors = append(collectors, collector)
 	}
 	if len(collectors) > 1 {
-		collector = NewMaxCollector(c.interval, collectors...)
+		collector = NewWeightedMaxCollector(c.interval, backendWeight, collectors...)
 	} else if len(collectors) == 1 {
 		collector = collectors[0]
 	} else {
@@ -119,47 +144,11 @@ func (c *SkipperCollector) GetMetrics() ([]CollectedMetric, error) {
 		return nil, fmt.Errorf("expected to only get one metric value, got %d", len(values))
 	}
 
-	// get current replicas for the targeted scale object. This is used to
-	// calculate an average metric instead of total.
-	// targetAverageValue will be available in Kubernetes v1.12
-	// https://github.com/kubernetes/kubernetes/pull/64097
-	replicas, err := targetRefReplicas(c.client, c.hpa)
-	if err != nil {
-		return nil, err
-	}
-
-	if replicas < 1 {
-		return nil, fmt.Errorf("unable to get average value for %d replicas", replicas)
-	}
-
 	value := values[0]
-	avgValue := float64(value.Custom.Value.MilliValue()) / float64(replicas)
-	value.Custom.Value = *resource.NewMilliQuantity(int64(avgValue), resource.DecimalSI)
-
 	return []CollectedMetric{value}, nil
 }
 
 // Interval returns the interval at which the collector should run.
 func (c *SkipperCollector) Interval() time.Duration {
 	return c.interval
-}
-
-func targetRefReplicas(client kubernetes.Interface, hpa *autoscalingv2beta1.HorizontalPodAutoscaler) (int32, error) {
-	var replicas int32
-	switch hpa.Spec.ScaleTargetRef.Kind {
-	case "Deployment":
-		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
-		if err != nil {
-			return 0, err
-		}
-		replicas = deployment.Status.Replicas
-	case "StatefulSet":
-		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
-		if err != nil {
-			return 0, err
-		}
-		replicas = sts.Status.Replicas
-	}
-
-	return replicas, nil
 }

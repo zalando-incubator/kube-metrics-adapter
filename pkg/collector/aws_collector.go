@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -32,7 +32,7 @@ func NewAWSCollectorPlugin(sessions map[string]*session.Session) *AWSCollectorPl
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
-func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	switch config.Name {
 	case AWSSQSQueueLengthMetric:
 		return NewAWSSQSCollector(c.sessions, config, interval)
@@ -49,7 +49,7 @@ type AWSSQSCollector struct {
 	queueName  string
 	labels     map[string]string
 	metricName string
-	metricType autoscalingv2beta1.MetricSourceType
+	metricType autoscalingv2beta2.MetricSourceType
 }
 
 func NewAWSSQSCollector(sessions map[string]*session.Session, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {

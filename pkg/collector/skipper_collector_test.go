@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/apps/v1"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -18,7 +18,7 @@ func TestTargetRefReplicasDeployments(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the deployment as ref
-	hpa, err := client.AutoscalingV2beta1().HorizontalPodAutoscalers(deployment.Namespace).
+	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(deployment.Namespace).
 		Create(newHPA(defaultNamespace, name, "Deployment"))
 	require.NoError(t, err)
 
@@ -35,7 +35,7 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the statefulSet as ref
-	hpa, err := client.AutoscalingV2beta1().HorizontalPodAutoscalers(statefulSet.Namespace).
+	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(statefulSet.Namespace).
 		Create(newHPA(defaultNamespace, name, "StatefulSet"))
 	require.NoError(t, err)
 
@@ -44,18 +44,18 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.Equal(t, statefulSet.Status.Replicas, replicas)
 }
 
-func newHPA(namesapce string, refName string, refKind string) *autoscalingv2beta1.HorizontalPodAutoscaler {
-	return &autoscalingv2beta1.HorizontalPodAutoscaler{
+func newHPA(namesapce string, refName string, refKind string) *autoscalingv2beta2.HorizontalPodAutoscaler {
+	return &autoscalingv2beta2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namesapce,
 		},
-		Spec: autoscalingv2beta1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv2beta1.CrossVersionObjectReference{
+		Spec: autoscalingv2beta2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2beta2.CrossVersionObjectReference{
 				Name: refName,
 				Kind: refKind,
 			},
 		},
-		Status: autoscalingv2beta1.HorizontalPodAutoscalerStatus{},
+		Status: autoscalingv2beta2.HorizontalPodAutoscalerStatus{},
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,9 +50,9 @@ func NewMetricStore(ttlCalculator func() time.Time) *MetricStore {
 // Insert inserts a collected metric into the metric customMetricsStore.
 func (s *MetricStore) Insert(value collector.CollectedMetric) {
 	switch value.Type {
-	case autoscalingv2beta1.ObjectMetricSourceType, autoscalingv2beta1.PodsMetricSourceType:
+	case autoscalingv2beta2.ObjectMetricSourceType, autoscalingv2beta2.PodsMetricSourceType:
 		s.insertCustomMetric(value.Custom, value.Labels)
-	case autoscalingv2beta1.ExternalMetricSourceType:
+	case autoscalingv2beta2.ExternalMetricSourceType:
 		s.insertExternalMetric(value.External)
 	}
 }
@@ -82,9 +82,9 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 		TTL:    s.metricsTTLCalculator(), // TODO: make TTL configurable
 	}
 
-	metrics, ok := s.customMetricsStore[value.MetricName]
+	metrics, ok := s.customMetricsStore[value.Metric.Name]
 	if !ok {
-		s.customMetricsStore[value.MetricName] = map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric{
+		s.customMetricsStore[value.Metric.Name] = map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric{
 			groupResource: map[string]map[string]customMetricsStoredMetric{
 				value.DescribedObject.Namespace: map[string]customMetricsStoredMetric{
 					value.DescribedObject.Name: metric,
