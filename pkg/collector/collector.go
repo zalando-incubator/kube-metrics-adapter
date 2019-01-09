@@ -6,6 +6,7 @@ import (
 	"time"
 
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 )
@@ -164,8 +165,9 @@ func getObjectReference(hpa *autoscalingv2beta2.HorizontalPodAutoscaler, metricN
 }
 
 type MetricTypeName struct {
-	Type autoscalingv2beta2.MetricSourceType
-	Name string
+	Type         autoscalingv2beta2.MetricSourceType
+	Name         string
+	MetricLabels *metav1.LabelSelector
 }
 
 type CollectedMetric struct {
@@ -279,6 +281,7 @@ func ParseHPAMetrics(hpa *autoscalingv2beta2.HorizontalPodAutoscaler) ([]*Metric
 			typeName.Name = metric.Pods.Metric.Name
 		case autoscalingv2beta2.ObjectMetricSourceType:
 			typeName.Name = metric.Object.Metric.Name
+			typeName.MetricLabels = metric.Object.Metric.Selector
 			ref = custom_metrics.ObjectReference{
 				APIVersion: metric.Object.DescribedObject.APIVersion,
 				Kind:       metric.Object.DescribedObject.Kind,

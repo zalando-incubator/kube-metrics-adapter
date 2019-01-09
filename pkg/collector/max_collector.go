@@ -38,8 +38,7 @@ func (c *WeightedMaxCollector) GetMetrics() ([]CollectedMetric, error) {
 		}
 
 	}
-
-	max.Custom.Value = *resource.NewQuantity(int64(float64(max.Custom.Value.MilliValue())*c.weight), resource.DecimalSI)
+	max.Custom.Value = *resource.NewMilliQuantity(int64(float64(max.Custom.Value.MilliValue())*c.weight), resource.DecimalSI)
 	return []CollectedMetric{max}, nil
 }
 
