@@ -24,7 +24,7 @@ func NewWeightedMaxCollector(interval time.Duration, weight float64, collectors 
 
 // GetMetrics gets metrics from all collectors and return the higest value.
 func (c *WeightedMaxCollector) GetMetrics() ([]CollectedMetric, error) {
-	var max CollectedMetric
+	var max *CollectedMetric
 	for _, collector := range c.collectors {
 		values, err := collector.GetMetrics()
 		if err != nil {
@@ -32,14 +32,19 @@ func (c *WeightedMaxCollector) GetMetrics() ([]CollectedMetric, error) {
 		}
 
 		for _, value := range values {
-			if value.Custom.Value.MilliValue() > max.Custom.Value.MilliValue() {
-				max = value
+			if max != nil {
+				if value.Custom.Value.MilliValue() > max.Custom.Value.MilliValue() {
+					max = &value
+				}
+			} else {
+				max = &value
 			}
 		}
 
 	}
 	max.Custom.Value = *resource.NewMilliQuantity(int64(float64(max.Custom.Value.MilliValue())*c.weight), resource.DecimalSI)
-	return []CollectedMetric{max}, nil
+
+	return []CollectedMetric{*max}, nil
 }
 
 // Interval returns the interval at which the collector should run.

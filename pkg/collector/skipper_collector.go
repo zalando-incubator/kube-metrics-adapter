@@ -103,7 +103,10 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 		return nil, err
 	}
 
-	backendWeight := getMaxWeights(ingress.Annotations, c.config.MetricLabels.MatchLabels[hostLabel])
+	backendWeight := 1.0
+	if c.config.MetricLabels != nil {
+		backendWeight = getMaxWeights(ingress.Annotations, c.config.MetricLabels.MatchLabels[hostLabel])
+	}
 
 	config := c.config
 
@@ -147,7 +150,6 @@ func (c *SkipperCollector) GetMetrics() ([]CollectedMetric, error) {
 	if len(values) != 1 {
 		return nil, fmt.Errorf("expected to only get one metric value, got %d", len(values))
 	}
-
 	value := values[0]
 	return []CollectedMetric{value}, nil
 }

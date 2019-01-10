@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
 	"sync"
@@ -54,6 +55,8 @@ func (s *MetricStore) Insert(value collector.CollectedMetric) {
 		s.insertCustomMetric(value.Custom, value.Labels)
 	case autoscalingv2beta2.ExternalMetricSourceType:
 		s.insertExternalMetric(value.External)
+	default:
+		logrus.Errorf("value type unknown: %v", value.Type)
 	}
 }
 
@@ -85,7 +88,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 	metrics, ok := s.customMetricsStore[value.Metric.Name]
 	if !ok {
 		s.customMetricsStore[value.Metric.Name] = map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric{
-			groupResource: map[string]map[string]customMetricsStoredMetric{
+			groupResource: {
 				value.DescribedObject.Namespace: map[string]customMetricsStoredMetric{
 					value.DescribedObject.Name: metric,
 				},
@@ -97,7 +100,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 	group, ok := metrics[groupResource]
 	if !ok {
 		metrics[groupResource] = map[string]map[string]customMetricsStoredMetric{
-			value.DescribedObject.Namespace: map[string]customMetricsStoredMetric{
+			value.DescribedObject.Namespace: {
 				value.DescribedObject.Name: metric,
 			},
 		}
@@ -113,6 +116,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 	}
 
 	namespace[value.DescribedObject.Name] = metric
+
 }
 
 // insertExternalMetric inserts an external metric into the store.
