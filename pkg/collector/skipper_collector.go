@@ -1,20 +1,24 @@
 package collector
 
 import (
+	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"math"
 	"strings"
 	"time"
 
 	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 )
 
 const (
-	rpsQuery      = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="%s"}[1m])))`
-	rpsMetricName = "requests-per-second"
+	rpsQuery                  = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="%s"}[1m])))`
+	rpsMetricName             = "requests-per-second"
+	stacksetWeightsAnnotation = "zalando.org/stack-traffic-weights"
+	backendWeightsAnnotation  = "zalando.org/backend-weights"
 )
 
 // SkipperCollectorPlugin is a collector plugin for initializing metrics
@@ -34,12 +38,17 @@ func NewSkipperCollectorPlugin(client kubernetes.Interface, prometheusPlugin *Pr
 
 // NewCollector initializes a new skipper collector from the specified HPA.
 func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	switch config.Name {
-	case rpsMetricName:
-		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval)
-	default:
-		return nil, fmt.Errorf("metric '%s' not supported", config.Name)
+	if strings.HasPrefix(config.Name, rpsMetricName) {
+		backend := ""
+		if len(config.Name) > len(rpsMetricName) {
+			metricNameParts := strings.Split(config.Name, ",")
+			if len(metricNameParts) == 2 {
+				backend = metricNameParts[1]
+			}
+		}
+		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval, backend)
 	}
+	return nil, fmt.Errorf("metric '%s' not supported", config.Name)
 }
 
 // SkipperCollector is a metrics collector for getting skipper ingress metrics.
@@ -52,10 +61,12 @@ type SkipperCollector struct {
 	interval        time.Duration
 	plugin          CollectorPlugin
 	config          MetricConfig
+	backend         string
 }
 
 // NewSkipperCollector initializes a new SkipperCollector.
-func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*SkipperCollector, error) {
+func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2beta1.HorizontalPodAutoscaler,
+	config *MetricConfig, interval time.Duration, backend string) (*SkipperCollector, error) {
 	return &SkipperCollector{
 		client:          client,
 		objectReference: config.ObjectReference,
@@ -64,7 +75,31 @@ func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hp
 		interval:        interval,
 		plugin:          plugin,
 		config:          *config,
+		backend:         backend,
 	}, nil
+}
+
+func getAnnotationWeight(annotations map[string]string, annotation, backend string) float64 {
+	if weightsMap, ok := annotations[annotation]; ok {
+		var backendWeights map[string]int
+		err := json.Unmarshal([]byte(weightsMap), &backendWeights)
+		if err != nil {
+			return 0
+		}
+		if selectedWeight, ok := backendWeights[backend]; ok {
+			return float64(selectedWeight) / 100
+		}
+	}
+	return 0
+}
+
+func getWeights(annotations map[string]string, backend string) float64 {
+	stacksetWeight := getAnnotationWeight(annotations, stacksetWeightsAnnotation, backend)
+	backendWeight := getAnnotationWeight(annotations, backendWeightsAnnotation, backend)
+	if stacksetWeight == 0 && backendWeight == 0 {
+		return 1.0
+	}
+	return math.Max(stacksetWeight, backendWeight)
 }
 
 // getCollector returns a collector for getting the metrics.
@@ -73,7 +108,7 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	backendWeight := getWeights(ingress.Annotations, c.backend)
 	config := c.config
 
 	var collector Collector
@@ -92,10 +127,9 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 
 		collectors = append(collectors, collector)
 	}
-	if len(collectors) > 1 {
-		collector = NewMaxCollector(c.interval, collectors...)
-	} else if len(collectors) == 1 {
-		collector = collectors[0]
+
+	if len(collectors) > 0 {
+		collector = NewMaxWeightedCollector(c.interval, backendWeight, collectors...)
 	} else {
 		return nil, fmt.Errorf("no hosts defined on ingress %s/%s, unable to create collector", c.objectReference.Namespace, c.objectReference.Name)
 	}
