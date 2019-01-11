@@ -240,6 +240,16 @@ spec:
       targetValue: 10 # this will be treated as targetAverageValue
 ```
 
+### Metric weighting based on backend
+
+Skipper supports sending traffic to different backend based on annotations present on the
+`Ingress` object. When the metric name is specified without a backend as `requests-per-second`
+then the number of replicas will be calculated based on the full traffic served by that ingress.
+If however only the traffic being routed to a specific backend should be used then the
+backend name can be specified as a metric name like `requests-per-second|backend1` which would
+return the requests-per-second being sent to the `backend1`.
+
+
 **Note:** As of Kubernetes v1.10 the HPA does not support `targetAverageValue` for
 metrics of type `Object`. In case of requests per second it does not make sense
 to scale on a summed value because you can not make the total requests per
