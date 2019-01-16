@@ -19,6 +19,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+const (
+	testBackendWeightsAnnotation = "zalando.org/backend-weights"
+)
+
 func TestTargetRefReplicasDeployments(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	name := "some-app"
@@ -103,7 +107,6 @@ func TestSkipperCollector(t *testing.T) {
 		ingressName     string
 		collectedMetric int
 		namespace       string
-		stackWeights    map[string]int
 		backendWeights  map[string]int
 		replicas        int32
 		readyReplicas   int32
@@ -122,33 +125,10 @@ func TestSkipperCollector(t *testing.T) {
 			msg:             "test weighted backend",
 			metrics:         []int{100, 1500, 700},
 			ingressName:     "dummy-ingress",
-			collectedMetric: 750,
+			collectedMetric: 600,
 			namespace:       "default",
 			backend:         "backend1",
-			stackWeights:    map[string]int{"backend2": 50, "backend1": 50},
 			backendWeights:  map[string]int{"backend2": 60, "backend1": 40},
-			replicas:        1,
-			readyReplicas:   1,
-		},
-		{
-			msg:             "test missing stackset annotations",
-			metrics:         []int{100, 1500, 700},
-			ingressName:     "dummy-ingress",
-			collectedMetric: 1200,
-			namespace:       "default",
-			backend:         "backend1",
-			backendWeights:  map[string]int{"backend2": 20, "backend1": 80},
-			replicas:        1,
-			readyReplicas:   1,
-		},
-		{
-			msg:             "test missing backend annotations",
-			metrics:         []int{100, 1500, 700},
-			ingressName:     "dummy-ingress",
-			collectedMetric: 1200,
-			namespace:       "default",
-			backend:         "backend1",
-			stackWeights:    map[string]int{"backend2": 20, "backend1": 80},
 			replicas:        1,
 			readyReplicas:   1,
 		},
@@ -156,10 +136,9 @@ func TestSkipperCollector(t *testing.T) {
 			msg:             "test multiple replicas",
 			metrics:         []int{100, 1500, 700},
 			ingressName:     "dummy-ingress",
-			collectedMetric: 240,
+			collectedMetric: 150,
 			namespace:       "default",
 			backend:         "backend1",
-			stackWeights:    map[string]int{"backend2": 20, "backend1": 80},
 			backendWeights:  map[string]int{"backend2": 50, "backend1": 50},
 			replicas:        5,
 			readyReplicas:   5,
@@ -167,30 +146,28 @@ func TestSkipperCollector(t *testing.T) {
 	} {
 		t.Run(tc.msg, func(tt *testing.T) {
 			client := fake.NewSimpleClientset()
-			makeIngress(client, tc.namespace, tc.ingressName, tc.backend, tc.stackWeights, tc.backendWeights)
+			makeIngress(client, tc.namespace, tc.ingressName, tc.backend, tc.backendWeights)
 			plugin := makePlugin(tc.metrics)
 			hpa := makeHPA(tc.ingressName, tc.backend)
 			config := makeConfig(tc.backend)
 			newDeployment(client, tc.namespace, tc.backend, tc.replicas, tc.readyReplicas)
-			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, tc.backend)
+			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, testBackendWeightsAnnotation, tc.backend)
 			assert.NoError(tt, err, "failed to create skipper collector: %v", err)
 			collected, err := collector.GetMetrics()
 			assert.NoError(tt, err, "failed to collect metrics: %v", err)
 			assert.Len(t, collected, 1, "the number of metrics returned is not 1")
-			assert.EqualValues(t, collected[0].Custom.Value.Value(), tc.collectedMetric, "the returned metric is not expected value")
+			assert.EqualValues(t, tc.collectedMetric, collected[0].Custom.Value.Value(), "the returned metric is not expected value")
 		})
 	}
 }
 
-func makeIngress(client kubernetes.Interface, namespace, ingressName, backend string, stacksetWeights, backendWeights map[string]int) {
-	stacksetWeightsSerialized, _ := json.Marshal(stacksetWeights)
+func makeIngress(client kubernetes.Interface, namespace, ingressName, backend string, backendWeights map[string]int) {
 	backendWeightsSerialized, _ := json.Marshal(backendWeights)
 	client.ExtensionsV1beta1().Ingresses(namespace).Create(&v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ingressName,
 			Annotations: map[string]string{
-				stacksetWeightsAnnotation: string(stacksetWeightsSerialized),
-				backendWeightsAnnotation:  string(backendWeightsSerialized),
+				testBackendWeightsAnnotation: string(backendWeightsSerialized),
 			},
 		},
 		Spec: v1beta1.IngressSpec{

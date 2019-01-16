@@ -98,6 +98,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"path to the credentials dir where tokens are stored")
 	flags.BoolVar(&o.SkipperIngressMetrics, "skipper-ingress-metrics", o.SkipperIngressMetrics, ""+
 		"whether to enable skipper ingress metrics")
+	flags.StringVar(&o.SkipperBackendWeightAnnotation, "skipper-backends-annotation", o.SkipperBackendWeightAnnotation, ""+
+		"the annotation to get backend weights so that the returned metric can be weighted")
 	flags.BoolVar(&o.AWSExternalMetrics, "aws-external-metrics", o.AWSExternalMetrics, ""+
 		"whether to enable AWS external metrics")
 	flags.StringSliceVar(&o.AWSRegions, "aws-region", o.AWSRegions, "the AWS regions which should be monitored. eg: eu-central, eu-west-1")
@@ -159,7 +161,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 
 		// skipper collector can only be enabled if prometheus is.
 		if o.SkipperIngressMetrics {
-			skipperPlugin, err := collector.NewSkipperCollectorPlugin(client, promPlugin)
+			skipperPlugin, err := collector.NewSkipperCollectorPlugin(client, promPlugin, o.SkipperBackendWeightAnnotation)
 			if err != nil {
 				return fmt.Errorf("failed to initialize skipper collector plugin: %v", err)
 			}
@@ -306,4 +308,6 @@ type AdapterServerOptions struct {
 	AWSRegions []string
 	// MetricsAddress is the address where to serve prometheus metrics.
 	MetricsAddress string
+	// SkipperBackendWeightAnnotation is the annotation on the ingress indicating the backend weights
+	SkipperBackendWeightAnnotation string
 }
