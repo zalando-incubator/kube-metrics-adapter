@@ -246,7 +246,7 @@ Skipper supports sending traffic to different backend based on annotations prese
 `Ingress` object. When the metric name is specified without a backend as `requests-per-second`
 then the number of replicas will be calculated based on the full traffic served by that ingress.
 If however only the traffic being routed to a specific backend should be used then the
-backend name can be specified as a metric name like `requests-per-second/backend1` which would
+backend name can be specified as a metric name like `requests-per-second,backend1` which would
 return the requests-per-second being sent to the `backend1`. The ingress annotation where
 the backend weights can be obtained can be specified through the flag `--skipper-backends-annotation`.
 

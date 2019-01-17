@@ -16,7 +16,7 @@ import (
 const (
 	rpsQuery                  = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="%s"}[1m])))`
 	rpsMetricName             = "requests-per-second"
-	rpsMetricBackendSeparator = "/"
+	rpsMetricBackendSeparator = ","
 )
 
 // SkipperCollectorPlugin is a collector plugin for initializing metrics
