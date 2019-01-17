@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
@@ -14,13 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/apps/v1"
 	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
-	v12 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 const (
-	testBackendWeightsAnnotation = "zalando.org/backend-weights"
+	testBackendWeightsAnnotation  = "zalando.org/backend-weights"
+	testStacksetWeightsAnnotation = "zalando.org/stack-set-weights"
 )
 
 func TestTargetRefReplicasDeployments(t *testing.T) {
@@ -101,15 +102,16 @@ func newStatefulSet(client *fake.Clientset, namespace string, name string) (*v1.
 
 func TestSkipperCollector(t *testing.T) {
 	for _, tc := range []struct {
-		msg             string
-		metrics         []int
-		backend         string
-		ingressName     string
-		collectedMetric int
-		namespace       string
-		backendWeights  map[string]int
-		replicas        int32
-		readyReplicas   int32
+		msg                string
+		metrics            []int
+		backend            string
+		ingressName        string
+		collectedMetric    int
+		namespace          string
+		backendWeights     map[string]map[string]int
+		replicas           int32
+		readyReplicas      int32
+		backendAnnotations []string
 	}{
 		{
 			msg:             "test unweighted hpa",
@@ -122,26 +124,43 @@ func TestSkipperCollector(t *testing.T) {
 			readyReplicas:   1,
 		},
 		{
-			msg:             "test weighted backend",
-			metrics:         []int{100, 1500, 700},
-			ingressName:     "dummy-ingress",
-			collectedMetric: 600,
-			namespace:       "default",
-			backend:         "backend1",
-			backendWeights:  map[string]int{"backend2": 60, "backend1": 40},
-			replicas:        1,
-			readyReplicas:   1,
+			msg:                "test weighted backend",
+			metrics:            []int{100, 1500, 700},
+			ingressName:        "dummy-ingress",
+			collectedMetric:    600,
+			namespace:          "default",
+			backend:            "backend1",
+			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 60, "backend1": 40}},
+			replicas:           1,
+			readyReplicas:      1,
+			backendAnnotations: []string{testBackendWeightsAnnotation},
 		},
 		{
-			msg:             "test multiple replicas",
+			msg:                "test multiple replicas",
+			metrics:            []int{100, 1500, 700},
+			ingressName:        "dummy-ingress",
+			collectedMetric:    150,
+			namespace:          "default",
+			backend:            "backend1",
+			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 50, "backend1": 50}},
+			replicas:           5,
+			readyReplicas:      5,
+			backendAnnotations: []string{testBackendWeightsAnnotation},
+		},
+		{
+			msg:             "test multiple backend annotation",
 			metrics:         []int{100, 1500, 700},
 			ingressName:     "dummy-ingress",
-			collectedMetric: 150,
+			collectedMetric: 300,
 			namespace:       "default",
 			backend:         "backend1",
-			backendWeights:  map[string]int{"backend2": 50, "backend1": 50},
-			replicas:        5,
-			readyReplicas:   5,
+			backendWeights: map[string]map[string]int{
+				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
+				testStacksetWeightsAnnotation: {"backend2": 0, "backend1": 100},
+			},
+			replicas:           5,
+			readyReplicas:      5,
+			backendAnnotations: []string{testBackendWeightsAnnotation, testStacksetWeightsAnnotation},
 		},
 	} {
 		t.Run(tc.msg, func(tt *testing.T) {
@@ -151,7 +170,7 @@ func TestSkipperCollector(t *testing.T) {
 			hpa := makeHPA(tc.ingressName, tc.backend)
 			config := makeConfig(tc.backend)
 			newDeployment(client, tc.namespace, tc.backend, tc.replicas, tc.readyReplicas)
-			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, testBackendWeightsAnnotation, tc.backend)
+			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, tc.backendAnnotations, tc.backend)
 			assert.NoError(tt, err, "failed to create skipper collector: %v", err)
 			collected, err := collector.GetMetrics()
 			assert.NoError(tt, err, "failed to collect metrics: %v", err)
@@ -161,14 +180,19 @@ func TestSkipperCollector(t *testing.T) {
 	}
 }
 
-func makeIngress(client kubernetes.Interface, namespace, ingressName, backend string, backendWeights map[string]int) {
-	backendWeightsSerialized, _ := json.Marshal(backendWeights)
-	client.ExtensionsV1beta1().Ingresses(namespace).Create(&v1beta1.Ingress{
+func makeIngress(client kubernetes.Interface, namespace, ingressName, backend string, backendWeights map[string]map[string]int) error {
+	annotations := make(map[string]string)
+	for anno, weights := range backendWeights {
+		sWeights, err := json.Marshal(weights)
+		if err != nil {
+			return err
+		}
+		annotations[anno] = string(sWeights)
+	}
+	_, err := client.ExtensionsV1beta1().Ingresses(namespace).Create(&v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: ingressName,
-			Annotations: map[string]string{
-				testBackendWeightsAnnotation: string(backendWeightsSerialized),
-			},
+			Name:        ingressName,
+			Annotations: annotations,
 		},
 		Spec: v1beta1.IngressSpec{
 			Backend: &v1beta1.IngressBackend{
@@ -182,11 +206,12 @@ func makeIngress(client kubernetes.Interface, namespace, ingressName, backend st
 			},
 		},
 		Status: v1beta1.IngressStatus{
-			LoadBalancer: v12.LoadBalancerStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
 				Ingress: nil,
 			},
 		},
 	})
+	return err
 }
 
 func makeHPA(ingressName, backend string) *autoscalingv2beta1.HorizontalPodAutoscaler {

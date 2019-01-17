@@ -98,7 +98,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"path to the credentials dir where tokens are stored")
 	flags.BoolVar(&o.SkipperIngressMetrics, "skipper-ingress-metrics", o.SkipperIngressMetrics, ""+
 		"whether to enable skipper ingress metrics")
-	flags.StringVar(&o.SkipperBackendWeightAnnotation, "skipper-backends-annotation", o.SkipperBackendWeightAnnotation, ""+
+	flags.StringArrayVar(&o.SkipperBackendWeightAnnotation, "skipper-backends-annotation", o.SkipperBackendWeightAnnotation, ""+
 		"the annotation to get backend weights so that the returned metric can be weighted")
 	flags.BoolVar(&o.AWSExternalMetrics, "aws-external-metrics", o.AWSExternalMetrics, ""+
 		"whether to enable AWS external metrics")
@@ -309,5 +309,5 @@ type AdapterServerOptions struct {
 	// MetricsAddress is the address where to serve prometheus metrics.
 	MetricsAddress string
 	// SkipperBackendWeightAnnotation is the annotation on the ingress indicating the backend weights
-	SkipperBackendWeightAnnotation string
+	SkipperBackendWeightAnnotation []string
 }
