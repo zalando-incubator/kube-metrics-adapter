@@ -1,70 +1,112 @@
 package collector
 
 import (
+	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 	"time"
 
 	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 )
 
 const (
-	rpsQuery      = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="%s"}[1m])))`
-	rpsMetricName = "requests-per-second"
+	rpsQuery                  = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="%s"}[1m])))`
+	rpsMetricName             = "requests-per-second"
+	rpsMetricBackendSeparator = "/"
 )
 
 // SkipperCollectorPlugin is a collector plugin for initializing metrics
 // collectors for getting skipper ingress metrics.
 type SkipperCollectorPlugin struct {
-	client kubernetes.Interface
-	plugin CollectorPlugin
+	client             kubernetes.Interface
+	plugin             CollectorPlugin
+	backendAnnotations []string
 }
 
 // NewSkipperCollectorPlugin initializes a new SkipperCollectorPlugin.
-func NewSkipperCollectorPlugin(client kubernetes.Interface, prometheusPlugin *PrometheusCollectorPlugin) (*SkipperCollectorPlugin, error) {
+func NewSkipperCollectorPlugin(client kubernetes.Interface, prometheusPlugin *PrometheusCollectorPlugin, backendAnnotations []string) (*SkipperCollectorPlugin, error) {
 	return &SkipperCollectorPlugin{
-		client: client,
-		plugin: prometheusPlugin,
+		client:             client,
+		plugin:             prometheusPlugin,
+		backendAnnotations: backendAnnotations,
 	}, nil
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
 func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	switch config.Name {
-	case rpsMetricName:
-		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval)
-	default:
-		return nil, fmt.Errorf("metric '%s' not supported", config.Name)
+	if strings.HasPrefix(config.Name, rpsMetricName) {
+		backend := ""
+		if len(config.Name) > len(rpsMetricName) {
+			metricNameParts := strings.Split(config.Name, rpsMetricBackendSeparator)
+			if len(metricNameParts) == 2 {
+				backend = metricNameParts[1]
+			}
+		}
+		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval, c.backendAnnotations, backend)
 	}
+	return nil, fmt.Errorf("metric '%s' not supported", config.Name)
 }
 
 // SkipperCollector is a metrics collector for getting skipper ingress metrics.
 // It depends on the prometheus collector for getting the metrics.
 type SkipperCollector struct {
-	client          kubernetes.Interface
-	metricName      string
-	objectReference custom_metrics.ObjectReference
-	hpa             *autoscalingv2beta1.HorizontalPodAutoscaler
-	interval        time.Duration
-	plugin          CollectorPlugin
-	config          MetricConfig
+	client             kubernetes.Interface
+	metricName         string
+	objectReference    custom_metrics.ObjectReference
+	hpa                *autoscalingv2beta1.HorizontalPodAutoscaler
+	interval           time.Duration
+	plugin             CollectorPlugin
+	config             MetricConfig
+	backend            string
+	backendAnnotations []string
 }
 
 // NewSkipperCollector initializes a new SkipperCollector.
-func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*SkipperCollector, error) {
+func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2beta1.HorizontalPodAutoscaler,
+	config *MetricConfig, interval time.Duration, backendAnnotations []string, backend string) (*SkipperCollector, error) {
 	return &SkipperCollector{
-		client:          client,
-		objectReference: config.ObjectReference,
-		hpa:             hpa,
-		metricName:      config.Name,
-		interval:        interval,
-		plugin:          plugin,
-		config:          *config,
+		client:             client,
+		objectReference:    config.ObjectReference,
+		hpa:                hpa,
+		metricName:         config.Name,
+		interval:           interval,
+		plugin:             plugin,
+		config:             *config,
+		backend:            backend,
+		backendAnnotations: backendAnnotations,
 	}, nil
+}
+
+func getAnnotationWeight(backendWeights string, backend string) float64 {
+	var weightsMap map[string]int
+	err := json.Unmarshal([]byte(backendWeights), &weightsMap)
+	if err != nil {
+		return 0
+	}
+	if weight, ok := weightsMap[backend]; ok {
+		return float64(weight) / 100
+	}
+	return 0
+}
+
+func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) float64 {
+	var maxWeight float64 = 0
+	for _, anno := range backendAnnotations {
+		if weightsMap, ok := ingressAnnotations[anno]; ok {
+			weight := getAnnotationWeight(weightsMap, backend)
+			if weight > maxWeight {
+				maxWeight = weight
+			}
+		}
+	}
+	if maxWeight > 0 {
+		return maxWeight
+	}
+	return 1.0
 }
 
 // getCollector returns a collector for getting the metrics.
@@ -74,6 +116,7 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 		return nil, err
 	}
 
+	backendWeight := getWeights(ingress.Annotations, c.backendAnnotations, c.backend)
 	config := c.config
 
 	var collector Collector
@@ -92,10 +135,9 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 
 		collectors = append(collectors, collector)
 	}
-	if len(collectors) > 1 {
-		collector = NewMaxCollector(c.interval, collectors...)
-	} else if len(collectors) == 1 {
-		collector = collectors[0]
+
+	if len(collectors) > 0 {
+		collector = NewMaxWeightedCollector(c.interval, backendWeight, collectors...)
 	} else {
 		return nil, fmt.Errorf("no hosts defined on ingress %s/%s, unable to create collector", c.objectReference.Namespace, c.objectReference.Name)
 	}
