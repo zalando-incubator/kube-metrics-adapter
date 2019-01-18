@@ -94,7 +94,7 @@ func getAnnotationWeight(backendWeights string, backend string) float64 {
 }
 
 func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) float64 {
-	var maxWeight float64 = 0
+	var maxWeight float64 = -1
 	for _, anno := range backendAnnotations {
 		if weightsMap, ok := ingressAnnotations[anno]; ok {
 			weight := getAnnotationWeight(weightsMap, backend)
@@ -103,7 +103,7 @@ func getWeights(ingressAnnotations map[string]string, backendAnnotations []strin
 			}
 		}
 	}
-	if maxWeight > 0 {
+	if maxWeight >= 0 {
 		return maxWeight
 	}
 	return 1.0

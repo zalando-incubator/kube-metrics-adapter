@@ -148,6 +148,18 @@ func TestSkipperCollector(t *testing.T) {
 			backendAnnotations: []string{testBackendWeightsAnnotation},
 		},
 		{
+			msg:                "test zero weight backends",
+			metrics:            []int{100, 1500, 700},
+			ingressName:        "dummy-ingress",
+			collectedMetric:    0,
+			namespace:          "default",
+			backend:            "backend1",
+			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
+			replicas:           5,
+			readyReplicas:      5,
+			backendAnnotations: []string{testBackendWeightsAnnotation},
+		},
+		{
 			msg:             "test multiple backend annotation",
 			metrics:         []int{100, 1500, 700},
 			ingressName:     "dummy-ingress",
