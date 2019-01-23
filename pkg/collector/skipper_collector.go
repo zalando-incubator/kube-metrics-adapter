@@ -85,12 +85,12 @@ func getAnnotationWeight(backendWeights string, backend string) float64 {
 	var weightsMap map[string]int
 	err := json.Unmarshal([]byte(backendWeights), &weightsMap)
 	if err != nil {
-		return 0
+		return 1
 	}
 	if weight, ok := weightsMap[backend]; ok {
 		return float64(weight) / 100
 	}
-	return 0
+	return 1
 }
 
 func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) float64 {

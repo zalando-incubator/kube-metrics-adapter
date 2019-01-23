@@ -174,6 +174,18 @@ func TestSkipperCollector(t *testing.T) {
 			readyReplicas:      5,
 			backendAnnotations: []string{testBackendWeightsAnnotation, testStacksetWeightsAnnotation},
 		},
+		{
+			msg:                "test backend is not set",
+			metrics:            []int{100, 1500, 700},
+			ingressName:        "dummy-ingress",
+			collectedMetric:    1500,
+			namespace:          "default",
+			backend:            "",
+			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
+			replicas:           1,
+			readyReplicas:      1,
+			backendAnnotations: []string{testBackendWeightsAnnotation},
+		},
 	} {
 		t.Run(tc.msg, func(tt *testing.T) {
 			client := fake.NewSimpleClientset()
