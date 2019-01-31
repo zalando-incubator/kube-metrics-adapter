@@ -81,29 +81,33 @@ func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hp
 	}, nil
 }
 
-func getAnnotationWeight(backendWeights string, backend string) float64 {
+func getAnnotationWeight(backendWeights string, backend string) (float64, bool) {
 	var weightsMap map[string]int
 	err := json.Unmarshal([]byte(backendWeights), &weightsMap)
 	if err != nil {
-		return 1
+		return 0, false
 	}
 	if weight, ok := weightsMap[backend]; ok {
-		return float64(weight) / 100
+		return float64(weight) / 100, true
 	}
-	return 1
+	return 0, false
 }
 
 func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) float64 {
 	var maxWeight float64 = -1
+	weightSet := false
 	for _, anno := range backendAnnotations {
 		if weightsMap, ok := ingressAnnotations[anno]; ok {
-			weight := getAnnotationWeight(weightsMap, backend)
-			if weight > maxWeight {
-				maxWeight = weight
+			weight, isPresent := getAnnotationWeight(weightsMap, backend)
+			if isPresent {
+				weightSet = true
+				if weight > maxWeight {
+					maxWeight = weight
+				}
 			}
 		}
 	}
-	if maxWeight >= 0 {
+	if weightSet {
 		return maxWeight
 	}
 	return 1.0
