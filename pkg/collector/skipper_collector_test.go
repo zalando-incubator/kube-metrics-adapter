@@ -180,11 +180,26 @@ func TestSkipperCollector(t *testing.T) {
 			ingressName:        "dummy-ingress",
 			collectedMetric:    1500,
 			namespace:          "default",
-			backend:            "",
+			backend:            "backend3",
 			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
 			replicas:           1,
 			readyReplicas:      1,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
+		},
+		{
+			msg:             "test partial backend annotations",
+			metrics:         []int{100, 1500, 700},
+			ingressName:     "dummy-ingress",
+			collectedMetric: 60,
+			namespace:       "default",
+			backend:         "backend2",
+			backendWeights: map[string]map[string]int{
+				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
+				testStacksetWeightsAnnotation: {"backend1": 100},
+			},
+			replicas:           5,
+			readyReplicas:      5,
+			backendAnnotations: []string{testBackendWeightsAnnotation, testStacksetWeightsAnnotation},
 		},
 	} {
 		t.Run(tc.msg, func(tt *testing.T) {
