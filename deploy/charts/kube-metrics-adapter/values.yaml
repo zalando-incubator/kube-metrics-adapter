@@ -1,6 +1,6 @@
 image:
-  repository: registry.opensource.zalan.do/teapot/kube-metrics-adapter
-  tag: latest
+  repository: banzaicloud/kube-metrics-adapter
+  tag: 0.1.0
   pullPolicy: IfNotPresent
 
 logLevel: 9
