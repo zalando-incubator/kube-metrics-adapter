@@ -1,6 +1,6 @@
 image:
   repository: banzaicloud/kube-metrics-adapter
-  tag: 0.1.0
+  tag: 0.1.1
   pullPolicy: IfNotPresent
 
 logLevel: 9
@@ -33,6 +33,16 @@ resources:
 service:
   annotations: {}
   port: 443
+  internalPort: 8443
 
 affinity: {}
 tolerations: []
+
+tls:
+  enable: false
+  ca: |-
+    # Public CA file that signed the APIService
+  key: |-
+    # Private key of the APIService
+  certificate: |-
+    # Public key of the APIService

@@ -1,18 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "fullname" . }}
+  name: {{ template "kube-metrics-adapter.fullname" . }}
   annotations:
     {{ toYaml .Values.service.annotations | indent 4 }}
   labels:
-    app: {{ template "fullname" . }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
 spec:
   ports:
   - port: {{ .Values.service.port }}
-    targetPort: {{ .Values.service.port }}
+    targetPort: {{ .Values.service.internalPort }}
   selector:
-    app: {{ template "fullname" . }}
+    app: {{ template "kube-metrics-adapter.name" . }}
     release: "{{ .Release.Name }}"

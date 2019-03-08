@@ -3,6 +3,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: custom-metrics-server-resources
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 rules:
 - apiGroups:
   - custom.metrics.k8s.io
@@ -13,6 +18,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: external-metrics-server-resources
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 rules:
 - apiGroups:
   - external.metrics.k8s.io
@@ -22,7 +32,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "fullname" . }}-resource-reader
+  name: {{ template "kube-metrics-adapter.fullname" . }}-resource-reader
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 rules:
 - apiGroups:
   - ""
@@ -38,7 +53,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "fullname" . }}-resource-collector
+  name: {{ template "kube-metrics-adapter.fullname" . }}-resource-collector
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 rules:
 - apiGroups:
   - ""
@@ -79,6 +99,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: hpa-controller-custom-metrics
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -92,6 +117,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: hpa-controller-external-metrics
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -104,52 +134,72 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ template "fullname" . }}-auth-reader
+  name: {{ template "kube-metrics-adapter.fullname" . }}-auth-reader
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: extension-apiserver-authentication-reader
 subjects:
 - kind: ServiceAccount
-  name: {{ template "fullname" . }}
+  name: {{ template "kube-metrics-adapter.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ template "fullname" . }}:system:auth-delegator
+  name: {{ template "kube-metrics-adapter.fullname" . }}:system:auth-delegator
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: system:auth-delegator
 subjects:
 - kind: ServiceAccount
-  name: {{ template "fullname" . }}
+  name: {{ template "kube-metrics-adapter.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ template "fullname" . }}-resource-collector
+  name: {{ template "kube-metrics-adapter.fullname" . }}-resource-collector
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ template "fullname" . }}-resource-collector
+  name: {{ template "kube-metrics-adapter.fullname" . }}-resource-collector
 subjects:
 - kind: ServiceAccount
-  name: {{ template "fullname" . }}
+  name: {{ template "kube-metrics-adapter.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ template "fullname" . }}-resource-reader
+  name: {{ template "kube-metrics-adapter.fullname" . }}-resource-reader
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"  
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ template "fullname" . }}-resource-reader
+  name: {{ template "kube-metrics-adapter.fullname" . }}-resource-reader
 subjects:
 - kind: ServiceAccount
-  name: {{ template "fullname" . }}
+  name: {{ template "kube-metrics-adapter.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
 {{- end -}}

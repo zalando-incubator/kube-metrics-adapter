@@ -1,6 +1,6 @@
 name: kube-metrics-adapter
-version: v0.0.1
-appVersion: v0.0.1
+version: v0.0.2
+appVersion: v0.0.2
 description: A Helm chart for kube-metrics-adapter
 home: https://github.com/zalando-incubator/kube-metrics-adapter
 keywords:
@@ -9,7 +9,8 @@ keywords:
   - adapter
 sources:
   - https://github.com/kubernetes/charts
+  - https://github.com/banzaicloud/kube-metrics-adapter
   - https://github.com/zalando-incubator/kube-metrics-adapter
 maintainers:
-  - name: sancyx
-    email: szander@banzaicloud.com
+  - name: Banzai Cloud
+    email: info@banzaicloud.com

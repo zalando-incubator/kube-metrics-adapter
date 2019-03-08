@@ -3,16 +3,16 @@ kind: APIService
 metadata:
   name: v1beta1.custom.metrics.k8s.io
   labels:
-    app: {{ template "fullname" . }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
 spec:
   service:
-    name: {{ template "fullname" . }}
+    name: {{ template "kube-metrics-adapter.fullname" . }}
     namespace: {{ .Release.Namespace | quote }}
   group: custom.metrics.k8s.io
   version: v1beta1
-  insecureSkipTLSVerify: true
+  insecureSkipTLSVerify: {{ if .Values.tls.enable }}false{{ else }}true{{ end }}
   groupPriorityMinimum: 100
   versionPriority: 100
