@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -41,8 +41,8 @@ func NewZMONCollectorPlugin(zmon zmon.ZMON) (*ZMONCollectorPlugin, error) {
 }
 
 // NewCollector initializes a new ZMON collector from the specified HPA.
-func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	switch config.Name {
+func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	switch config.Metric.Name {
 	case ZMONCheckMetric:
 		annotations := map[string]string{}
 		if hpa != nil {
@@ -51,7 +51,7 @@ func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPod
 		return NewZMONCollector(c.zmon, config, annotations, interval)
 	}
 
-	return nil, fmt.Errorf("metric '%s' not supported", config.Name)
+	return nil, fmt.Errorf("metric '%s' not supported", config.Metric.Name)
 }
 
 // ZMONCollector defines a collector that is able to collect metrics from ZMON.
@@ -60,17 +60,16 @@ type ZMONCollector struct {
 	interval    time.Duration
 	checkID     int
 	key         string
-	labels      map[string]string
 	tags        map[string]string
 	duration    time.Duration
 	aggregators []string
-	metricName  string
-	metricType  autoscalingv2beta1.MetricSourceType
+	metric      autoscalingv2.MetricIdentifier
+	metricType  autoscalingv2.MetricSourceType
 }
 
 // NewZMONCollector initializes a new ZMONCollector.
 func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[string]string, interval time.Duration) (*ZMONCollector, error) {
-	checkIDStr, ok := config.Labels[zmonCheckIDLabelKey]
+	checkIDStr, ok := config.Configuration[zmonCheckIDLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("ZMON check ID not specified on metric")
 	}
@@ -83,7 +82,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 	key := ""
 
 	// get optional key
-	if k, ok := config.Labels[zmonKeyLabelKey]; ok {
+	if k, ok := config.Configuration[zmonKeyLabelKey]; ok {
 		key = k
 	}
 
@@ -95,7 +94,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 	duration := defaultQueryDuration
 
 	// parse optional duration value
-	if d, ok := config.Labels[zmonDurationLabelKey]; ok {
+	if d, ok := config.Configuration[zmonDurationLabelKey]; ok {
 		duration, err = time.ParseDuration(d)
 		if err != nil {
 			return nil, err
@@ -104,7 +103,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 
 	// parse tags
 	tags := make(map[string]string)
-	for k, v := range config.Labels {
+	for k, v := range config.Configuration {
 		if strings.HasPrefix(k, zmonTagPrefixLabelKey) {
 			key := strings.TrimPrefix(k, zmonTagPrefixLabelKey)
 			tags[key] = v
@@ -123,7 +122,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 
 	// default aggregator is last
 	aggregators := []string{"last"}
-	if k, ok := config.Labels[zmonAggregatorsLabelKey]; ok {
+	if k, ok := config.Configuration[zmonAggregatorsLabelKey]; ok {
 		aggregators = strings.Split(k, ",")
 	}
 
@@ -135,9 +134,8 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 		tags:        tags,
 		duration:    duration,
 		aggregators: aggregators,
-		metricName:  config.Name,
+		metric:      config.Metric,
 		metricType:  config.Type,
-		labels:      config.Labels,
 	}, nil
 }
 
@@ -159,8 +157,8 @@ func (c *ZMONCollector) GetMetrics() ([]CollectedMetric, error) {
 	metricValue := CollectedMetric{
 		Type: c.metricType,
 		External: external_metrics.ExternalMetricValue{
-			MetricName:   c.metricName,
-			MetricLabels: c.labels,
+			MetricName:   c.metric.Name,
+			MetricLabels: c.metric.Selector.MatchLabels,
 			Timestamp:    metav1.Time{Time: point.Time},
 			Value:        *resource.NewMilliQuantity(int64(point.Value*1000), resource.DecimalSI),
 		},

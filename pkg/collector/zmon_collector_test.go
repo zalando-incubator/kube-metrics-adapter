@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -26,9 +26,9 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 
 	config := &MetricConfig{
 		MetricTypeName: MetricTypeName{
-			Name: ZMONCheckMetric,
+			Metric: newMetricIdentifier(ZMONCheckMetric),
 		},
-		Labels: map[string]string{
+		Configuration: map[string]string{
 			zmonCheckIDLabelKey:             "1234",
 			zmonAggregatorsLabelKey:         "max",
 			zmonTagPrefixLabelKey + "alias": "cluster_alias",
@@ -37,7 +37,7 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 		},
 	}
 
-	hpa := &autoscalingv2beta1.HorizontalPodAutoscaler{}
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
 
 	collector, err := collectPlugin.NewCollector(hpa, config, 1*time.Second)
 	require.NoError(t, err)
@@ -65,24 +65,30 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 	require.Equal(t, map[string]string{"alias": "cluster_alias_annotation"}, zmonCollector.tags)
 
 	// should fail if the metric name isn't ZMON
-	config.Name = "non-zmon-check"
+	config.Metric = newMetricIdentifier("non-zmon-check")
 	_, err = collectPlugin.NewCollector(nil, config, 1*time.Second)
 	require.Error(t, err)
 
 	// should fail if the check id is not specified.
-	delete(config.Labels, zmonCheckIDLabelKey)
-	config.Name = ZMONCheckMetric
+	delete(config.Configuration, zmonCheckIDLabelKey)
+	config.Metric.Name = ZMONCheckMetric
 	_, err = collectPlugin.NewCollector(nil, config, 1*time.Second)
 	require.Error(t, err)
 }
 
+func newMetricIdentifier(metricName string) autoscalingv2.MetricIdentifier {
+	selector := metav1.LabelSelector{}
+	return autoscalingv2.MetricIdentifier{Name: metricName, Selector: &selector}
+}
+
 func TestZMONCollectorGetMetrics(tt *testing.T) {
+
 	config := &MetricConfig{
 		MetricTypeName: MetricTypeName{
-			Name: ZMONCheckMetric,
-			Type: "foo",
+			Metric: newMetricIdentifier(ZMONCheckMetric),
+			Type:   "foo",
 		},
-		Labels: map[string]string{
+		Configuration: map[string]string{
 			zmonCheckIDLabelKey:             "1234",
 			zmonAggregatorsLabelKey:         "max",
 			zmonTagPrefixLabelKey + "alias": "cluster_alias",
@@ -108,8 +114,8 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 				{
 					Type: config.Type,
 					External: external_metrics.ExternalMetricValue{
-						MetricName:   config.Name,
-						MetricLabels: config.Labels,
+						MetricName:   config.Metric.Name,
+						MetricLabels: config.Metric.Selector.MatchLabels,
 						Timestamp:    metav1.Time{Time: time.Time{}},
 						Value:        *resource.NewMilliQuantity(int64(1.0)*1000, resource.DecimalSI),
 					},

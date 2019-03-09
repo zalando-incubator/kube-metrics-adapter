@@ -5,7 +5,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +24,7 @@ func NewPodCollectorPlugin(client kubernetes.Interface) *PodCollectorPlugin {
 	}
 }
 
-func (p *PodCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (p *PodCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return NewPodCollector(p.client, hpa, config, interval)
 }
 
@@ -33,8 +33,8 @@ type PodCollector struct {
 	Getter           PodMetricsGetter
 	podLabelSelector string
 	namespace        string
-	metricName       string
-	metricType       autoscalingv2beta1.MetricSourceType
+	metric           autoscalingv2.MetricIdentifier
+	metricType       autoscalingv2.MetricSourceType
 	interval         time.Duration
 	logger           *log.Entry
 }
@@ -43,7 +43,7 @@ type PodMetricsGetter interface {
 	GetMetric(pod *v1.Pod) (float64, error)
 }
 
-func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PodCollector, error) {
+func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PodCollector, error) {
 	// get pod selector based on HPA scale target ref
 	selector, err := getPodLabelSelector(client, hpa)
 	if err != nil {
@@ -53,7 +53,7 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2beta1.Horizo
 	c := &PodCollector{
 		client:           client,
 		namespace:        hpa.Namespace,
-		metricName:       config.Name,
+		metric:           config.Metric,
 		metricType:       config.Type,
 		interval:         interval,
 		podLabelSelector: selector,
@@ -106,11 +106,10 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 					Name:       pod.Name,
 					Namespace:  pod.Namespace,
 				},
-				MetricName: c.metricName,
-				Timestamp:  metav1.Time{Time: time.Now().UTC()},
-				Value:      *resource.NewMilliQuantity(int64(value*1000), resource.DecimalSI),
+				Metric:    custom_metrics.MetricIdentifier{Name: c.metric.Name, Selector: c.metric.Selector},
+				Timestamp: metav1.Time{Time: time.Now().UTC()},
+				Value:     *resource.NewMilliQuantity(int64(value*1000), resource.DecimalSI),
 			},
-			Labels: pod.Labels,
 		}
 
 		values = append(values, metricValue)
@@ -123,7 +122,7 @@ func (c *PodCollector) Interval() time.Duration {
 	return c.interval
 }
 
-func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2beta1.HorizontalPodAutoscaler) (string, error) {
+func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (string, error) {
 	switch hpa.Spec.ScaleTargetRef.Kind {
 	case "Deployment":
 		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})

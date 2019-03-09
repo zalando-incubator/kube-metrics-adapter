@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -32,13 +32,13 @@ func NewAWSCollectorPlugin(sessions map[string]*session.Session) *AWSCollectorPl
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
-func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	switch config.Name {
+func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	switch config.Metric.Name {
 	case AWSSQSQueueLengthMetric:
 		return NewAWSSQSCollector(c.sessions, config, interval)
 	}
 
-	return nil, fmt.Errorf("metric '%s' not supported", config.Name)
+	return nil, fmt.Errorf("metric '%s' not supported", config.Metric.Name)
 }
 
 type AWSSQSCollector struct {
@@ -47,18 +47,20 @@ type AWSSQSCollector struct {
 	region     string
 	queueURL   string
 	queueName  string
-	labels     map[string]string
-	metricName string
-	metricType autoscalingv2beta1.MetricSourceType
+	metric     autoscalingv2.MetricIdentifier
+	metricType autoscalingv2.MetricSourceType
 }
 
 func NewAWSSQSCollector(sessions map[string]*session.Session, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
+	if config.Metric.Selector == nil {
+		return nil, fmt.Errorf("selector for queue is not specified")
+	}
 
-	name, ok := config.Labels[sqsQueueNameLabelKey]
+	name, ok := config.Metric.Selector.MatchLabels[sqsQueueNameLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("sqs queue name not specified on metric")
 	}
-	region, ok := config.Labels[sqsQueueRegionLabelKey]
+	region, ok := config.Metric.Selector.MatchLabels[sqsQueueRegionLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("sqs queue region is not specified on metric")
 	}
@@ -83,9 +85,8 @@ func NewAWSSQSCollector(sessions map[string]*session.Session, config *MetricConf
 		interval:   interval,
 		queueURL:   aws.StringValue(resp.QueueUrl),
 		queueName:  name,
-		metricName: config.Name,
+		metric:     config.Metric,
 		metricType: config.Type,
-		labels:     config.Labels,
 	}, nil
 }
 
@@ -109,8 +110,8 @@ func (c *AWSSQSCollector) GetMetrics() ([]CollectedMetric, error) {
 		metricValue := CollectedMetric{
 			Type: c.metricType,
 			External: external_metrics.ExternalMetricValue{
-				MetricName:   c.metricName,
-				MetricLabels: c.labels,
+				MetricName:   c.metric.Name,
+				MetricLabels: c.metric.Selector.MatchLabels,
 				Timestamp:    metav1.Time{Time: time.Now().UTC()},
 				Value:        *resource.NewQuantity(int64(i), resource.DecimalSI),
 			},

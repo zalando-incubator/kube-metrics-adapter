@@ -14,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/apps/v1"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -32,7 +32,7 @@ func TestTargetRefReplicasDeployments(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the deployment as ref
-	hpa, err := client.AutoscalingV2beta1().HorizontalPodAutoscalers(deployment.Namespace).
+	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(deployment.Namespace).
 		Create(newHPA(defaultNamespace, name, "Deployment"))
 	require.NoError(t, err)
 
@@ -49,7 +49,7 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the statefulSet as ref
-	hpa, err := client.AutoscalingV2beta1().HorizontalPodAutoscalers(statefulSet.Namespace).
+	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(statefulSet.Namespace).
 		Create(newHPA(defaultNamespace, name, "StatefulSet"))
 	require.NoError(t, err)
 
@@ -58,18 +58,18 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.Equal(t, statefulSet.Status.Replicas, replicas)
 }
 
-func newHPA(namesapce string, refName string, refKind string) *autoscalingv2beta1.HorizontalPodAutoscaler {
-	return &autoscalingv2beta1.HorizontalPodAutoscaler{
+func newHPA(namesapce string, refName string, refKind string) *autoscalingv2.HorizontalPodAutoscaler {
+	return &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namesapce,
 		},
-		Spec: autoscalingv2beta1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv2beta1.CrossVersionObjectReference{
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Name: refName,
 				Kind: refKind,
 			},
 		},
-		Status: autoscalingv2beta1.HorizontalPodAutoscalerStatus{},
+		Status: autoscalingv2.HorizontalPodAutoscalerStatus{},
 	}
 }
 
@@ -253,19 +253,19 @@ func makeIngress(client kubernetes.Interface, namespace, ingressName, backend st
 	return err
 }
 
-func makeHPA(ingressName, backend string) *autoscalingv2beta1.HorizontalPodAutoscaler {
-	return &autoscalingv2beta1.HorizontalPodAutoscaler{
-		Spec: autoscalingv2beta1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv2beta1.CrossVersionObjectReference{
+func makeHPA(ingressName, backend string) *autoscalingv2.HorizontalPodAutoscaler {
+	return &autoscalingv2.HorizontalPodAutoscaler{
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Kind: "Deployment",
 				Name: backend,
 			},
-			Metrics: []autoscalingv2beta1.MetricSpec{
+			Metrics: []autoscalingv2.MetricSpec{
 				{
-					Type: autoscalingv2beta1.ObjectMetricSourceType,
-					Object: &autoscalingv2beta1.ObjectMetricSource{
-						Target:     autoscalingv2beta1.CrossVersionObjectReference{Name: ingressName, APIVersion: "extensions/v1", Kind: "Ingress"},
-						MetricName: fmt.Sprintf("%s,%s", rpsMetricName, backend),
+					Type: autoscalingv2.ObjectMetricSourceType,
+					Object: &autoscalingv2.ObjectMetricSource{
+						DescribedObject: autoscalingv2.CrossVersionObjectReference{Name: ingressName, APIVersion: "extensions/v1", Kind: "Ingress"},
+						Metric:          autoscalingv2.MetricIdentifier{Name: fmt.Sprintf("%s,%s", rpsMetricName, backend)},
 					},
 				},
 			},
@@ -274,7 +274,7 @@ func makeHPA(ingressName, backend string) *autoscalingv2beta1.HorizontalPodAutos
 }
 func makeConfig(backend string) *MetricConfig {
 	return &MetricConfig{
-		MetricTypeName: MetricTypeName{Name: fmt.Sprintf("%s,%s", rpsMetricName, backend)},
+		MetricTypeName: MetricTypeName{Metric: autoscalingv2.MetricIdentifier{Name: fmt.Sprintf("%s,%s", rpsMetricName, backend)}},
 	}
 }
 
@@ -294,7 +294,7 @@ func (FakeCollector) Interval() time.Duration {
 	return time.Minute
 }
 
-func (p *FakeCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (p *FakeCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return &FakeCollector{metrics: p.metrics}, nil
 }
 
