@@ -192,10 +192,13 @@ spec:
       metricName: processed-events-per-second
       target:
         apiVersion: v1
-        kind: Service
-        name: event-service
+        kind: Pod
+        name: dummy-pod
       targetValue: 10 # this will be treated as targetAverageValue
 ```
+
+_Note:_ The HPA object requires an `Object` to be specified. However when a Prometheus metric is used there is no need
+for this object. But to satisfy the schema we specify a dummy pod called `dummy-pod`.
 
 ## Skipper collector
 
