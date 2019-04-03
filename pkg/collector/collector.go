@@ -2,22 +2,16 @@ package collector
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/annotations"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 )
 
-const (
-	customMetricsPrefix      = "metric-config."
-	perReplicaMetricsConfKey = "per-replica"
-	intervalMetricsConfKey   = "interval"
-)
-
 type ObjectReference struct {
-	autoscalingv2beta1.CrossVersionObjectReference
+	autoscalingv2.CrossVersionObjectReference
 	Namespace string
 }
 
@@ -49,7 +43,7 @@ func NewCollectorFactory() *CollectorFactory {
 }
 
 type CollectorPlugin interface {
-	NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error)
+	NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error)
 }
 
 func (c *CollectorFactory) RegisterPodsCollector(metricCollector string, plugin CollectorPlugin) error {
@@ -106,9 +100,9 @@ func (c *CollectorFactory) RegisterExternalCollector(metrics []string, plugin Co
 	}
 }
 
-func (c *CollectorFactory) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	switch config.Type {
-	case autoscalingv2beta1.PodsMetricSourceType:
+	case autoscalingv2.PodsMetricSourceType:
 		// first try to find a plugin by format
 		if plugin, ok := c.podsPlugins.Named[config.CollectorName]; ok {
 			return plugin.NewCollector(hpa, config, interval)
@@ -118,7 +112,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAut
 		if c.podsPlugins.Any != nil {
 			return c.podsPlugins.Any.NewCollector(hpa, config, interval)
 		}
-	case autoscalingv2beta1.ObjectMetricSourceType:
+	case autoscalingv2.ObjectMetricSourceType:
 		// first try to find a plugin by kind
 		if kinds, ok := c.objectPlugins.Named[config.ObjectReference.Kind]; ok {
 			if plugin, ok := kinds.Named[config.CollectorName]; ok {
@@ -139,8 +133,8 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAut
 		if c.objectPlugins.Any.Any != nil {
 			return c.objectPlugins.Any.Any.NewCollector(hpa, config, interval)
 		}
-	case autoscalingv2beta1.ExternalMetricSourceType:
-		if plugin, ok := c.externalPlugins[config.Name]; ok {
+	case autoscalingv2.ExternalMetricSourceType:
+		if plugin, ok := c.externalPlugins[config.Metric.Name]; ok {
 			return plugin.NewCollector(hpa, config, interval)
 		}
 	}
@@ -148,31 +142,15 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAut
 	return nil, fmt.Errorf("no plugin found for %s", config.MetricTypeName)
 }
 
-func getObjectReference(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, metricName string) (custom_metrics.ObjectReference, error) {
-	for _, metric := range hpa.Spec.Metrics {
-		if metric.Type == autoscalingv2beta1.ObjectMetricSourceType && metric.Object.MetricName == metricName {
-			return custom_metrics.ObjectReference{
-				APIVersion: metric.Object.Target.APIVersion,
-				Kind:       metric.Object.Target.Kind,
-				Name:       metric.Object.Target.Name,
-				Namespace:  hpa.Namespace,
-			}, nil
-		}
-	}
-
-	return custom_metrics.ObjectReference{}, fmt.Errorf("failed to find object reference")
-}
-
 type MetricTypeName struct {
-	Type autoscalingv2beta1.MetricSourceType
-	Name string
+	Type   autoscalingv2.MetricSourceType
+	Metric autoscalingv2.MetricIdentifier
 }
 
 type CollectedMetric struct {
-	Type     autoscalingv2beta1.MetricSourceType
+	Type     autoscalingv2.MetricSourceType
 	Custom   custom_metrics.MetricValue
 	External external_metrics.ExternalMetricValue
-	Labels   map[string]string
 }
 
 type Collector interface {
@@ -187,83 +165,17 @@ type MetricConfig struct {
 	ObjectReference custom_metrics.ObjectReference
 	PerReplica      bool
 	Interval        time.Duration
-	Labels          map[string]string
-}
-
-func parseCustomMetricsAnnotations(annotations map[string]string) (map[MetricTypeName]*MetricConfig, error) {
-	metrics := make(map[MetricTypeName]*MetricConfig)
-	for key, val := range annotations {
-		if !strings.HasPrefix(key, customMetricsPrefix) {
-			continue
-		}
-
-		parts := strings.Split(key, "/")
-		if len(parts) != 2 {
-			// TODO: error?
-			continue
-		}
-
-		configs := strings.Split(parts[0], ".")
-		if len(configs) != 4 {
-			// TODO: error?
-			continue
-		}
-
-		metricTypeName := MetricTypeName{
-			Name: configs[2],
-		}
-
-		switch configs[1] {
-		case "pods":
-			metricTypeName.Type = autoscalingv2beta1.PodsMetricSourceType
-		case "object":
-			metricTypeName.Type = autoscalingv2beta1.ObjectMetricSourceType
-		}
-
-		metricCollector := configs[3]
-
-		config, ok := metrics[metricTypeName]
-		if !ok {
-			config = &MetricConfig{
-				MetricTypeName: metricTypeName,
-				CollectorName:  metricCollector,
-				Config:         map[string]string{},
-			}
-			metrics[metricTypeName] = config
-		}
-
-		// TODO: fail if collector name doesn't match
-		if config.CollectorName != metricCollector {
-			continue
-		}
-
-		if parts[1] == perReplicaMetricsConfKey {
-			config.PerReplica = true
-			continue
-		}
-
-		if parts[1] == intervalMetricsConfKey {
-			interval, err := time.ParseDuration(val)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse interval value %s for %s: %v", val, key, err)
-			}
-			config.Interval = interval
-			continue
-		}
-
-		config.Config[parts[1]] = val
-	}
-
-	return metrics, nil
+	Configuration   map[string]string
 }
 
 // ParseHPAMetrics parses the HPA object into a list of metric configurations.
-func ParseHPAMetrics(hpa *autoscalingv2beta1.HorizontalPodAutoscaler) ([]*MetricConfig, error) {
+func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfig, error) {
 	metricConfigs := make([]*MetricConfig, 0, len(hpa.Spec.Metrics))
 
 	// TODO: validate that the specified metric names are defined
 	// in the HPA
-	configs, err := parseCustomMetricsAnnotations(hpa.Annotations)
+	var parser annotations.AnnotationConfigMap
+	err := parser.Parse(hpa.Annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -275,26 +187,20 @@ func ParseHPAMetrics(hpa *autoscalingv2beta1.HorizontalPodAutoscaler) ([]*Metric
 
 		var ref custom_metrics.ObjectReference
 		switch metric.Type {
-		case autoscalingv2beta1.PodsMetricSourceType:
-			typeName.Name = metric.Pods.MetricName
-		case autoscalingv2beta1.ObjectMetricSourceType:
-			typeName.Name = metric.Object.MetricName
+		case autoscalingv2.PodsMetricSourceType:
+			typeName.Metric = metric.Pods.Metric
+		case autoscalingv2.ObjectMetricSourceType:
+			typeName.Metric = metric.Object.Metric
 			ref = custom_metrics.ObjectReference{
-				APIVersion: metric.Object.Target.APIVersion,
-				Kind:       metric.Object.Target.Kind,
-				Name:       metric.Object.Target.Name,
+				APIVersion: metric.Object.DescribedObject.APIVersion,
+				Kind:       metric.Object.DescribedObject.Kind,
+				Name:       metric.Object.DescribedObject.Name,
 				Namespace:  hpa.Namespace,
 			}
-		case autoscalingv2beta1.ExternalMetricSourceType:
-			typeName.Name = metric.External.MetricName
-		case autoscalingv2beta1.ResourceMetricSourceType:
+		case autoscalingv2.ExternalMetricSourceType:
+			typeName.Metric = metric.External.Metric
+		case autoscalingv2.ResourceMetricSourceType:
 			continue // kube-metrics-adapter does not collect resource metrics
-		}
-
-		if config, ok := configs[typeName]; ok {
-			config.ObjectReference = ref
-			metricConfigs = append(metricConfigs, config)
-			continue
 		}
 
 		config := &MetricConfig{
@@ -303,11 +209,14 @@ func ParseHPAMetrics(hpa *autoscalingv2beta1.HorizontalPodAutoscaler) ([]*Metric
 			Config:          map[string]string{},
 		}
 
-		if metric.Type == autoscalingv2beta1.ExternalMetricSourceType {
-			config.Labels = metric.External.MetricSelector.MatchLabels
+		annotationConfigs, present := parser.GetAnnotationConfig(typeName.Metric.Name, typeName.Type)
+		if present {
+			config.CollectorName = annotationConfigs.CollectorName
+			config.Interval = annotationConfigs.Interval
+			config.PerReplica = annotationConfigs.PerReplica
+			config.Config = annotationConfigs.Configs
 		}
 		metricConfigs = append(metricConfigs, config)
 	}
-
 	return metricConfigs, nil
 }

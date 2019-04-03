@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
@@ -37,27 +37,27 @@ func NewSkipperCollectorPlugin(client kubernetes.Interface, prometheusPlugin *Pr
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
-func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2beta1.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	if strings.HasPrefix(config.Name, rpsMetricName) {
+func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	if strings.HasPrefix(config.Metric.Name, rpsMetricName) {
 		backend := ""
-		if len(config.Name) > len(rpsMetricName) {
-			metricNameParts := strings.Split(config.Name, rpsMetricBackendSeparator)
+		if len(config.Metric.Name) > len(rpsMetricName) {
+			metricNameParts := strings.Split(config.Metric.Name, rpsMetricBackendSeparator)
 			if len(metricNameParts) == 2 {
 				backend = metricNameParts[1]
 			}
 		}
 		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval, c.backendAnnotations, backend)
 	}
-	return nil, fmt.Errorf("metric '%s' not supported", config.Name)
+	return nil, fmt.Errorf("metric '%s' not supported", config.Metric.Name)
 }
 
 // SkipperCollector is a metrics collector for getting skipper ingress metrics.
 // It depends on the prometheus collector for getting the metrics.
 type SkipperCollector struct {
 	client             kubernetes.Interface
-	metricName         string
+	metric             autoscalingv2.MetricIdentifier
 	objectReference    custom_metrics.ObjectReference
-	hpa                *autoscalingv2beta1.HorizontalPodAutoscaler
+	hpa                *autoscalingv2.HorizontalPodAutoscaler
 	interval           time.Duration
 	plugin             CollectorPlugin
 	config             MetricConfig
@@ -66,13 +66,13 @@ type SkipperCollector struct {
 }
 
 // NewSkipperCollector initializes a new SkipperCollector.
-func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2beta1.HorizontalPodAutoscaler,
+func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2.HorizontalPodAutoscaler,
 	config *MetricConfig, interval time.Duration, backendAnnotations []string, backend string) (*SkipperCollector, error) {
 	return &SkipperCollector{
 		client:             client,
 		objectReference:    config.ObjectReference,
 		hpa:                hpa,
-		metricName:         config.Name,
+		metric:             config.Metric,
 		interval:           interval,
 		plugin:             plugin,
 		config:             *config,
@@ -190,7 +190,7 @@ func (c *SkipperCollector) Interval() time.Duration {
 	return c.interval
 }
 
-func targetRefReplicas(client kubernetes.Interface, hpa *autoscalingv2beta1.HorizontalPodAutoscaler) (int32, error) {
+func targetRefReplicas(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (int32, error) {
 	var replicas int32
 	switch hpa.Spec.ScaleTargetRef.Kind {
 	case "Deployment":

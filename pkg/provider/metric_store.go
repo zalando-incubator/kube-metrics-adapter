@@ -9,7 +9,7 @@ import (
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
-	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,9 +20,8 @@ import (
 // customMetricsStoredMetric is a wrapper around custom_metrics.MetricValue with a metricsTTL used
 // to clean up stale metrics from the customMetricsStore.
 type customMetricsStoredMetric struct {
-	Value  custom_metrics.MetricValue
-	Labels map[string]string
-	TTL    time.Time
+	Value custom_metrics.MetricValue
+	TTL   time.Time
 }
 
 type externalMetricsStoredMetric struct {
@@ -50,15 +49,15 @@ func NewMetricStore(ttlCalculator func() time.Time) *MetricStore {
 // Insert inserts a collected metric into the metric customMetricsStore.
 func (s *MetricStore) Insert(value collector.CollectedMetric) {
 	switch value.Type {
-	case autoscalingv2beta1.ObjectMetricSourceType, autoscalingv2beta1.PodsMetricSourceType:
-		s.insertCustomMetric(value.Custom, value.Labels)
-	case autoscalingv2beta1.ExternalMetricSourceType:
+	case autoscalingv2.ObjectMetricSourceType, autoscalingv2.PodsMetricSourceType:
+		s.insertCustomMetric(value.Custom)
+	case autoscalingv2.ExternalMetricSourceType:
 		s.insertExternalMetric(value.External)
 	}
 }
 
 // insertCustomMetric inserts a custom metric plus labels into the store.
-func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, labels map[string]string) {
+func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -77,15 +76,14 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 	}
 
 	metric := customMetricsStoredMetric{
-		Value:  value,
-		Labels: labels,
-		TTL:    s.metricsTTLCalculator(), // TODO: make TTL configurable
+		Value: value,
+		TTL:   s.metricsTTLCalculator(), // TODO: make TTL configurable
 	}
 
-	metrics, ok := s.customMetricsStore[value.MetricName]
+	metrics, ok := s.customMetricsStore[value.Metric.Name]
 	if !ok {
-		s.customMetricsStore[value.MetricName] = map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric{
-			groupResource: map[string]map[string]customMetricsStoredMetric{
+		s.customMetricsStore[value.Metric.Name] = map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric{
+			groupResource: {
 				value.DescribedObject.Namespace: map[string]customMetricsStoredMetric{
 					value.DescribedObject.Name: metric,
 				},
@@ -97,7 +95,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue, label
 	group, ok := metrics[groupResource]
 	if !ok {
 		metrics[groupResource] = map[string]map[string]customMetricsStoredMetric{
-			value.DescribedObject.Namespace: map[string]customMetricsStoredMetric{
+			value.DescribedObject.Namespace: {
 				value.DescribedObject.Name: metric,
 			},
 		}
@@ -168,14 +166,14 @@ func (s *MetricStore) GetMetricsBySelector(namespace string, selector labels.Sel
 	if !info.Namespaced {
 		for _, metricMap := range group {
 			for _, metric := range metricMap {
-				if selector.Matches(labels.Set(metric.Labels)) {
+				if selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
 					matchedMetrics = append(matchedMetrics, metric.Value)
 				}
 			}
 		}
 	} else if metricMap, ok := group[namespace]; ok {
 		for _, metric := range metricMap {
-			if selector.Matches(labels.Set(metric.Labels)) {
+			if selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
 				matchedMetrics = append(matchedMetrics, metric.Value)
 			}
 		}
@@ -222,13 +220,13 @@ func (s *MetricStore) ListAllMetrics() []provider.CustomMetricInfo {
 
 	metrics := make([]provider.CustomMetricInfo, 0, len(s.customMetricsStore))
 
-	for metricName, customMetricsStoredMetrics := range s.customMetricsStore {
+	for metric, customMetricsStoredMetrics := range s.customMetricsStore {
 		for groupResource, group := range customMetricsStoredMetrics {
 			for namespace := range group {
 				metric := provider.CustomMetricInfo{
 					GroupResource: groupResource,
 					Namespaced:    namespace != "",
-					Metric:        metricName,
+					Metric:        metric,
 				}
 				metrics = append(metrics, metric)
 			}
