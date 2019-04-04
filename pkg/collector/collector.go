@@ -174,7 +174,7 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 
 	// TODO: validate that the specified metric names are defined
 	// in the HPA
-	var parser annotations.AnnotationConfigMap
+	parser := make(annotations.AnnotationConfigMap)
 	err := parser.Parse(hpa.Annotations)
 	if err != nil {
 		return nil, err
