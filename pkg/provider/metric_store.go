@@ -173,7 +173,7 @@ func (s *MetricStore) GetMetricsBySelector(namespace string, selector labels.Sel
 		}
 	} else if metricMap, ok := group[namespace]; ok {
 		for _, metric := range metricMap {
-			if selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
+			if metric.Value.Metric.Selector != nil && selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
 				matchedMetrics = append(matchedMetrics, metric.Value)
 			}
 		}
