@@ -31,7 +31,7 @@ func (p *PodCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutosc
 type PodCollector struct {
 	client           kubernetes.Interface
 	Getter           PodMetricsGetter
-	podLabelSelector string
+	podLabelSelector *metav1.LabelSelector
 	namespace        string
 	metric           autoscalingv2.MetricIdentifier
 	metricType       autoscalingv2.MetricSourceType
@@ -79,7 +79,7 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalP
 
 func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 	opts := metav1.ListOptions{
-		LabelSelector: c.podLabelSelector,
+		LabelSelector: labels.Set(c.podLabelSelector.MatchLabels).String(),
 	}
 
 	pods, err := c.client.CoreV1().Pods(c.namespace).List(opts)
@@ -106,7 +106,7 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 					Name:       pod.Name,
 					Namespace:  pod.Namespace,
 				},
-				Metric:    custom_metrics.MetricIdentifier{Name: c.metric.Name, Selector: c.metric.Selector},
+				Metric:    custom_metrics.MetricIdentifier{Name: c.metric.Name, Selector: c.podLabelSelector},
 				Timestamp: metav1.Time{Time: time.Now().UTC()},
 				Value:     *resource.NewMilliQuantity(int64(value*1000), resource.DecimalSI),
 			},
@@ -122,21 +122,21 @@ func (c *PodCollector) Interval() time.Duration {
 	return c.interval
 }
 
-func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (string, error) {
+func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (*metav1.LabelSelector, error) {
 	switch hpa.Spec.ScaleTargetRef.Kind {
 	case "Deployment":
 		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return labels.Set(deployment.Spec.Selector.MatchLabels).String(), nil
+		return deployment.Spec.Selector, nil
 	case "StatefulSet":
 		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return labels.Set(sts.Spec.Selector.MatchLabels).String(), nil
+		return sts.Spec.Selector, nil
 	}
 
-	return "", fmt.Errorf("unable to get pod label selector for scale target ref '%s'", hpa.Spec.ScaleTargetRef.Kind)
+	return nil, fmt.Errorf("unable to get pod label selector for scale target ref '%s'", hpa.Spec.ScaleTargetRef.Kind)
 }
