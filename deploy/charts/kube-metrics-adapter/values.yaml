@@ -13,7 +13,9 @@ replicas: 1
 
 rbac:
   # Specifies whether RBAC resources should be created
-  create: true
+  enabled: true
+  psp:
+    enabled: false
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -46,5 +48,3 @@ tls:
     # Private key of the APIService
   certificate: |-
     # Public key of the APIService
-
-pspEnabled: false

@@ -1,4 +1,4 @@
-{{- if .Values.rbac.create -}}
+{{ if .Values.rbac.enabled }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -202,4 +202,34 @@ subjects:
 - kind: ServiceAccount
   name: {{ template "kube-metrics-adapter.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
-{{- end -}}
+
+{{ if .Values.rbac.psp.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp:{{ template "kube-metrics-adapter.fullname" . }}
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: psp:{{ template "kube-metrics-adapter.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "kube-metrics-adapter.fullname" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: psp:{{ template "kube-metrics-adapter.fullname" . }}
+rules:
+- apiGroups:
+  - policy
+  resourceNames:
+  - psp.kube-metrics-adapter
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+{{ end }}
+{{ end }}

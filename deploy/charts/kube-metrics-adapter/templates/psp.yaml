@@ -1,4 +1,4 @@
-{{- if .Values.pspEnabled }}
+{{- if and .Values.rbac.enabled .Values.rbac.psp.enabled }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -25,31 +25,4 @@ spec:
   volumes:
   - secret
   - emptyDir
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: psp:{{ template "kube-metrics-adapter.fullname" . }}
-roleRef:
-  kind: Role
-  apiGroup: rbac.authorization.k8s.io
-  name: psp:{{ template "kube-metrics-adapter.fullname" . }}
-subjects:
-- kind: ServiceAccount
-  namespace: {{ .Release.Namespace }}
-  name: {{ template "kube-metrics-adapter.fullname" . }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: psp:{{ template "kube-metrics-adapter.fullname" . }}
-rules:
-- apiGroups:
-  - policy
-  resourceNames:
-  - psp.kube-metrics-adapter
-  resources:
-  - podsecuritypolicies
-  verbs:
-  - use
 {{- end }}
