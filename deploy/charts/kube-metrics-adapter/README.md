@@ -57,7 +57,7 @@ The following table lists the configurable parameters of the Prometheus Adapter 
 | `tls.key`                       | Private key of the APIService (ignored if tls.enable=false)                     | ``                                          |
 | `tls.certificate`               | Public key of the APIService (ignored if tls.enable=false)                      | ``                                          |
 | `tolerations`                   | List of node taints to tolerate                                                 | `[]`                                        |
-
+| `pspEnabled`                    | enabel PSP resources                                                            | false                                       |
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```console
