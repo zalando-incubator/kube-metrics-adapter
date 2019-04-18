@@ -209,6 +209,10 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 			Config:          map[string]string{},
 		}
 
+		if metric.Type == autoscalingv2.ExternalMetricSourceType {
+			config.Config = metric.External.Metric.Selector.MatchLabels
+		}
+
 		annotationConfigs, present := parser.GetAnnotationConfig(typeName.Metric.Name, typeName.Type)
 		if present {
 			config.CollectorName = annotationConfigs.CollectorName
