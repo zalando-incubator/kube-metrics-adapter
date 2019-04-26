@@ -2,8 +2,10 @@ package collector
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
+	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // MaxWeightedCollector is a simple aggregator collector that returns the maximum value
@@ -25,18 +27,29 @@ func NewMaxWeightedCollector(interval time.Duration, weight float64, collectors 
 
 // GetMetrics gets metrics from all collectors and return the higest value.
 func (c *MaxWeightedCollector) GetMetrics() ([]CollectedMetric, error) {
+	errors := make([]error, 0)
 	collectedMetrics := make([]CollectedMetric, 0)
 	for _, collector := range c.collectors {
 		values, err := collector.GetMetrics()
 		if err != nil {
-			return nil, err
+			errors = append(errors, err)
+			continue
 		}
 		for _, v := range values {
 			collectedMetrics = append(collectedMetrics, v)
 		}
 	}
 	if len(collectedMetrics) == 0 {
-		return nil, fmt.Errorf("no metrics collected, cannot determine max")
+		if len(errors) == 0 {
+			return nil, fmt.Errorf("no metrics collected, cannot determine max")
+		} else {
+			errorStrings := make([]string, len(errors))
+			for i, e := range errors {
+				errorStrings[i] = e.Error()
+			}
+			allErrors := strings.Join(errorStrings, ",")
+			return nil, fmt.Errorf("could not determine maximum due to errors: %s", allErrors)
+		}
 	}
 	max := collectedMetrics[0]
 	for _, value := range collectedMetrics {
