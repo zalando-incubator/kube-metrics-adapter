@@ -2,6 +2,10 @@ version: "2017-09-20"
 pipeline:
 - id: build
   overlay: ci/golang
+  cache:
+    paths:
+    - /go/pkg/mod       # pkg cache for Go modules
+    - ~/.cache/go-build # Go build cache
   type: script
   commands:
   - desc: test
