@@ -165,7 +165,6 @@ type MetricConfig struct {
 	ObjectReference custom_metrics.ObjectReference
 	PerReplica      bool
 	Interval        time.Duration
-	Configuration   map[string]string
 }
 
 // ParseHPAMetrics parses the HPA object into a list of metric configurations.

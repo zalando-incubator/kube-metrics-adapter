@@ -69,7 +69,7 @@ type ZMONCollector struct {
 
 // NewZMONCollector initializes a new ZMONCollector.
 func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[string]string, interval time.Duration) (*ZMONCollector, error) {
-	checkIDStr, ok := config.Configuration[zmonCheckIDLabelKey]
+	checkIDStr, ok := config.Config[zmonCheckIDLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("ZMON check ID not specified on metric")
 	}
@@ -82,7 +82,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 	key := ""
 
 	// get optional key
-	if k, ok := config.Configuration[zmonKeyLabelKey]; ok {
+	if k, ok := config.Config[zmonKeyLabelKey]; ok {
 		key = k
 	}
 
@@ -94,7 +94,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 	duration := defaultQueryDuration
 
 	// parse optional duration value
-	if d, ok := config.Configuration[zmonDurationLabelKey]; ok {
+	if d, ok := config.Config[zmonDurationLabelKey]; ok {
 		duration, err = time.ParseDuration(d)
 		if err != nil {
 			return nil, err
@@ -103,7 +103,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 
 	// parse tags
 	tags := make(map[string]string)
-	for k, v := range config.Configuration {
+	for k, v := range config.Config {
 		if strings.HasPrefix(k, zmonTagPrefixLabelKey) {
 			key := strings.TrimPrefix(k, zmonTagPrefixLabelKey)
 			tags[key] = v
@@ -122,7 +122,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 
 	// default aggregator is last
 	aggregators := []string{"last"}
-	if k, ok := config.Configuration[zmonAggregatorsLabelKey]; ok {
+	if k, ok := config.Config[zmonAggregatorsLabelKey]; ok {
 		aggregators = strings.Split(k, ",")
 	}
 

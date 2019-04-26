@@ -28,7 +28,7 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 		MetricTypeName: MetricTypeName{
 			Metric: newMetricIdentifier(ZMONCheckMetric),
 		},
-		Configuration: map[string]string{
+		Config: map[string]string{
 			zmonCheckIDLabelKey:             "1234",
 			zmonAggregatorsLabelKey:         "max",
 			zmonTagPrefixLabelKey + "alias": "cluster_alias",
@@ -70,7 +70,7 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 	require.Error(t, err)
 
 	// should fail if the check id is not specified.
-	delete(config.Configuration, zmonCheckIDLabelKey)
+	delete(config.Config, zmonCheckIDLabelKey)
 	config.Metric.Name = ZMONCheckMetric
 	_, err = collectPlugin.NewCollector(nil, config, 1*time.Second)
 	require.Error(t, err)
@@ -88,7 +88,7 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 			Metric: newMetricIdentifier(ZMONCheckMetric),
 			Type:   "foo",
 		},
-		Configuration: map[string]string{
+		Config: map[string]string{
 			zmonCheckIDLabelKey:             "1234",
 			zmonAggregatorsLabelKey:         "max",
 			zmonTagPrefixLabelKey + "alias": "cluster_alias",
