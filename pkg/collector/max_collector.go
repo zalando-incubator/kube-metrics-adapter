@@ -2,9 +2,10 @@ package collector
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // MaxWeightedCollector is a simple aggregator collector that returns the maximum value
