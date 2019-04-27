@@ -16,6 +16,14 @@ import (
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 )
 
+type NoResultError struct {
+	query string
+}
+
+func (r NoResultError) Error() string {
+	return fmt.Sprintf("query '%s' did not result a valid response", r.query)
+}
+
 type PrometheusCollectorPlugin struct {
 	promAPI promv1.API
 	client  kubernetes.Interface
@@ -88,7 +96,7 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 	case model.ValVector:
 		samples := value.(model.Vector)
 		if len(samples) == 0 {
-			return nil, fmt.Errorf("query '%s' returned no samples", c.query)
+			return nil, &NoResultError{query: c.query}
 		}
 
 		sampleValue = samples[0].Value
@@ -98,7 +106,7 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 	}
 
 	if sampleValue.String() == "NaN" {
-		return nil, fmt.Errorf("query '%s' returned no samples: %s", c.query, sampleValue.String())
+		return nil, &NoResultError{query: c.query}
 	}
 
 	if c.perReplica {

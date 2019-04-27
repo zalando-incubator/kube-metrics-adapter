@@ -19,7 +19,12 @@ func (c dummyCollector) Interval() time.Duration {
 }
 
 func (c dummyCollector) GetMetrics() ([]CollectedMetric, error) {
-	if c.value > 0 {
+	switch c.value {
+	case 0:
+		return nil, NoResultError{query: "invalid query"}
+	case -1:
+		return nil, fmt.Errorf("test error")
+	default:
 		quantity := resource.NewQuantity(c.value, resource.DecimalSI)
 		return []CollectedMetric{
 			{
@@ -28,8 +33,6 @@ func (c dummyCollector) GetMetrics() ([]CollectedMetric, error) {
 				},
 			},
 		}, nil
-	} else {
-		return nil, fmt.Errorf("test error")
 	}
 }
 
@@ -39,24 +42,40 @@ func TestMaxCollector(t *testing.T) {
 		values   []int64
 		expected int
 		weight   float64
+		errored  bool
 	}{
 		{
 			name:     "basic",
 			values:   []int64{100, 10, 9},
 			expected: 100,
 			weight:   1,
+			errored:  false,
 		},
 		{
 			name:     "weighted",
 			values:   []int64{100, 10, 9},
 			expected: 20,
 			weight:   0.2,
+			errored:  false,
 		},
 		{
-			name:     "with error",
-			values:   []int64{-1, 10, 9},
+			name:    "with error",
+			values:  []int64{10, 9, -1},
+			weight:  0.5,
+			errored: true,
+		},
+		{
+			name:     "some invalid results",
+			values:   []int64{0, 1, 0, 10, 9},
 			expected: 5,
 			weight:   0.5,
+			errored:  false,
+		},
+		{
+			name:    "both invalid results and errors",
+			values:  []int64{0, 1, 0, -1, 10, 9},
+			weight:  0.5,
+			errored: true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -66,9 +85,13 @@ func TestMaxCollector(t *testing.T) {
 			}
 			wc := NewMaxWeightedCollector(time.Second, tc.weight, collectors...)
 			metrics, err := wc.GetMetrics()
-			require.NoError(t, err)
-			require.Len(t, metrics, 1)
-			require.EqualValues(t, tc.expected, metrics[0].Custom.Value.Value())
+			if tc.errored {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Len(t, metrics, 1)
+				require.EqualValues(t, tc.expected, metrics[0].Custom.Value.Value())
+			}
 
 		})
 

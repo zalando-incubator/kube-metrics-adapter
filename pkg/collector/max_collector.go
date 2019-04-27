@@ -16,7 +16,7 @@ type MaxWeightedCollector struct {
 	weight     float64
 }
 
-// NewMaxCollector initializes a new MacCollector.
+// NewMaxWeightedCollector initializes a new MaxWeightedCollector.
 func NewMaxWeightedCollector(interval time.Duration, weight float64, collectors ...Collector) *MaxWeightedCollector {
 	return &MaxWeightedCollector{
 		collectors: collectors,
@@ -32,24 +32,24 @@ func (c *MaxWeightedCollector) GetMetrics() ([]CollectedMetric, error) {
 	for _, collector := range c.collectors {
 		values, err := collector.GetMetrics()
 		if err != nil {
-			errors = append(errors, err)
-			continue
+			if _, ok := err.(NoResultError); ok {
+				errors = append(errors, err)
+				continue
+			}
+			return nil, err
 		}
-		for _, v := range values {
-			collectedMetrics = append(collectedMetrics, v)
-		}
+		collectedMetrics = append(collectedMetrics, values...)
 	}
 	if len(collectedMetrics) == 0 {
 		if len(errors) == 0 {
 			return nil, fmt.Errorf("no metrics collected, cannot determine max")
-		} else {
-			errorStrings := make([]string, len(errors))
-			for i, e := range errors {
-				errorStrings[i] = e.Error()
-			}
-			allErrors := strings.Join(errorStrings, ",")
-			return nil, fmt.Errorf("could not determine maximum due to errors: %s", allErrors)
 		}
+		errorStrings := make([]string, len(errors))
+		for i, e := range errors {
+			errorStrings[i] = e.Error()
+		}
+		allErrors := strings.Join(errorStrings, ",")
+		return nil, fmt.Errorf("could not determine maximum due to errors: %s", allErrors)
 	}
 	max := collectedMetrics[0]
 	for _, value := range collectedMetrics {
