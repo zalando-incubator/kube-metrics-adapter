@@ -3,20 +3,19 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/metrics/pkg/apis/custom_metrics"
 )
 
 const (
@@ -73,27 +72,27 @@ func newHPA(namesapce string, refName string, refKind string) *autoscalingv2.Hor
 	}
 }
 
-func newDeployment(client *fake.Clientset, namespace string, name string, replicas, readyReplicas int32) (*v1.Deployment, error) {
-	return client.AppsV1().Deployments(namespace).Create(&v1.Deployment{
+func newDeployment(client *fake.Clientset, namespace string, name string, replicas, readyReplicas int32) (*appsv1.Deployment, error) {
+	return client.AppsV1().Deployments(namespace).Create(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1.DeploymentSpec{},
-		Status: v1.DeploymentStatus{
+		Spec: appsv1.DeploymentSpec{},
+		Status: appsv1.DeploymentStatus{
 			ReadyReplicas: replicas,
 			Replicas:      readyReplicas,
 		},
 	})
 }
 
-func newStatefulSet(client *fake.Clientset, namespace string, name string) (*v1.StatefulSet, error) {
-	return client.AppsV1().StatefulSets(namespace).Create(&v1.StatefulSet{
+func newStatefulSet(client *fake.Clientset, namespace string, name string) (*appsv1.StatefulSet, error) {
+	return client.AppsV1().StatefulSets(namespace).Create(&appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Status: v1.StatefulSetStatus{
+		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas: 1,
 			Replicas:      2,
 		},
@@ -204,17 +203,19 @@ func TestSkipperCollector(t *testing.T) {
 	} {
 		t.Run(tc.msg, func(tt *testing.T) {
 			client := fake.NewSimpleClientset()
-			makeIngress(client, tc.namespace, tc.ingressName, tc.backend, tc.backendWeights)
+			err := makeIngress(client, tc.namespace, tc.ingressName, tc.backend, tc.backendWeights)
+			require.NoError(t, err)
 			plugin := makePlugin(tc.metrics)
 			hpa := makeHPA(tc.ingressName, tc.backend)
 			config := makeConfig(tc.backend)
-			newDeployment(client, tc.namespace, tc.backend, tc.replicas, tc.readyReplicas)
+			_, err = newDeployment(client, tc.namespace, tc.backend, tc.replicas, tc.readyReplicas)
+			require.NoError(t, err)
 			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, tc.backendAnnotations, tc.backend)
-			assert.NoError(tt, err, "failed to create skipper collector: %v", err)
+			require.NoError(tt, err, "failed to create skipper collector: %v", err)
 			collected, err := collector.GetMetrics()
-			assert.NoError(tt, err, "failed to collect metrics: %v", err)
-			assert.Len(t, collected, 1, "the number of metrics returned is not 1")
-			assert.EqualValues(t, tc.collectedMetric, collected[0].Custom.Value.Value(), "the returned metric is not expected value")
+			require.NoError(tt, err, "failed to collect metrics: %v", err)
+			require.Len(t, collected, 1, "the number of metrics returned is not 1")
+			require.EqualValues(t, tc.collectedMetric, collected[0].Custom.Value.Value(), "the returned metric is not expected value")
 		})
 	}
 }

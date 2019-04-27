@@ -19,8 +19,7 @@ test:
 	go test -v $(GOPKGS)
 
 check:
-	golint $(GOPKGS)
-	go vet -v $(GOPKGS)
+	golangci-lint run ./...
 
 build.local: build/$(BINARY)
 build.linux: build/linux/$(BINARY)

@@ -1,6 +1,9 @@
 package provider
 
 import (
+	"testing"
+	"time"
+
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
@@ -12,8 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
-	"testing"
-	"time"
 )
 
 func newMetricIdentifier(metricName string) custom_metrics.MetricIdentifier {

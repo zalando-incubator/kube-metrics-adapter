@@ -3,13 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
-	w.Write([]byte(fmt.Sprintf(`{"queue": {"length": %d}}`, size)))
+	_, err := w.Write([]byte(fmt.Sprintf(`{"queue": {"length": %d}}`, size)))
+	log.Fatalf("failed to write: %v", err)
 }
 
 var (
@@ -29,5 +31,5 @@ func main() {
 		ReadTimeout: 5 * time.Second,
 	}
 
-	server.ListenAndServe()
+	log.Fatal(server.ListenAndServe())
 }

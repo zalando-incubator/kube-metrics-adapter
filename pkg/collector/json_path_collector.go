@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/oliveagle/jsonpath"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // JSONPathMetricsGetter is a metrics getter which looks up pod metrics by
@@ -58,7 +58,7 @@ func NewJSONPathMetricsGetter(config map[string]string) (*JSONPathMetricsGetter,
 // GetMetric gets metric from pod by fetching json metrics from the pods metric
 // endpoint and extracting the desired value using the specified json path
 // query.
-func (g *JSONPathMetricsGetter) GetMetric(pod *v1.Pod) (float64, error) {
+func (g *JSONPathMetricsGetter) GetMetric(pod *corev1.Pod) (float64, error) {
 	data, err := getPodMetrics(pod, g.scheme, g.path, g.port)
 	if err != nil {
 		return 0, err
@@ -89,7 +89,7 @@ func (g *JSONPathMetricsGetter) GetMetric(pod *v1.Pod) (float64, error) {
 }
 
 // getPodMetrics returns the content of the pods metrics endpoint.
-func getPodMetrics(pod *v1.Pod, scheme, path string, port int) ([]byte, error) {
+func getPodMetrics(pod *corev1.Pod, scheme, path string, port int) ([]byte, error) {
 	if pod.Status.PodIP == "" {
 		return nil, fmt.Errorf("pod %s/%s does not have a pod IP", pod.Namespace, pod.Namespace)
 	}
