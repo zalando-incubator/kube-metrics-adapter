@@ -131,7 +131,8 @@ func TestQuery(tt *testing.T) {
 			ts := httptest.NewServer(http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(ti.status)
-					w.Write([]byte(ti.body))
+					_, err := w.Write([]byte(ti.body))
+					assert.NoError(t, err)
 				}),
 			)
 			defer ts.Close()

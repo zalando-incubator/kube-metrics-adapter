@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -40,7 +40,7 @@ type PodCollector struct {
 }
 
 type PodMetricsGetter interface {
-	GetMetric(pod *v1.Pod) (float64, error)
+	GetMetric(pod *corev1.Pod) (float64, error)
 }
 
 func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PodCollector, error) {
