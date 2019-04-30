@@ -156,8 +156,10 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 
 		err = collectorFactory.RegisterObjectCollector("", "prometheus", promPlugin)
 		if err != nil {
-			return fmt.Errorf("failed to register prometheus collector plugin: %v", err)
+			return fmt.Errorf("failed to register prometheus object collector plugin: %v", err)
 		}
+
+		collectorFactory.RegisterExternalCollector([]string{collector.PrometheusMetricName}, promPlugin)
 
 		// skipper collector can only be enabled if prometheus is.
 		if o.SkipperIngressMetrics {
