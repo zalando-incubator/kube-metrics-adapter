@@ -132,7 +132,16 @@ func (p *HPAProvider) updateHPAs() error {
 			Namespace: hpa.Namespace,
 		}
 
-		if cachedHPA, ok := p.hpaCache[resourceRef]; !ok || !equalHPA(cachedHPA, hpa) {
+		cachedHPA, ok := p.hpaCache[resourceRef]
+		hpaUpdated := !equalHPA(cachedHPA, hpa)
+		if !ok || hpaUpdated {
+			// if the hpa has changed then remove the previous
+			// scheduled collector.
+			if hpaUpdated {
+				p.logger.Infof("Removing previously scheduled metrics collector: %s", resourceRef)
+				p.collectorScheduler.Remove(resourceRef)
+			}
+
 			metricConfigs, err := collector.ParseHPAMetrics(&hpa)
 			if err != nil {
 				p.logger.Errorf("Failed to parse HPA metrics: %v", err)
