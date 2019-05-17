@@ -266,6 +266,30 @@ instead of a total sum.
 The AWS collector allows scaling based on external metrics exposed by AWS
 services e.g. SQS queue lengths.
 
+### AWS IAM role
+
+To integrate with AWS, the controller needs to run on nodes with
+access to AWS API. Additionally the controller have to have a role
+with the following policy to get all required data from AWS:
+
+```yaml
+PolicyDocument:
+  Statement:
+    - Action: 'sqs:GetQueueUrl'
+      Effect: Allow
+      Resource: '*'
+    - Action: 'sqs:GetQueueAttributes'
+      Effect: Allow
+      Resource: '*'
+    - Action: 'sqs:ListQueues'
+      Effect: Allow
+      Resource: '*'
+    - Action: 'sqs:ListQueueTags'
+      Effect: Allow
+      Resource: '*'
+  Version: 2012-10-17
+```
+
 ### Supported metrics
 
 | Metric | Description | Type |
