@@ -11,7 +11,7 @@ env:
 before_install:
   - go get github.com/mattn/goveralls
   - go get github.com/lawrencewoodman/roveralls
-  - go get github.com/golangci/golangci-lint/cmd/golangci-lint
+  - go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
 
 script:
   - make check
