@@ -48,3 +48,16 @@ tls:
     # Private key of the APIService
   certificate: |-
     # Public key of the APIService
+
+# required to make requests to SQS
+sslCertPath: /etc/ssl/certs/ca-bundle.crt
+sslCertHostPath: /etc/ssl/certs/ca-bundle.crt
+
+nodeSelector: {}
+
+# enables support for `sqs-queue-length`, AWS collector metric
+# more: https://github.com/zalando-incubator/kube-metrics-adapter#aws-collector
+aws:
+  enable: false
+  # comma separated list of AWS regions where your SQS queues are deployed
+  region: us-west-2

@@ -34,6 +34,10 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
         - --secure-port={{ .Values.service.internalPort }}
+        {{- if .Values.aws.enable }}
+        - --aws-external-metrics
+        - --aws-region={{ .Values.aws.region }}
+        {{- end}}
         - --v={{ .Values.logLevel }}
         - --prometheus-server={{ .Values.prometheus.url }}
         {{- if .Values.tls.enable }}
@@ -49,6 +53,9 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp
+        - name: ssl-certs
+          mountPath: {{ .Values.sslCertPath }}
+          readOnly: true
     {{- if .Values.tolerations }}
       tolerations:
 {{ toYaml .Values.tolerations | indent 8 }}
@@ -57,6 +64,13 @@ spec:
       affinity:
 {{ toYaml .Values.affinity | indent 8 }}
     {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
       volumes:
       - name: tmp
         emptyDir: {}
+      - name: ssl-certs
+        hostPath:
+          path: {{ .Values.sslCertHostPath }}

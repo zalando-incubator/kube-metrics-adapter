@@ -52,10 +52,14 @@ The following table lists the configurable parameters of the Prometheus Adapter 
 | `service.type`                  | Type of service to create                                                       | `ClusterIP`                                 |
 | `serviceAccount.create`         | If true, create & use Serviceaccount                                            | `true`                                      |
 | `serviceAccount.name`           | If not set and create is true, a name is generated using the fullname template  | ``                                          |
+| `sslCertPath`                   | Path on the pod where ssl ca cert exists (required if aws.enable=true)          | `/etc/ssl/certs/ca-certificates.crt`        |
+| `sslCertHostPath`               | Path on the host where ssl ca cert exists (required if aws.enable=true)         | `/etc/ssl/certs/ca-certificates.crt`        |
 | `tls.enable`                    | If true, use the provided certificates. If false, generate self-signed certs    | `false`                                     |
 | `tls.ca`                        | Public CA file that signed the APIService (ignored if tls.enable=false)         | ``                                          |
 | `tls.key`                       | Private key of the APIService (ignored if tls.enable=false)                     | ``                                          |
 | `tls.certificate`               | Public key of the APIService (ignored if tls.enable=false)                      | ``                                          |
+| `aws.enable`                    | If true, enable AWS external metrics (SQS)                                      | `false`                                     |
+| `aws.region`                    | Comma separated list of AWS regions (ignored if aws.enable=false)               | `us-west-2`                                 |
 | `tolerations`                   | List of node taints to tolerate                                                 | `[]`                                        |
 | `pspEnabled`                    | enabel PSP resources                                                            | false                                       |
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
