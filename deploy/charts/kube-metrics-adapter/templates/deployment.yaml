@@ -53,9 +53,11 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp
+        {{- if .Values.aws.enable }}
         - name: ssl-certs
           mountPath: {{ .Values.sslCertPath }}
           readOnly: true
+        {{- end}}
     {{- if .Values.tolerations }}
       tolerations:
 {{ toYaml .Values.tolerations | indent 8 }}
@@ -71,6 +73,8 @@ spec:
       volumes:
       - name: tmp
         emptyDir: {}
+      {{- if .Values.aws.enable }}
       - name: ssl-certs
         hostPath:
           path: {{ .Values.sslCertHostPath }}
+      {{- end}}

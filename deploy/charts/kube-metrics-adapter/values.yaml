@@ -49,7 +49,7 @@ tls:
   certificate: |-
     # Public key of the APIService
 
-# required to make requests to SQS
+# required to make requests to SQS, ignored if aws.enable=false
 sslCertPath: /etc/ssl/certs/ca-bundle.crt
 sslCertHostPath: /etc/ssl/certs/ca-bundle.crt
 
