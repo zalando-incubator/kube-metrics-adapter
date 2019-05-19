@@ -14,6 +14,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
+	"k8s.io/metrics/pkg/apis/external_metrics"
+)
+
+const (
+	PrometheusMetricName        = "prometheus-query"
+	prometheusQueryNameLabelKey = "query-name"
 )
 
 type NoResultError struct {
@@ -64,21 +70,37 @@ type PrometheusCollector struct {
 
 func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PrometheusCollector, error) {
 	c := &PrometheusCollector{
-		client:          client,
-		objectReference: config.ObjectReference,
-		metric:          config.Metric,
-		metricType:      config.Type,
-		interval:        interval,
-		promAPI:         promAPI,
-		perReplica:      config.PerReplica,
-		hpa:             hpa,
+		client:     client,
+		promAPI:    promAPI,
+		interval:   interval,
+		hpa:        hpa,
+		metric:     config.Metric,
+		metricType: config.Type,
 	}
 
-	if v, ok := config.Config["query"]; ok {
-		// TODO: validate query
-		c.query = v
-	} else {
-		return nil, fmt.Errorf("no prometheus query defined")
+	switch config.Type {
+	case autoscalingv2.ObjectMetricSourceType:
+		c.objectReference = config.ObjectReference
+		c.perReplica = config.PerReplica
+
+		if v, ok := config.Config["query"]; ok {
+			// TODO: validate query
+			c.query = v
+		} else {
+			return nil, fmt.Errorf("no prometheus query defined")
+		}
+	case autoscalingv2.ExternalMetricSourceType:
+		queryName, ok := config.Metric.Selector.MatchLabels[prometheusQueryNameLabelKey]
+		if !ok {
+			return nil, fmt.Errorf("query name not specified on metric")
+		}
+
+		if v, ok := config.Config[queryName]; ok {
+			// TODO: validate query
+			c.query = v
+		} else {
+			return nil, fmt.Errorf("no prometheus query defined for metric")
+		}
 	}
 
 	return c, nil
@@ -121,14 +143,28 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 		sampleValue = model.SampleValue(float64(sampleValue) / float64(replicas))
 	}
 
-	metricValue := CollectedMetric{
-		Type: c.metricType,
-		Custom: custom_metrics.MetricValue{
-			DescribedObject: c.objectReference,
-			Metric:          custom_metrics.MetricIdentifier{Name: c.metric.Name, Selector: c.metric.Selector},
-			Timestamp:       metav1.Time{Time: time.Now().UTC()},
-			Value:           *resource.NewMilliQuantity(int64(sampleValue*1000), resource.DecimalSI),
-		},
+	var metricValue CollectedMetric
+	switch c.metricType {
+	case autoscalingv2.ObjectMetricSourceType:
+		metricValue = CollectedMetric{
+			Type: c.metricType,
+			Custom: custom_metrics.MetricValue{
+				DescribedObject: c.objectReference,
+				Metric:          custom_metrics.MetricIdentifier{Name: c.metric.Name, Selector: c.metric.Selector},
+				Timestamp:       metav1.Time{Time: time.Now().UTC()},
+				Value:           *resource.NewMilliQuantity(int64(sampleValue*1000), resource.DecimalSI),
+			},
+		}
+	case autoscalingv2.ExternalMetricSourceType:
+		metricValue = CollectedMetric{
+			Type: c.metricType,
+			External: external_metrics.ExternalMetricValue{
+				MetricName:   c.metric.Name,
+				MetricLabels: c.metric.Selector.MatchLabels,
+				Timestamp:    metav1.Time{Time: time.Now().UTC()},
+				Value:        *resource.NewMilliQuantity(int64(sampleValue*1000), resource.DecimalSI),
+			},
+		}
 	}
 
 	return []CollectedMetric{metricValue}, nil

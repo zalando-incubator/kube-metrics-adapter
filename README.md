@@ -152,9 +152,51 @@ the trade-offs between the two approaches.
 
 | Metric | Description | Type | Kind |
 | ------------ | -------------- | ------- | -- |
+| `prometheus-query` | Generic metric which requires a user defined query. | External | |
 | *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* |
 
-### Example
+### Example: External Metric
+
+This is an example of an HPA configured to get metrics based on a Prometheus
+query. The query is defined in the annotation
+`metric-config.external.prometheus-query.prometheus/processed-events-per-second`
+where `processed-events-per-second` is the query name which will be associated
+with the result of the query. A matching `query-name` label must be defined in
+the `matchLabels` of the metric definition. This allows having multiple
+prometheus queries associated with a single HPA.
+
+```yaml
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+  annotations:
+    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    # <configKey> == query-name
+    metric-config.external.prometheus-query.prometheus/processed-events-per-second: |
+      scalar(sum(rate(event-service_events_count{application="event-service",processed="true"}[1m])))
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: custom-metrics-consumer
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: External
+    external:
+      metricName: prometheus-query
+      metricSelector:
+        matchLabels:
+          query-name: processed-events-per-second
+      targetAverageValue: 10
+```
+
+### Example: Object Metric [DEPRECATED]
+
+> _Note: Prometheus Object metrics are **deprecated** and will most likely be
+> removed in the future. Use the Prometheus External metrics instead as described
+> above._
 
 This is an example of an HPA configured to get metrics based on a Prometheus
 query. The query is defined in the annotation
@@ -199,6 +241,7 @@ spec:
 
 _Note:_ The HPA object requires an `Object` to be specified. However when a Prometheus metric is used there is no need
 for this object. But to satisfy the schema we specify a dummy pod called `dummy-pod`.
+
 
 ## Skipper collector
 
