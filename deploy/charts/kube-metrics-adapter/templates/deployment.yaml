@@ -23,9 +23,6 @@ spec:
     spec:
       serviceAccountName: {{ template "kube-metrics-adapter.fullname" . }}
       securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop: ["all"]
         runAsNonRoot: true
         runAsUser: 10001
       containers:
@@ -49,6 +46,9 @@ spec:
         - containerPort: {{ .Values.service.internalPort }}
           name: https
         securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["all"]
           readOnlyRootFilesystem: true
         volumeMounts:
         - mountPath: /tmp

@@ -1,5 +1,5 @@
 name: kube-metrics-adapter
-version: 0.0.3
+version: 0.0.4
 appVersion: v0.0.2
 description: A Helm chart for kube-metrics-adapter
 home: https://github.com/zalando-incubator/kube-metrics-adapter
