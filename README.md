@@ -90,6 +90,7 @@ metadata:
     metric-config.pods.requests-per-second.json-path/json-key: "$.http_server.rps"
     metric-config.pods.requests-per-second.json-path/path: /metrics
     metric-config.pods.requests-per-second.json-path/port: "9090"
+    metric-config.pods.requests-per-second.json-path/scheme: "https"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -123,9 +124,9 @@ The json-path query support depends on the
 See the README for possible queries. It's expected that the metric you query
 returns something that can be turned into a `float64`.
 
-The other configuration options `path` and `port` specifies where the metrics
-endpoint is exposed on the pod. There's no default values, so they must be
-defined.
+The other configuration options `path`, `port` and `scheme` specify where the metrics
+endpoint is exposed on the pod. The `path` and `port` options do not have default values
+so they must be defined. The `scheme` is optional and defaults to `http`.
 
 ## Prometheus collector
 
