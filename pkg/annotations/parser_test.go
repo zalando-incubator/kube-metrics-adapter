@@ -27,6 +27,7 @@ func TestParser(t *testing.T) {
 				"metric-config.pods.requests-per-second.json-path/json-key": "$.http_server.rps",
 				"metric-config.pods.requests-per-second.json-path/path":     "/metrics",
 				"metric-config.pods.requests-per-second.json-path/port":     "9090",
+				"metric-config.pods.requests-per-second.json-path/scheme":   "https",
 			},
 			MetricName: "requests-per-second",
 			MetricType: autoscalingv2.PodsMetricSourceType,
@@ -34,6 +35,7 @@ func TestParser(t *testing.T) {
 				"json-key": "$.http_server.rps",
 				"path":     "/metrics",
 				"port":     "9090",
+				"scheme":   "https",
 			},
 		},
 		{
