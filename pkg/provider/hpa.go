@@ -13,7 +13,6 @@ import (
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
-	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -55,7 +54,7 @@ type HPAProvider struct {
 	collectorScheduler *CollectorScheduler
 	collectorInterval  time.Duration
 	metricSink         chan metricCollection
-	hpaCache           map[resourceReference]autoscalingv2beta2.HorizontalPodAutoscaler
+	hpaCache           map[resourceReference]autoscalingv2.HorizontalPodAutoscaler
 	metricStore        *MetricStore
 	collectorFactory   *collector.CollectorFactory
 	recorder           kube_record.EventRecorder
@@ -122,7 +121,7 @@ func (p *HPAProvider) updateHPAs() error {
 		return err
 	}
 
-	newHPACache := make(map[resourceReference]autoscalingv2beta2.HorizontalPodAutoscaler, len(hpas.Items))
+	newHPACache := make(map[resourceReference]autoscalingv2.HorizontalPodAutoscaler, len(hpas.Items))
 
 	newHPAs := 0
 
