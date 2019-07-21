@@ -13,6 +13,7 @@ import (
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -54,7 +55,7 @@ type HPAProvider struct {
 	collectorScheduler *CollectorScheduler
 	collectorInterval  time.Duration
 	metricSink         chan metricCollection
-	hpaCache           map[resourceReference]autoscalingv2.HorizontalPodAutoscaler
+	hpaCache           map[resourceReference]autoscalingv2beta2.HorizontalPodAutoscaler
 	metricStore        *MetricStore
 	collectorFactory   *collector.CollectorFactory
 	recorder           kube_record.EventRecorder
@@ -116,17 +117,24 @@ func (p *HPAProvider) Run(ctx context.Context) {
 func (p *HPAProvider) updateHPAs() error {
 	p.logger.Info("Looking for HPAs")
 
-	hpas, err := p.client.AutoscalingV2beta2().HorizontalPodAutoscalers(metav1.NamespaceAll).List(metav1.ListOptions{})
+	hpas, err := p.client.AutoscalingV2beta1().HorizontalPodAutoscalers(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	newHPACache := make(map[resourceReference]autoscalingv2.HorizontalPodAutoscaler, len(hpas.Items))
+	newHPACache := make(map[resourceReference]autoscalingv2beta2.HorizontalPodAutoscaler, len(hpas.Items))
 
 	newHPAs := 0
 
-	for _, hpa := range hpas.Items {
-		hpa := hpa
+	for _, hpav1 := range hpas.Items {
+		hpav1 := hpav1
+		hpa := autoscalingv2.HorizontalPodAutoscaler{}
+		err := Convert_v2beta1_HorizontalPodAutoscaler_To_autoscaling_HorizontalPodAutoscaler(&hpav1, &hpa, nil)
+		if err != nil {
+			p.logger.Errorf("Failed to convert HPA to v2beta2: %v", err)
+			continue
+		}
+
 		resourceRef := resourceReference{
 			Name:      hpa.Name,
 			Namespace: hpa.Namespace,
