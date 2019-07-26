@@ -568,7 +568,7 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 			require.Nil(t, metric)
 
 			metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
-			require.Nil(t, metrics)
+			require.Equal(t, &custom_metrics.MetricValueList{}, metrics)
 
 		})
 	}

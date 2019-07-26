@@ -155,12 +155,12 @@ func (s *MetricStore) GetMetricsBySelector(namespace string, selector labels.Sel
 
 	metrics, ok := s.customMetricsStore[info.Metric]
 	if !ok {
-		return nil
+		return &custom_metrics.MetricValueList{}
 	}
 
 	group, ok := metrics[info.GroupResource]
 	if !ok {
-		return nil
+		return &custom_metrics.MetricValueList{}
 	}
 
 	if !info.Namespaced {
