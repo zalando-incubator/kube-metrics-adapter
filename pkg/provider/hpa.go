@@ -116,7 +116,7 @@ func (p *HPAProvider) Run(ctx context.Context) {
 func (p *HPAProvider) updateHPAs() error {
 	p.logger.Info("Looking for HPAs")
 
-	hpas, err := p.client.AutoscalingV2beta2().HorizontalPodAutoscalers(metav1.NamespaceAll).List(metav1.ListOptions{})
+	hpas, err := p.client.AutoscalingV2beta1().HorizontalPodAutoscalers(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -125,8 +125,15 @@ func (p *HPAProvider) updateHPAs() error {
 
 	newHPAs := 0
 
-	for _, hpa := range hpas.Items {
-		hpa := hpa
+	for _, hpav1 := range hpas.Items {
+		hpav1 := hpav1
+		hpa := autoscalingv2.HorizontalPodAutoscaler{}
+		err := Convert_v2beta1_HorizontalPodAutoscaler_To_autoscaling_HorizontalPodAutoscaler(&hpav1, &hpa, nil)
+		if err != nil {
+			p.logger.Errorf("Failed to convert HPA to v2beta2: %v", err)
+			continue
+		}
+
 		resourceRef := resourceReference{
 			Name:      hpa.Name,
 			Namespace: hpa.Namespace,
