@@ -107,6 +107,7 @@ func TestSkipperCollector(t *testing.T) {
 		ingressName        string
 		collectedMetric    int
 		expectError        bool
+		fakedAverage       bool
 		namespace          string
 		backendWeights     map[string]map[string]int
 		replicas           int32
@@ -140,10 +141,23 @@ func TestSkipperCollector(t *testing.T) {
 			metrics:            []int{100, 1500, 700},
 			ingressName:        "dummy-ingress",
 			collectedMetric:    150,
+			fakedAverage:       true,
 			namespace:          "default",
 			backend:            "backend1",
 			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 50, "backend1": 50}},
 			replicas:           5,
+			readyReplicas:      5,
+			backendAnnotations: []string{testBackendWeightsAnnotation},
+		},
+		{
+			msg:                "test multiple replicas not calculating average internally",
+			metrics:            []int{100, 1500, 700},
+			ingressName:        "dummy-ingress",
+			collectedMetric:    750, // 50% of 1500
+			namespace:          "default",
+			backend:            "backend1",
+			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 50, "backend1": 50}},
+			replicas:           5, // this is not taken into account
 			readyReplicas:      5,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
 		},
@@ -164,6 +178,22 @@ func TestSkipperCollector(t *testing.T) {
 			metrics:         []int{100, 1500, 700},
 			ingressName:     "dummy-ingress",
 			collectedMetric: 300,
+			fakedAverage:    true,
+			namespace:       "default",
+			backend:         "backend1",
+			backendWeights: map[string]map[string]int{
+				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
+				testStacksetWeightsAnnotation: {"backend2": 0, "backend1": 100},
+			},
+			replicas:           5,
+			readyReplicas:      5,
+			backendAnnotations: []string{testBackendWeightsAnnotation, testStacksetWeightsAnnotation},
+		},
+		{
+			msg:             "test multiple backend annotation not calculating average internally",
+			metrics:         []int{100, 1500, 700},
+			ingressName:     "dummy-ingress",
+			collectedMetric: 1500,
 			namespace:       "default",
 			backend:         "backend1",
 			backendWeights: map[string]map[string]int{
@@ -227,6 +257,22 @@ func TestSkipperCollector(t *testing.T) {
 			metrics:         []int{100, 1500, 700},
 			ingressName:     "dummy-ingress",
 			collectedMetric: 60,
+			fakedAverage:    true,
+			namespace:       "default",
+			backend:         "backend2",
+			backendWeights: map[string]map[string]int{
+				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
+				testStacksetWeightsAnnotation: {"backend1": 100},
+			},
+			replicas:           5,
+			readyReplicas:      5,
+			backendAnnotations: []string{testBackendWeightsAnnotation, testStacksetWeightsAnnotation},
+		},
+		{
+			msg:             "test partial backend annotations not calculating average internally",
+			metrics:         []int{100, 1500, 700},
+			ingressName:     "dummy-ingress",
+			collectedMetric: 300,
 			namespace:       "default",
 			backend:         "backend2",
 			backendWeights: map[string]map[string]int{
@@ -244,7 +290,7 @@ func TestSkipperCollector(t *testing.T) {
 			require.NoError(t, err)
 			plugin := makePlugin(tc.metrics)
 			hpa := makeHPA(tc.ingressName, tc.backend)
-			config := makeConfig(tc.backend)
+			config := makeConfig(tc.backend, tc.fakedAverage)
 			_, err = newDeployment(client, tc.namespace, tc.backend, tc.replicas, tc.readyReplicas)
 			require.NoError(t, err)
 			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, tc.backendAnnotations, tc.backend)
@@ -314,10 +360,22 @@ func makeHPA(ingressName, backend string) *autoscalingv2.HorizontalPodAutoscaler
 		},
 	}
 }
-func makeConfig(backend string) *MetricConfig {
-	return &MetricConfig{
+func makeConfig(backend string, fakedAverage bool) *MetricConfig {
+	config := &MetricConfig{
 		MetricTypeName: MetricTypeName{Metric: autoscalingv2.MetricIdentifier{Name: fmt.Sprintf("%s,%s", rpsMetricName, backend)}},
+		MetricSpec: autoscalingv2.MetricSpec{
+			Object: &autoscalingv2.ObjectMetricSource{
+				Target: autoscalingv2.MetricTarget{},
+			},
+		},
 	}
+
+	if fakedAverage {
+		config.MetricSpec.Object.Target.Value = resource.NewQuantity(10, resource.DecimalSI)
+	} else {
+		config.MetricSpec.Object.Target.AverageValue = resource.NewQuantity(10, resource.DecimalSI)
+	}
+	return config
 }
 
 type FakeCollectorPlugin struct {

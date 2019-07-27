@@ -165,6 +165,7 @@ type MetricConfig struct {
 	ObjectReference custom_metrics.ObjectReference
 	PerReplica      bool
 	Interval        time.Duration
+	MetricSpec      autoscalingv2.MetricSpec
 }
 
 // ParseHPAMetrics parses the HPA object into a list of metric configurations.
@@ -206,6 +207,7 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 			MetricTypeName:  typeName,
 			ObjectReference: ref,
 			Config:          map[string]string{},
+			MetricSpec:      metric,
 		}
 
 		if metric.Type == autoscalingv2.ExternalMetricSourceType &&

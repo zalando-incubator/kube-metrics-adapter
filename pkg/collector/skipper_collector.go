@@ -72,8 +72,7 @@ type SkipperCollector struct {
 }
 
 // NewSkipperCollector initializes a new SkipperCollector.
-func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2.HorizontalPodAutoscaler,
-	config *MetricConfig, interval time.Duration, backendAnnotations []string, backend string) (*SkipperCollector, error) {
+func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration, backendAnnotations []string, backend string) (*SkipperCollector, error) {
 	return &SkipperCollector{
 		client:             client,
 		objectReference:    config.ObjectReference,
@@ -178,22 +177,26 @@ func (c *SkipperCollector) GetMetrics() ([]CollectedMetric, error) {
 		return nil, fmt.Errorf("expected to only get one metric value, got %d", len(values))
 	}
 
-	// get current replicas for the targeted scale object. This is used to
-	// calculate an average metric instead of total.
-	// targetAverageValue will be available in Kubernetes v1.12
-	// https://github.com/kubernetes/kubernetes/pull/64097
-	replicas, err := targetRefReplicas(c.client, c.hpa)
-	if err != nil {
-		return nil, err
-	}
-
-	if replicas < 1 {
-		return nil, fmt.Errorf("unable to get average value for %d replicas", replicas)
-	}
-
 	value := values[0]
-	avgValue := float64(value.Custom.Value.MilliValue()) / float64(replicas)
-	value.Custom.Value = *resource.NewMilliQuantity(int64(avgValue), resource.DecimalSI)
+
+	// For Kubernetes <v1.14 we have to fall back to manual average
+	if c.config.MetricSpec.Object.Target.AverageValue == nil {
+		// get current replicas for the targeted scale object. This is used to
+		// calculate an average metric instead of total.
+		// targetAverageValue will be available in Kubernetes v1.12
+		// https://github.com/kubernetes/kubernetes/pull/64097
+		replicas, err := targetRefReplicas(c.client, c.hpa)
+		if err != nil {
+			return nil, err
+		}
+
+		if replicas < 1 {
+			return nil, fmt.Errorf("unable to get average value for %d replicas", replicas)
+		}
+
+		avgValue := float64(value.Custom.Value.MilliValue()) / float64(replicas)
+		value.Custom.Value = *resource.NewMilliQuantity(int64(avgValue), resource.DecimalSI)
+	}
 
 	return []CollectedMetric{value}, nil
 }

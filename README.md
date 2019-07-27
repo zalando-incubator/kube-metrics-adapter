@@ -1,9 +1,12 @@
 # kube-metrics-adapter
 [![Build Status](https://travis-ci.org/zalando-incubator/kube-metrics-adapter.svg?branch=master)](https://travis-ci.org/zalando-incubator/kube-metrics-adapter)
 [![Coverage Status](https://coveralls.io/repos/github/zalando-incubator/kube-metrics-adapter/badge.svg?branch=master)](https://coveralls.io/github/zalando-incubator/kube-metrics-adapter?branch=master)
+
 Kube Metrics Adapter is a general purpose metrics adapter for Kubernetes that
 can collect and serve custom and external metrics for Horizontal Pod
 Autoscaling.
+
+It supports scaling based on [Prometheus metrics](https://prometheus.io/), [SQS queues](https://aws.amazon.com/sqs/) and others out of the box.
 
 It discovers Horizontal Pod Autoscaling resources and starts to collect the
 requested metrics and stores them in memory. It's implemented using the
@@ -41,6 +44,18 @@ The `metric-config.*` annotations are used by the `kube-metrics-adapter` to
 configure a collector for getting the metrics. In the above example it
 configures a *json-path pod collector*.
 
+## Kubernetes compatibility
+
+Like the [support
+policy](https://kubernetes.io/docs/setup/release/version-skew-policy/) offered
+for Kubernetes, this project aims to support the latest three minor releases of
+Kubernetes.
+
+Currently the default supported API is `autoscaling/v2beta1`. However we aim to
+move to `autoscaling/v2beta2` (available since `v1.12`) in the near future as
+this adds a lot of improvements over `v2beta1`. The move to `v2beta2` will most
+likely happen as soon as [GKE adds support for it](https://issuetracker.google.com/issues/135624588).
+
 ## Building
 
 This project uses [Go modules](https://github.com/golang/go/wiki/Modules) as
@@ -71,9 +86,9 @@ Currently only `json-path` collection is supported.
 
 ### Supported metrics
 
-| Metric | Description | Type |
-| ------------ | -------------- | ------- |
-| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Pods |
+| Metric | Description | Type | K8s Versions |
+| ------------ | -------------- | ------- | -- |
+| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Pods | `>=1.10` |
 
 ### Example
 
@@ -151,10 +166,10 @@ the trade-offs between the two approaches.
 
 ### Supported metrics
 
-| Metric | Description | Type | Kind |
-| ------------ | -------------- | ------- | -- |
-| `prometheus-query` | Generic metric which requires a user defined query. | External | |
-| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* |
+| Metric | Description | Type | Kind | K8s Versions |
+| ------------ | -------------- | ------- | -- | -- |
+| `prometheus-query` | Generic metric which requires a user defined query. | External | | `>=1.10` |
+| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* | `>=1.10` |
 
 ### Example: External Metric
 
@@ -259,9 +274,9 @@ box so users don't have to define those manually.
 
 ### Supported metrics
 
-| Metric | Description | Type | Kind |
-| ----------- | -------------- | ------ | ---- |
-| `requests-per-second` | Scale based on requests per second for a certain ingress. | Object | `Ingress` |
+| Metric | Description | Type | Kind | K8s Versions |
+| ----------- | -------------- | ------ | ---- | ---- |
+| `requests-per-second` | Scale based on requests per second for a certain ingress. | Object | `Ingress` | `>=1.14` (can work with `>=1.10`) |
 
 ### Example
 
@@ -288,7 +303,10 @@ spec:
         apiVersion: extensions/v1beta1
         kind: Ingress
         name: myapp
-      targetValue: 10 # this will be treated as targetAverageValue
+      averageValue: 10 # Only works with Kubernetes >=1.14
+      # for Kubernetes <1.14 you can use `targetValue` instead:
+      targetValue: 10 # this must be set, but has no effect if `averageValue` is defined.
+                      # Otherwise it will be treated as targetAverageValue
 ```
 
 ### Metric weighting based on backend
@@ -302,12 +320,16 @@ return the requests-per-second being sent to the `backend1`. The ingress annotat
 the backend weights can be obtained can be specified through the flag `--skipper-backends-annotation`.
 
 
-**Note:** As of Kubernetes v1.10 the HPA does not support `targetAverageValue` for
+**Note:** For Kubernetes `<v1.14` the HPA does not support `averageValue` for
 metrics of type `Object`. In case of requests per second it does not make sense
 to scale on a summed value because you can not make the total requests per
 second go down by adding more pods. For this reason the skipper collector will
 automatically treat the value you define in `targetValue` as an average per pod
 instead of a total sum.
+
+**ONLY use `targetValue` if you are on Kubernetes
+`<1.14`, it is not as percise as using `averageValue` and will not be supported
+after Kubernetes `v1.16` is released according to the [support policy](https://kubernetes.io/docs/setup/release/version-skew-policy/).**
 
 ## AWS collector
 
@@ -340,9 +362,9 @@ PolicyDocument:
 
 ### Supported metrics
 
-| Metric | Description | Type |
-| ------------ | ------- | -- |
-| `sqs-queue-length` | Scale based on SQS queue length | External |
+| Metric | Description | Type | K8s Versions |
+| ------------ | ------- | -- | -- |
+| `sqs-queue-length` | Scale based on SQS queue length | External | `>=1.10` |
 
 ### Example
 
@@ -388,9 +410,9 @@ The ZMON collector allows scaling based on external metrics exposed by
 
 ### Supported metrics
 
-| Metric | Description | Type |
-| ------------ | ------- | -- |
-| `zmon-check` | Scale based on any ZMON check results | External |
+| Metric | Description | Type | K8s Versions |
+| ------------ | ------- | -- | -- |
+| `zmon-check` | Scale based on any ZMON check results | External | `>=1.10` |
 
 ### Example
 
