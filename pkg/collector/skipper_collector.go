@@ -3,6 +3,7 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -81,36 +82,35 @@ func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hp
 	}, nil
 }
 
-func getAnnotationWeight(backendWeights string, backend string) (float64, bool) {
+func getAnnotationWeight(backendWeights string, backend string) float64 {
 	var weightsMap map[string]int
 	err := json.Unmarshal([]byte(backendWeights), &weightsMap)
 	if err != nil {
-		return 0, false
+		return 0
 	}
 	if weight, ok := weightsMap[backend]; ok {
-		return float64(weight) / 100, true
+		return float64(weight) / 100
 	}
-	return 0, false
+	return 0
 }
 
 func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) float64 {
-	var maxWeight float64 = -1
-	weightSet := false
+	maxWeight := 0.0
+	annotationsPresent := false
+
 	for _, anno := range backendAnnotations {
 		if weightsMap, ok := ingressAnnotations[anno]; ok {
-			weight, isPresent := getAnnotationWeight(weightsMap, backend)
-			if isPresent {
-				weightSet = true
-				if weight > maxWeight {
-					maxWeight = weight
-				}
-			}
+			annotationsPresent = true
+			maxWeight = math.Max(maxWeight, getAnnotationWeight(weightsMap, backend))
 		}
 	}
-	if weightSet {
-		return maxWeight
+
+	// Fallback for ingresses that don't use traffic switching
+	if !annotationsPresent {
+		return 1.0
 	}
-	return 1.0
+
+	return maxWeight
 }
 
 // getCollector returns a collector for getting the metrics.
