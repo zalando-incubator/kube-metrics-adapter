@@ -208,7 +208,7 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 			Config:          map[string]string{},
 		}
 
-		if metric.Type == autoscalingv2.ExternalMetricSourceType {
+		if metric.Type == autoscalingv2.ExternalMetricSourceType && metric.External.Metric.Selector != nil {
 			config.Config = metric.External.Metric.Selector.MatchLabels
 		}
 
