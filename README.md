@@ -172,6 +172,10 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
+    # This annotation is optional.
+    # If specified, then this prometheus server is used,
+    # instead of the prometheus server specified as the CLI argument `--prometheus-server`.
+    metric-config.external.prometheus-query.prometheus/prometheus-server: http://prometheus.my-namespace.svc
     # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
     # <configKey> == query-name
     metric-config.external.prometheus-query.prometheus/processed-events-per-second: |

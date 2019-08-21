@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	PrometheusMetricName        = "prometheus-query"
-	prometheusQueryNameLabelKey = "query-name"
+	PrometheusMetricName          = "prometheus-query"
+	prometheusQueryNameLabelKey   = "query-name"
+	prometheusServerAnnotationKey = "prometheus-server"
 )
 
 type NoResultError struct {
@@ -38,7 +39,7 @@ type PrometheusCollectorPlugin struct {
 func NewPrometheusCollectorPlugin(client kubernetes.Interface, prometheusServer string) (*PrometheusCollectorPlugin, error) {
 	cfg := api.Config{
 		Address:      prometheusServer,
-		RoundTripper: &http.Transport{},
+		RoundTripper: http.DefaultTransport,
 	}
 
 	promClient, err := api.NewClient(cfg)
@@ -100,6 +101,20 @@ func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa
 			c.query = v
 		} else {
 			return nil, fmt.Errorf("no prometheus query defined for metric")
+		}
+
+		// Use custom Prometheus URL if defined in HPA annotation.
+		if promServer, ok := config.Config[prometheusServerAnnotationKey]; ok {
+			cfg := api.Config{
+				Address:      promServer,
+				RoundTripper: http.DefaultTransport,
+			}
+
+			promClient, err := api.NewClient(cfg)
+			if err != nil {
+				return nil, err
+			}
+			c.promAPI = promv1.NewAPI(promClient)
 		}
 	}
 
