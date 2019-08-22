@@ -208,7 +208,9 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 			Config:          map[string]string{},
 		}
 
-		if metric.Type == autoscalingv2.ExternalMetricSourceType {
+		if metric.Type == autoscalingv2.ExternalMetricSourceType &&
+			metric.External.Metric.Selector != nil &&
+			metric.External.Metric.Selector.MatchLabels != nil {
 			config.Config = metric.External.Metric.Selector.MatchLabels
 		}
 
@@ -217,7 +219,11 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 			config.CollectorName = annotationConfigs.CollectorName
 			config.Interval = annotationConfigs.Interval
 			config.PerReplica = annotationConfigs.PerReplica
-			config.Config = annotationConfigs.Configs
+			// configs specified in annotations takes precedence
+			// over labels
+			for k, v := range annotationConfigs.Configs {
+				config.Config[k] = v
+			}
 		}
 		metricConfigs = append(metricConfigs, config)
 	}

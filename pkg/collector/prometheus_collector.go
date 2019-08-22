@@ -91,7 +91,11 @@ func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa
 			return nil, fmt.Errorf("no prometheus query defined")
 		}
 	case autoscalingv2.ExternalMetricSourceType:
-		queryName, ok := config.Metric.Selector.MatchLabels[prometheusQueryNameLabelKey]
+		if config.Metric.Selector == nil {
+			return nil, fmt.Errorf("selector for prometheus query is not specified")
+		}
+
+		queryName, ok := config.Config[prometheusQueryNameLabelKey]
 		if !ok {
 			return nil, fmt.Errorf("query name not specified on metric")
 		}

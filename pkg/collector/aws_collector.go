@@ -56,11 +56,11 @@ func NewAWSSQSCollector(sessions map[string]*session.Session, config *MetricConf
 		return nil, fmt.Errorf("selector for queue is not specified")
 	}
 
-	name, ok := config.Metric.Selector.MatchLabels[sqsQueueNameLabelKey]
+	name, ok := config.Config[sqsQueueNameLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("sqs queue name not specified on metric")
 	}
-	region, ok := config.Metric.Selector.MatchLabels[sqsQueueRegionLabelKey]
+	region, ok := config.Config[sqsQueueRegionLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("sqs queue region is not specified on metric")
 	}
