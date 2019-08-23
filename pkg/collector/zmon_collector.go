@@ -44,11 +44,7 @@ func NewZMONCollectorPlugin(zmon zmon.ZMON) (*ZMONCollectorPlugin, error) {
 func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	switch config.Metric.Name {
 	case ZMONCheckMetric:
-		annotations := map[string]string{}
-		if hpa != nil {
-			annotations = hpa.Annotations
-		}
-		return NewZMONCollector(c.zmon, config, annotations, interval)
+		return NewZMONCollector(c.zmon, config, interval)
 	}
 
 	return nil, fmt.Errorf("metric '%s' not supported", config.Metric.Name)
@@ -68,7 +64,11 @@ type ZMONCollector struct {
 }
 
 // NewZMONCollector initializes a new ZMONCollector.
-func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[string]string, interval time.Duration) (*ZMONCollector, error) {
+func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Duration) (*ZMONCollector, error) {
+	if config.Metric.Selector == nil {
+		return nil, fmt.Errorf("selector for zmon-check is not specified")
+	}
+
 	checkIDStr, ok := config.Config[zmonCheckIDLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("ZMON check ID not specified on metric")
@@ -83,11 +83,6 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 
 	// get optional key
 	if k, ok := config.Config[zmonKeyLabelKey]; ok {
-		key = k
-	}
-
-	// annotations takes precedence over label
-	if k, ok := annotations[zmonKeyAnnotationKey]; ok {
 		key = k
 	}
 
@@ -106,16 +101,6 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, annotations map[stri
 	for k, v := range config.Config {
 		if strings.HasPrefix(k, zmonTagPrefixLabelKey) {
 			key := strings.TrimPrefix(k, zmonTagPrefixLabelKey)
-			tags[key] = v
-		}
-	}
-
-	// parse tags from annotations
-	// tags defined in annotations takes precedence over tags defined in
-	// the labels.
-	for k, v := range annotations {
-		if strings.HasPrefix(k, zmonTagPrefixAnnotationKey) {
-			key := strings.TrimPrefix(k, zmonTagPrefixAnnotationKey)
 			tags[key] = v
 		}
 	}

@@ -50,20 +50,6 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 	require.Equal(t, []string{"max"}, zmonCollector.aggregators)
 	require.Equal(t, map[string]string{"alias": "cluster_alias"}, zmonCollector.tags)
 
-	// check that annotations overwrites labels
-	hpa.ObjectMeta = metav1.ObjectMeta{
-		Annotations: map[string]string{
-			zmonKeyAnnotationKey:                 "annotation_key",
-			zmonTagPrefixAnnotationKey + "alias": "cluster_alias_annotation",
-		},
-	}
-	collector, err = collectPlugin.NewCollector(hpa, config, 1*time.Second)
-	require.NoError(t, err)
-	require.NotNil(t, collector)
-	zmonCollector = collector.(*ZMONCollector)
-	require.Equal(t, "annotation_key", zmonCollector.key)
-	require.Equal(t, map[string]string{"alias": "cluster_alias_annotation"}, zmonCollector.tags)
-
 	// should fail if the metric name isn't ZMON
 	config.Metric = newMetricIdentifier("non-zmon-check")
 	_, err = collectPlugin.NewCollector(nil, config, 1*time.Second)
@@ -131,7 +117,7 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 				dataPoints: ti.dataPoints,
 			}
 
-			zmonCollector, err := NewZMONCollector(z, config, nil, 1*time.Second)
+			zmonCollector, err := NewZMONCollector(z, config, 1*time.Second)
 			require.NoError(t, err)
 
 			metrics, _ := zmonCollector.GetMetrics()
