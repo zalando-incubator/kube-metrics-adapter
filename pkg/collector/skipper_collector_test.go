@@ -106,6 +106,7 @@ func TestSkipperCollector(t *testing.T) {
 		backend            string
 		ingressName        string
 		collectedMetric    int
+		expectError        bool
 		namespace          string
 		backendWeights     map[string]map[string]int
 		replicas           int32
@@ -198,6 +199,30 @@ func TestSkipperCollector(t *testing.T) {
 			backendAnnotations: []string{testBackendWeightsAnnotation},
 		},
 		{
+			msg:                "test annotations are set but backend is missing",
+			metrics:            []int{100, 1500, 700},
+			ingressName:        "dummy-ingress",
+			expectError:        true,
+			namespace:          "default",
+			backend:            "",
+			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
+			replicas:           1,
+			readyReplicas:      1,
+			backendAnnotations: []string{testBackendWeightsAnnotation},
+		},
+		{
+			msg:                "test annotations are missing and backend is unset",
+			metrics:            []int{100, 1500, 700},
+			ingressName:        "dummy-ingress",
+			collectedMetric:    1500,
+			namespace:          "default",
+			backend:            "",
+			backendWeights:     nil,
+			replicas:           1,
+			readyReplicas:      1,
+			backendAnnotations: []string{testBackendWeightsAnnotation},
+		},
+		{
 			msg:             "test partial backend annotations",
 			metrics:         []int{100, 1500, 700},
 			ingressName:     "dummy-ingress",
@@ -225,9 +250,13 @@ func TestSkipperCollector(t *testing.T) {
 			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, tc.backendAnnotations, tc.backend)
 			require.NoError(t, err, "failed to create skipper collector: %v", err)
 			collected, err := collector.GetMetrics()
-			require.NoError(t, err, "failed to collect metrics: %v", err)
-			require.Len(t, collected, 1, "the number of metrics returned is not 1")
-			require.EqualValues(t, tc.collectedMetric, collected[0].Custom.Value.Value(), "the returned metric is not expected value")
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err, "failed to collect metrics: %v", err)
+				require.Len(t, collected, 1, "the number of metrics returned is not 1")
+				require.EqualValues(t, tc.collectedMetric, collected[0].Custom.Value.Value(), "the returned metric is not expected value")
+			}
 		})
 	}
 }
