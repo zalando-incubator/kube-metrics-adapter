@@ -2,6 +2,7 @@ package collector
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -18,6 +19,10 @@ const (
 	rpsQuery                  = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="%s"}[1m])))`
 	rpsMetricName             = "requests-per-second"
 	rpsMetricBackendSeparator = ","
+)
+
+var (
+	errBackendNameMissing = errors.New("backend name must be specified for requests-per-second when traffic switching is used")
 )
 
 // SkipperCollectorPlugin is a collector plugin for initializing metrics
@@ -94,7 +99,7 @@ func getAnnotationWeight(backendWeights string, backend string) float64 {
 	return 0
 }
 
-func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) float64 {
+func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) (float64, error) {
 	maxWeight := 0.0
 	annotationsPresent := false
 
@@ -107,10 +112,15 @@ func getWeights(ingressAnnotations map[string]string, backendAnnotations []strin
 
 	// Fallback for ingresses that don't use traffic switching
 	if !annotationsPresent {
-		return 1.0
+		return 1.0, nil
 	}
 
-	return maxWeight
+	// Require backend name here
+	if backend != "" {
+		return maxWeight, nil
+	}
+
+	return 0.0, errBackendNameMissing
 }
 
 // getCollector returns a collector for getting the metrics.
@@ -120,7 +130,10 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 		return nil, err
 	}
 
-	backendWeight := getWeights(ingress.Annotations, c.backendAnnotations, c.backend)
+	backendWeight, err := getWeights(ingress.Annotations, c.backendAnnotations, c.backend)
+	if err != nil {
+		return nil, err
+	}
 	config := c.config
 
 	var collector Collector
