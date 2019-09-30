@@ -7,6 +7,8 @@ pipeline:
     - /go/pkg/mod       # pkg cache for Go modules
     - ~/.cache/go-build # Go build cache
   type: script
+  env:
+    GOFLAGS: "-mod=readonly"
   commands:
   - desc: test
     cmd: |
