@@ -18,9 +18,11 @@ pipeline:
     cmd: |
       if [[ $CDP_TARGET_BRANCH == master && ! $CDP_PULL_REQUEST_NUMBER ]]; then
         IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter
-        VERSION=$(git describe --tags --always --dirty)
+        VERSION=$(git describe --tags --exact)
       else
         IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter-test
         VERSION=$CDP_BUILD_VERSION
       fi
+      IMAGE=$IMAGE VERSION=$VERSION make build.docker
+      git diff --stat --exit-code
       IMAGE=$IMAGE VERSION=$VERSION make build.push
