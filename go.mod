@@ -89,3 +89,5 @@ require (
 	k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c // indirect
 	k8s.io/metrics v0.0.0-20190226180357-f3f09b9076d1
 )
+
+go 1.13
