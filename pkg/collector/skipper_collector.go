@@ -125,21 +125,40 @@ func getWeights(ingressAnnotations map[string]string, backendAnnotations []strin
 
 // getCollector returns a collector for getting the metrics.
 func (c *SkipperCollector) getCollector() (Collector, error) {
-	ingress, err := c.client.ExtensionsV1beta1().Ingresses(c.objectReference.Namespace).Get(c.objectReference.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
+	var annotations map[string]string
+	var hosts []string
+
+	switch c.objectReference.APIVersion {
+	case "extensions/v1beta1":
+		ingress, err := c.client.ExtensionsV1beta1().Ingresses(c.objectReference.Namespace).Get(c.objectReference.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		annotations = ingress.Annotations
+		for _, rule := range ingress.Spec.Rules {
+			hosts = append(hosts, rule.Host)
+		}
+	case "networking.k8s.io/v1beta1":
+		ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(c.objectReference.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		annotations = ingress.Annotations
+		for _, rule := range ingress.Spec.Rules {
+			hosts = append(hosts, rule.Host)
+		}
 	}
 
-	backendWeight, err := getWeights(ingress.Annotations, c.backendAnnotations, c.backend)
+	backendWeight, err := getWeights(annotations, c.backendAnnotations, c.backend)
 	if err != nil {
 		return nil, err
 	}
 	config := c.config
 
 	var collector Collector
-	collectors := make([]Collector, 0, len(ingress.Spec.Rules))
-	for _, rule := range ingress.Spec.Rules {
-		host := strings.Replace(rule.Host, ".", "_", -1)
+	collectors := make([]Collector, 0, len(hosts))
+	for _, host := range hosts {
+		host := strings.Replace(host, ".", "_", -1)
 		config.Config = map[string]string{
 			"query": fmt.Sprintf(rpsQuery, host),
 		}
