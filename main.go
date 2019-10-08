@@ -23,7 +23,7 @@ import (
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/server"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/logs"
 )
 
 func main() {

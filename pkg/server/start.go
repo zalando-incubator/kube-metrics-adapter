@@ -25,7 +25,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -38,6 +37,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 )
 
 const (
@@ -111,7 +111,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct{}) error {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		glog.Fatal(http.ListenAndServe(o.MetricsAddress, nil))
+		klog.Fatal(http.ListenAndServe(o.MetricsAddress, nil))
 	}()
 
 	config, err := o.Config()

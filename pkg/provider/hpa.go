@@ -262,7 +262,7 @@ func (p *HPAProvider) collectMetrics(ctx context.Context) {
 }
 
 // GetMetricByName gets a single metric by name.
-func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.CustomMetricInfo) (*custom_metrics.MetricValue, error) {
+func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	metric := p.metricStore.GetMetricsByName(name, info)
 	if metric == nil {
 		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name.Name)
@@ -272,7 +272,7 @@ func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.C
 
 // GetMetricBySelector returns metrics for namespaced resources by
 // label selector.
-func (p *HPAProvider) GetMetricBySelector(namespace string, selector labels.Selector, info provider.CustomMetricInfo) (*custom_metrics.MetricValueList, error) {
+func (p *HPAProvider) GetMetricBySelector(namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	return p.metricStore.GetMetricsBySelector(namespace, selector, info), nil
 }
 
