@@ -37,7 +37,8 @@ spec:
         apiVersion: extensions/v1beta1
         kind: Ingress
         name: custom-metrics-consumer
-      targetValue: 10 # this will be treated as targetAverageValue
+      averageValue: 10
+      targetValue: 10 # this must be set, but has no effect if `averageValue` is defined.
   - type: External
     external:
       metricName: sqs-queue-length
