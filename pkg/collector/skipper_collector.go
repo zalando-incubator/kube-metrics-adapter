@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 )
 
 const (
-	rpsQuery                  = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host="%s"}[1m])))`
+	rpsQuery                  = `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host=~"%s"}[1m])) * %.4f)`
 	rpsMetricName             = "requests-per-second"
 	rpsMetricBackendSeparator = ","
 )
@@ -135,27 +136,23 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 	}
 	config := c.config
 
-	var collector Collector
-	collectors := make([]Collector, 0, len(ingress.Spec.Rules))
+	var escapedHostnames []string
 	for _, rule := range ingress.Spec.Rules {
-		host := strings.Replace(rule.Host, ".", "_", -1)
-		config.Config = map[string]string{
-			"query": fmt.Sprintf(rpsQuery, host),
-		}
-
-		config.PerReplica = false // per replica is handled outside of the prometheus collector
-		collector, err := c.plugin.NewCollector(c.hpa, &config, c.interval)
-		if err != nil {
-			return nil, err
-		}
-
-		collectors = append(collectors, collector)
+		escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.Replace(rule.Host, ".", "_", -1)))
 	}
 
-	if len(collectors) > 0 {
-		collector = NewMaxWeightedCollector(c.interval, backendWeight, collectors...)
-	} else {
+	if len(escapedHostnames) == 0 {
 		return nil, fmt.Errorf("no hosts defined on ingress %s/%s, unable to create collector", c.objectReference.Namespace, c.objectReference.Name)
+	}
+
+	config.Config = map[string]string{
+		"query": fmt.Sprintf(rpsQuery, strings.Join(escapedHostnames, "|"), backendWeight),
+	}
+
+	config.PerReplica = false // per replica is handled outside of the prometheus collector
+	collector, err := c.plugin.NewCollector(c.hpa, &config, c.interval)
+	if err != nil {
+		return nil, err
 	}
 
 	return collector, nil

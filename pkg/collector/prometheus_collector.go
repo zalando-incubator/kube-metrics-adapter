@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -146,7 +147,7 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 		sampleValue = scalar.Value
 	}
 
-	if sampleValue.String() == "NaN" {
+	if math.IsNaN(float64(sampleValue)) {
 		return nil, &NoResultError{query: c.query}
 	}
 
