@@ -18,11 +18,11 @@ import (
 // querying the pods metrics endpoint and lookup the metric value as defined by
 // the json path query.
 type JSONPathMetricsGetter struct {
-	jsonPath    *jsonpath.Compiled
-	scheme      string
-	path        string
-	port        int
-	reducerFunc string
+	jsonPath   *jsonpath.Compiled
+	scheme     string
+	path       string
+	port       int
+	aggregator string
 }
 
 // NewJSONPathMetricsGetter initializes a new JSONPathMetricsGetter.
@@ -54,8 +54,8 @@ func NewJSONPathMetricsGetter(config map[string]string) (*JSONPathMetricsGetter,
 		getter.port = n
 	}
 
-	if v, ok := config["reducer-func"]; ok {
-		getter.reducerFunc = v
+	if v, ok := config["aggregator"]; ok {
+		getter.aggregator = v
 	}
 
 	return getter, nil
@@ -90,11 +90,11 @@ func (g *JSONPathMetricsGetter) GetMetric(pod *corev1.Pod) (float64, error) {
 	case float64:
 		return res, nil
 	case []int:
-		return reduce(intsToFloat64s(res), g.reducerFunc), nil
+		return reduce(intsToFloat64s(res), g.aggregator), nil
 	case []float32:
-		return reduce(float32sToFloat64s(res), g.reducerFunc), nil
+		return reduce(float32sToFloat64s(res), g.aggregator), nil
 	case []float64:
-		return reduce(res, g.reducerFunc), nil
+		return reduce(res, g.aggregator), nil
 	default:
 		return 0, fmt.Errorf("unsupported type %T", res)
 	}
@@ -161,8 +161,8 @@ func float32sToFloat64s(in []float32) (out []float64) {
 }
 
 // reduce will reduce a slice of numbers given a reducer function's name. If it's empty or not recognized, avg is used.
-func reduce(values []float64, reducerFunc string) float64 {
-	switch reducerFunc {
+func reduce(values []float64, aggregator string) (float64, error) {
+	switch aggregator {
 	case "avg":
 		return avg(values)
 	case "min":
