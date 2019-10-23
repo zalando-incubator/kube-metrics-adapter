@@ -162,7 +162,7 @@ func float32sToFloat64s(in []float32) (out []float64) {
 	return
 }
 
-// reduce will reduce a slice of numbers given a aggregator function's name. If it's empty or not recognized, avg is used.
+// reduce will reduce a slice of numbers given a aggregator function's name. If it's empty or not recognized, an error is returned.
 func reduce(values []float64, aggregator string) (float64, error) {
 	switch aggregator {
 	case "avg":
