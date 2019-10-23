@@ -90,11 +90,11 @@ func (g *JSONPathMetricsGetter) GetMetric(pod *corev1.Pod) (float64, error) {
 	case float64:
 		return res, nil
 	case []int:
-		return reduce(intsToFloat64s(res), g.aggregator), nil
+		return reduce(intsToFloat64s(res), g.aggregator)
 	case []float32:
-		return reduce(float32sToFloat64s(res), g.aggregator), nil
+		return reduce(float32sToFloat64s(res), g.aggregator)
 	case []float64:
-		return reduce(res, g.aggregator), nil
+		return reduce(res, g.aggregator)
 	default:
 		return 0, fmt.Errorf("unsupported type %T", res)
 	}
@@ -164,15 +164,15 @@ func float32sToFloat64s(in []float32) (out []float64) {
 func reduce(values []float64, aggregator string) (float64, error) {
 	switch aggregator {
 	case "avg":
-		return avg(values)
+		return avg(values), nil
 	case "min":
-		return min(values)
+		return min(values), nil
 	case "max":
-		return max(values)
+		return max(values), nil
 	case "sum":
-		return sum(values)
+		return sum(values), nil
 	default:
-		return avg(values)
+		return 0, fmt.Errorf("slice of numbers was returned by JSONPath, but no valid aggregator function was specified: %v", aggregator)
 	}
 }
 
