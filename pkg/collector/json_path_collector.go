@@ -146,16 +146,18 @@ func getPodMetrics(pod *corev1.Pod, scheme, path string, port int) ([]byte, erro
 
 // intsToFloat64s will convert a slice of int to a slice of float64
 func intsToFloat64s(in []int) (out []float64) {
-	for i, v := range in {
-		out[i] = float64(v)
+	out = []float64{}
+	for _, v := range in {
+		out = append(out, float64(v))
 	}
 	return
 }
 
 // float32sToFloat64s will convert a slice of float32 to a slice of float64
 func float32sToFloat64s(in []float32) (out []float64) {
-	for i, v := range in {
-		out[i] = float64(v)
+	out = []float64{}
+	for _, v := range in {
+		out = append(out, float64(v))
 	}
 	return
 }
