@@ -28,12 +28,12 @@ func NewJSONPathMetricsGetter(config map[string]string) (*JSONPathMetricsGetter,
 	getter := &JSONPathMetricsGetter{}
 
 	if v, ok := config["json-key"]; ok {
-		pat, err := jsonpath.Compile(v)
+		path, err := jsonpath.Compile(v)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse json path definition: %v", err)
 		}
 
-		getter.jsonPath = pat
+		getter.jsonPath = path
 	}
 
 	if v, ok := config["scheme"]; ok {
