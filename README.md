@@ -106,6 +106,7 @@ metadata:
     metric-config.pods.requests-per-second.json-path/path: /metrics
     metric-config.pods.requests-per-second.json-path/port: "9090"
     metric-config.pods.requests-per-second.json-path/scheme: "https"
+    metric-config.pods.requests-per-second.json-path/aggregator: "max"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -142,6 +143,11 @@ returns something that can be turned into a `float64`.
 The other configuration options `path`, `port` and `scheme` specify where the metrics
 endpoint is exposed on the pod. The `path` and `port` options do not have default values
 so they must be defined. The `scheme` is optional and defaults to `http`.
+
+The `aggregator` configuration option specifies the aggregation function used to aggregate
+values of JSONPath expressions that evaluate to arrays/slices of numbers.
+It's optional but when the expression evaluates to an array/slice, it's absence will
+produce an error. The supported aggregation functions are `avg`, `max`, `min` and `sum`.
 
 ## Prometheus collector
 
