@@ -134,7 +134,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 			return c.objectPlugins.Any.Any.NewCollector(hpa, config, interval)
 		}
 	case autoscalingv2.ExternalMetricSourceType:
-		if plugin, ok := c.externalPlugins[config.Metric.Name]; ok {
+		if plugin, ok := c.externalPlugins[config.CollectorName]; ok {
 			return plugin.NewCollector(hpa, config, interval)
 		}
 	}
