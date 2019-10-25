@@ -58,6 +58,10 @@ spec:
           mountPath: {{ .Values.sslCertPath }}
           readOnly: true
         {{- end}}
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.image.pullSecrets | indent 8 }}
+      {{- end }}
     {{- if .Values.tolerations }}
       tolerations:
 {{ toYaml .Values.tolerations | indent 8 }}

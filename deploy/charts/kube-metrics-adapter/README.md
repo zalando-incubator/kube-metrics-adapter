@@ -40,7 +40,7 @@ The following table lists the configurable parameters of the Prometheus Adapter 
 | `image.repository`              | Image repository                                                                | `banzaicloud/kube-metrics-adapter`          |
 | `image.tag`                     | Image tag                                                                       | `0.1.1`                                     |
 | `image.pullPolicy`              | Image pull policy                                                               | `IfNotPresent`                              |
-| `image.pullSecrets`             | Image pull secrets                                                              | `{}`                                        |
+| `image.pullSecrets`             | Image pull secrets                                                              | `[]`                                        |
 | `logLevel`                      | Log level                                                                       | `4`                                         |
 | `nodeSelector`                  | Node labels for pod assignment                                                  | `{}`                                        |
 | `prometheus.url`                | Url of where we can find the Prometheus service                                 | `http://prometheus.default.svc`             |

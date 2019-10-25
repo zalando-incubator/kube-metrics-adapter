@@ -2,6 +2,7 @@ image:
   repository: banzaicloud/kube-metrics-adapter
   tag: 0.1.1
   pullPolicy: IfNotPresent
+  pullSecrets: []
 
 logLevel: 9
 
