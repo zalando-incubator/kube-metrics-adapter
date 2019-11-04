@@ -89,15 +89,36 @@ func (g *JSONPathMetricsGetter) GetMetric(pod *corev1.Pod) (float64, error) {
 		return float64(res), nil
 	case float64:
 		return res, nil
-	case []int:
-		return reduce(intsToFloat64s(res), g.aggregator)
-	case []float32:
-		return reduce(float32sToFloat64s(res), g.aggregator)
-	case []float64:
-		return reduce(res, g.aggregator)
+	case []interface{}:
+		s, err := castSlice(res)
+		if err != nil {
+			return 0, err
+		}
+		return reduce(s, g.aggregator)
 	default:
 		return 0, fmt.Errorf("unsupported type %T", res)
 	}
+}
+
+// castSlice takes a slice of interface and returns a slice of float64 if all
+// values in slice were castable, else returns an error
+func castSlice(in []interface{}) ([]float64, error) {
+	out := []float64{}
+
+	for _, v := range in {
+		switch v := v.(type) {
+		case int:
+			out = append(out, float64(v))
+		case float32:
+			out = append(out, float64(v))
+		case float64:
+			out = append(out, v)
+		default:
+			return nil, fmt.Errorf("slice was returned by JSONPath, but value inside is unsupported: %T", v)
+		}
+	}
+
+	return out, nil
 }
 
 // getPodMetrics returns the content of the pods metrics endpoint.
@@ -142,24 +163,6 @@ func getPodMetrics(pod *corev1.Pod, scheme, path string, port int) ([]byte, erro
 	}
 
 	return data, nil
-}
-
-// intsToFloat64s will convert a slice of int to a slice of float64
-func intsToFloat64s(in []int) (out []float64) {
-	out = []float64{}
-	for _, v := range in {
-		out = append(out, float64(v))
-	}
-	return
-}
-
-// float32sToFloat64s will convert a slice of float32 to a slice of float64
-func float32sToFloat64s(in []float32) (out []float64) {
-	out = []float64{}
-	for _, v := range in {
-		out = append(out, float64(v))
-	}
-	return
 }
 
 // reduce will reduce a slice of numbers given a aggregator function's name. If it's empty or not recognized, an error is returned.

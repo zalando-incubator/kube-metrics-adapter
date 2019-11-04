@@ -65,24 +65,22 @@ func TestNewJSONPathMetricsGetter(t *testing.T) {
 	require.Error(t, err4)
 }
 
-func TestIntsToFloat64s(t *testing.T) {
-	noInts := []int{}
-	noFloat64s := intsToFloat64s(noInts)
-	require.Equal(t, []float64{}, noFloat64s)
+func TestCastSlice(t *testing.T) {
+	res1, err1 := castSlice([]interface{}{1, 2, 3})
+	require.NoError(t, err1)
+	require.Equal(t, []float64{1.0, 2.0, 3.0}, res1)
 
-	someInts := []int{1, 2, 3}
-	someFloat64s := intsToFloat64s(someInts)
-	require.Equal(t, []float64{1.0, 2.0, 3.0}, someFloat64s)
-}
+	res2, err2 := castSlice([]interface{}{float32(1.0), float32(2.0), float32(3.0)})
+	require.NoError(t, err2)
+	require.Equal(t, []float64{1.0, 2.0, 3.0}, res2)
 
-func TestFloat32sToFloat64s(t *testing.T) {
-	noFloat32s := []float32{}
-	noFloat64s := float32sToFloat64s(noFloat32s)
-	require.Equal(t, []float64{}, noFloat64s)
+	res3, err3 := castSlice([]interface{}{float64(1.0), float64(2.0), float64(3.0)})
+	require.NoError(t, err3)
+	require.Equal(t, []float64{1.0, 2.0, 3.0}, res3)
 
-	someFloat32s := []float32{1.0, 2.0, 3.0}
-	someFloat64s := float32sToFloat64s(someFloat32s)
-	require.Equal(t, []float64{1.0, 2.0, 3.0}, someFloat64s)
+	res4, err4 := castSlice([]interface{}{1, 2, "some string"})
+	require.Errorf(t, err4, "slice was returned by JSONPath, but value inside is unsupported: %T", "string")
+	require.Equal(t, []float64(nil), res4)
 }
 
 func TestReduce(t *testing.T) {
