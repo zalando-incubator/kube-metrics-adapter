@@ -19,7 +19,8 @@ test:
 	go test -v $(GOPKGS)
 
 check:
-	golangci-lint run ./...
+	go mod download
+	golangci-lint run --timeout=2m ./...
 
 build.local: build/$(BINARY)
 build.linux: build/linux/$(BINARY)
