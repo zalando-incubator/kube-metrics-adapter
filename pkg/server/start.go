@@ -104,7 +104,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"whether to enable AWS external metrics")
 	flags.StringSliceVar(&o.AWSRegions, "aws-region", o.AWSRegions, "the AWS regions which should be monitored. eg: eu-central, eu-west-1")
 	flags.StringVar(&o.MetricsAddress, "metrics-address", o.MetricsAddress, "The address where to serve prometheus metrics")
-
+	flags.BoolVar(&o.DisregardIncompatibleHPAs, "disregard-incompatible-hpas", o.DisregardIncompatibleHPAs, ""+
+		"whether to disregard failing to create collectors for incompatible HPAs")
 	return cmd
 }
 
@@ -214,7 +215,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		collectorFactory.RegisterExternalCollector([]string{collector.AWSSQSQueueLengthMetric}, collector.NewAWSCollectorPlugin(awsSessions))
 	}
 
-	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory)
+	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory, o.DisregardIncompatibleHPAs)
 
 	go hpaProvider.Run(ctx)
 
@@ -312,4 +313,7 @@ type AdapterServerOptions struct {
 	MetricsAddress string
 	// SkipperBackendWeightAnnotation is the annotation on the ingress indicating the backend weights
 	SkipperBackendWeightAnnotation []string
+	// Whether to disregard failing to create collectors for incompatible HPAs - such as when using
+	// kube-metrics-adapter beside another Metrics Provider
+	DisregardIncompatibleHPAs bool
 }
