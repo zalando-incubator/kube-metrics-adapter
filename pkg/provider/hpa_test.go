@@ -73,7 +73,7 @@ func TestUpdateHPAs(t *testing.T) {
 	err = collectorFactory.RegisterPodsCollector("", mockCollectorPlugin{})
 	require.NoError(t, err)
 
-	provider := NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory)
+	provider := NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, false)
 	provider.collectorScheduler = NewCollectorScheduler(context.Background(), provider.metricSink)
 
 	err = provider.updateHPAs()
