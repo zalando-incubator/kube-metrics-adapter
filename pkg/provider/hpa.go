@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sync"
 	"time"
@@ -164,15 +165,19 @@ func (p *HPAProvider) updateHPAs() error {
 					interval = p.collectorInterval
 				}
 
-				collector, err := p.collectorFactory.NewCollector(&hpa, config, interval)
-				if err != nil && !p.disregardIncompatibleHPAs {
-					p.recorder.Eventf(&hpa, apiv1.EventTypeWarning, "CreateNewMetricsCollector", "Failed to create new metrics collector: %v", err)
+				c, err := p.collectorFactory.NewCollector(&hpa, config, interval)
+				if err != nil {
+
+					if errors.Is(err, &collector.PluginNotFoundError{}) && !p.disregardIncompatibleHPAs {
+						p.recorder.Eventf(&hpa, apiv1.EventTypeWarning, "CreateNewMetricsCollector", "Failed to create new metrics collector: %v", err)
+					}
+
 					cache = false
 					continue
 				}
 
-				p.logger.Infof("Adding new metrics collector: %T", collector)
-				p.collectorScheduler.Add(resourceRef, config.MetricTypeName, collector)
+				p.logger.Infof("Adding new metrics collector: %T", c)
+				p.collectorScheduler.Add(resourceRef, config.MetricTypeName, c)
 			}
 			newHPAs++
 
