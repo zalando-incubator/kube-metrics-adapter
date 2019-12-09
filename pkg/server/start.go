@@ -105,7 +105,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.StringSliceVar(&o.AWSRegions, "aws-region", o.AWSRegions, "the AWS regions which should be monitored. eg: eu-central, eu-west-1")
 	flags.StringVar(&o.MetricsAddress, "metrics-address", o.MetricsAddress, "The address where to serve prometheus metrics")
 	flags.BoolVar(&o.DisregardIncompatibleHPAs, "disregard-incompatible-hpas", o.DisregardIncompatibleHPAs, ""+
-		"whether to disregard failing to create collectors for incompatible HPAs")
+		"disregard failing to create collectors for incompatible HPAs")
 	return cmd
 }
 
