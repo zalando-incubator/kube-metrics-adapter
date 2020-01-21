@@ -65,6 +65,27 @@ func TestParser(t *testing.T) {
 			},
 			PerReplica: false,
 		},
+		{
+			Name: "influxdb metrics",
+			Annotations: map[string]string{
+				"metric-config.external.flux-query.influxdb/range1m": `from(bucket: "?") |> range(start: -1m)`,
+				"metric-config.external.flux-query.influxdb/range2m": `from(bucket: "?") |> range(start: -2m)`,
+				"metric-config.external.flux-query.influxdb/range3m": `from(bucket: "?") |> range(start: -3m)`,
+				"metric-config.external.flux-query.influxdb/address": "http://localhost:9999",
+				"metric-config.external.flux-query.influxdb/token":   "sEcr3TT0ken",
+				"metric-config.external.flux-query.influxdb/org-id":  "deadbeef",
+			},
+			MetricName: "flux-query",
+			MetricType: autoscalingv2.ExternalMetricSourceType,
+			ExpectedConfig: map[string]string{
+				"range1m": `from(bucket: "?") |> range(start: -1m)`,
+				"range2m": `from(bucket: "?") |> range(start: -2m)`,
+				"range3m": `from(bucket: "?") |> range(start: -3m)`,
+				"address": "http://localhost:9999",
+				"token":   "sEcr3TT0ken",
+				"org-id":  "deadbeef",
+			},
+		},
 	} {
 		t.Run(tc.Name, func(t *testing.T) {
 			hpaMap := make(AnnotationConfigMap)
