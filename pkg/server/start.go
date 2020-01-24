@@ -88,6 +88,12 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"whether to enable External Metrics API")
 	flags.StringVar(&o.PrometheusServer, "prometheus-server", o.PrometheusServer, ""+
 		"url of prometheus server to query")
+	flags.StringVar(&o.InfluxDBAddress, "influxdb-address", o.InfluxDBAddress, ""+
+		"address of InfluxDB 2.x server to query (e.g. http://localhost:9999)")
+	flags.StringVar(&o.InfluxDBToken, "influxdb-token", o.InfluxDBToken, ""+
+		"token for InfluxDB 2.x server to query")
+	flags.StringVar(&o.InfluxDBOrgID, "influxdb-org-id", o.InfluxDBOrgID, ""+
+		"organization ID for InfluxDB 2.x server to query")
 	flags.StringVar(&o.ZMONKariosDBEndpoint, "zmon-kariosdb-endpoint", o.ZMONKariosDBEndpoint, ""+
 		"url of ZMON KariosDB endpoint to query for ZMON checks")
 	flags.StringVar(&o.ZMONTokenName, "zmon-token-name", o.ZMONTokenName, ""+
@@ -173,6 +179,14 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 				return fmt.Errorf("failed to register skipper collector plugin: %v", err)
 			}
 		}
+	}
+
+	if o.InfluxDBAddress != "" {
+		influxdbPlugin, err := collector.NewInfluxDBCollectorPlugin(client, o.InfluxDBAddress, o.InfluxDBToken, o.InfluxDBOrgID)
+		if err != nil {
+			return fmt.Errorf("failed to initialize InfluxDB collector plugin: %v", err)
+		}
+		collectorFactory.RegisterExternalCollector([]string{collector.InfluxDBMetricName}, influxdbPlugin)
 	}
 
 	// register generic pod collector
@@ -290,6 +304,12 @@ type AdapterServerOptions struct {
 	// PrometheusServer enables prometheus queries to the specified
 	// server
 	PrometheusServer string
+	// InfluxDBAddress enables Flux queries to the specified InfluxDB instance
+	InfluxDBAddress string
+	// InfluxDBToken is the token used for querying InfluxDB
+	InfluxDBToken string
+	// InfluxDBOrgID is the organization ID used for querying InfluxDB
+	InfluxDBOrgID string
 	// ZMONKariosDBEndpoint enables ZMON check queries to the specified
 	// kariosDB endpoint
 	ZMONKariosDBEndpoint string

@@ -337,6 +337,71 @@ instead of a total sum.
 `<1.14`, it is not as percise as using `averageValue` and will not be supported
 after Kubernetes `v1.16` is released according to the [support policy](https://kubernetes.io/docs/setup/release/version-skew-policy/).**
 
+## InfluxDB collector
+
+The InfluxDB collector maps [Flux](https://github.com/influxdata/flux) queries to metrics that can be used for scaling.
+
+Note that the collector targets an [InfluxDB v2](https://v2.docs.influxdata.com/v2.0/get-started/) instance, that's why
+we only support Flux instead of InfluxQL.
+
+### Supported metrics
+
+| Metric | Description | Type | Kind | K8s Versions |
+| ------------ | -------------- | ------- | -- | -- |
+| `flux-query` | Generic metric which requires a user defined query. | External | | `>=1.10` |
+
+### Example: External Metric
+
+This is an example of an HPA configured to get metrics based on a Flux query.
+The query is defined in the annotation
+`metric-config.external.flux-query.influxdb/queue_depth`
+where `queue_depth` is the query name which will be associated with the result of the query.
+A matching `query-name` label must be defined in the `matchLabels` of the metric definition.
+This allows having multiple flux queries associated with a single HPA.
+
+```yaml
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: my-hpa
+  annotations:
+    # These annotations are optional.
+    # If specified, then they are used for setting up the InfluxDB client properly,
+    # instead of using the ones specified via CLI. Respectively:
+    #  - --influxdb-address
+    #  - --influxdb-token
+    #  - --influxdb-org-id
+    metric-config.external.flux-query.influxdb/address: "http://influxdbv2.my-namespace.svc"
+    metric-config.external.flux-query.influxdb/token: "secret-token"
+    metric-config.external.flux-query.influxdb/org-id: "deadbeef"
+    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    # <configKey> == query-name
+    metric-config.external.flux-query.influxdb/queue_depth: |
+        from(bucket: "apps")
+          |> range(start: -30s)
+          |> filter(fn: (r) => r._measurement == "queue_depth")
+          |> group()
+          |> max()
+          // Rename "_value" to "metricvalue" for letting the metrics server properly unmarshal the result.
+          |> rename(columns: {_value: "metricvalue"})
+          |> keep(columns: ["metricvalue"])
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: queryd-v1
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+  - type: External
+    external:
+      metricName: flux-query
+      metricSelector:
+        matchLabels:
+          query-name: queue_depth
+      targetValue: 1
+```
+
 ## AWS collector
 
 The AWS collector allows scaling based on external metrics exposed by AWS
