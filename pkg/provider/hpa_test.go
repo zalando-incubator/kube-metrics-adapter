@@ -7,8 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
-	autoscalingv1 "k8s.io/api/autoscaling/v2beta1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -16,7 +15,7 @@ import (
 
 type mockCollectorPlugin struct{}
 
-func (m mockCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *collector.MetricConfig, interval time.Duration) (collector.Collector, error) {
+func (m mockCollectorPlugin) NewCollector(hpa *autoscaling.HorizontalPodAutoscaler, config *collector.MetricConfig, interval time.Duration) (collector.Collector, error) {
 	return mockCollector{}, nil
 }
 
@@ -33,7 +32,7 @@ func (c mockCollector) Interval() time.Duration {
 func TestUpdateHPAs(t *testing.T) {
 	value := resource.MustParse("1k")
 
-	hpa := &autoscalingv1.HorizontalPodAutoscaler{
+	hpa := &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "hpa1",
 			Namespace: "default",
@@ -43,20 +42,25 @@ func TestUpdateHPAs(t *testing.T) {
 				"metric-config.pods.requests-per-second.json-path/port":     "9090",
 			},
 		},
-		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+		Spec: autoscaling.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscaling.CrossVersionObjectReference{
 				Kind:       "Deployment",
 				Name:       "app",
 				APIVersion: "apps/v1",
 			},
 			MinReplicas: &[]int32{1}[0],
 			MaxReplicas: 10,
-			Metrics: []autoscalingv1.MetricSpec{
+			Metrics: []autoscaling.MetricSpec{
 				{
-					Type: autoscalingv1.PodsMetricSourceType,
-					Pods: &autoscalingv1.PodsMetricSource{
-						MetricName:         "requests-per-second",
-						TargetAverageValue: value,
+					Type: autoscaling.PodsMetricSourceType,
+					Pods: &autoscaling.PodsMetricSource{
+						Metric: autoscaling.MetricIdentifier{
+							Name: "requests-per-second",
+						},
+						Target: autoscaling.MetricTarget{
+							Type:         autoscaling.AverageValueMetricType,
+							AverageValue: &value,
+						},
 					},
 				},
 			},
@@ -66,7 +70,7 @@ func TestUpdateHPAs(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	var err error
-	hpa, err = fakeClient.AutoscalingV2beta1().HorizontalPodAutoscalers("default").Create(hpa)
+	hpa, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Create(hpa)
 	require.NoError(t, err)
 
 	collectorFactory := collector.NewCollectorFactory()
@@ -82,7 +86,7 @@ func TestUpdateHPAs(t *testing.T) {
 
 	// update HPA
 	hpa.Annotations["metric-config.pods.requests-per-second.json-path/port"] = "8080"
-	_, err = fakeClient.AutoscalingV2beta1().HorizontalPodAutoscalers("default").Update(hpa)
+	_, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Update(hpa)
 	require.NoError(t, err)
 
 	err = provider.updateHPAs()

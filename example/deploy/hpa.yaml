@@ -1,4 +1,4 @@
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: custom-metrics-consumer
@@ -25,25 +25,36 @@ spec:
   # - type: Resource
   #   resource:
   #     name: cpu
-  #     targetAverageUtilization: 50
+  #     current:
+  #       averageUtilization: 50
+
   - type: Pods
     pods:
-      metricName: queue-length
-      targetAverageValue: 1k
+      metric:
+        name: queue-length
+      target:
+        averageValue: 1k
+        type: AverageValue
+
   - type: Object
     object:
-      metricName: requests-per-second
-      target:
+      describedObject:
         apiVersion: extensions/v1beta1
         kind: Ingress
         name: custom-metrics-consumer
-      averageValue: 10
-      targetValue: 10 # this must be set, but has no effect if `averageValue` is defined.
+      metric:
+        name: requests-per-second
+      target:
+        averageValue: "10"
+        type: AverageValue
   - type: External
     external:
-      metricName: sqs-queue-length
-      metricSelector:
-        matchLabels:
-          queue-name: foobar
-          region: eu-central-1
-      targetAverageValue: 30
+      metric:
+        name: sqs-queue-length
+        selector:
+          matchLabels:
+            queue-name: foobar
+            region: eu-central-1
+      target:
+        averageValue: "30"
+        type: AverageValue
