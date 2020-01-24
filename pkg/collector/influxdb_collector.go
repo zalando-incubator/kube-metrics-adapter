@@ -70,11 +70,8 @@ func NewInfluxDBCollector(address string, token string, orgID string, hpa *autos
 				"please add metricSelector.matchLabels.%s: <...> to .yml description", influxDBQueryNameLabelKey)
 		}
 		if query, ok := config.Config[queryName]; ok {
-			// TODO(affo): validate the query.
-			//  This would mean depending on Flux and run a compilation.
-			//  Otherwise, the InfluxDB client should expose a method for compilation only.
-			//  Yeah, we could launch the query and if there is an error, check it was a compilation one
-			//  (by checking the message), but that seems quite dirty.
+			// TODO(affo): validate the query once this is done:
+			//  https://github.com/influxdata/influxdb-client-go/issues/73.
 			collector.query = query
 		} else {
 			return nil, fmt.Errorf("no Flux query defined for metric \"%s\"", config.Metric.Name)
@@ -83,13 +80,13 @@ func NewInfluxDBCollector(address string, token string, orgID string, hpa *autos
 		return nil, fmt.Errorf("unknown metric type: %v", configType)
 	}
 	// Use custom InfluxDB config if defined in HPA annotation.
-	if v, found := config.Config[influxDBAddressKey]; found {
+	if v, ok := config.Config[influxDBAddressKey]; ok {
 		address = v
 	}
-	if v, found := config.Config[influxDBTokenKey]; found {
+	if v, ok := config.Config[influxDBTokenKey]; ok {
 		token = v
 	}
-	if v, found := config.Config[influxDBOrgIDKey]; found {
+	if v, ok := config.Config[influxDBOrgIDKey]; ok {
 		orgID = v
 	}
 	influxDbClient, err := influxdb.New(address, token)
