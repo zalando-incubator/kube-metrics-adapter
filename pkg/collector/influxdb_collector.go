@@ -39,22 +39,23 @@ func NewInfluxDBCollectorPlugin(client kubernetes.Interface, address, token, org
 }
 
 func (p *InfluxDBCollectorPlugin) NewCollector(hpa *v2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewInfluxDBCollector(p.address, p.orgID, p.token, hpa, config, interval)
+	return NewInfluxDBCollector(p.address, p.orgID, p.token, config, interval)
 }
 
 type InfluxDBCollector struct {
+	address string
+	token   string
+	orgID   string
+
 	influxDBClient *influxdb.Client
-	hpa            *autoscalingv2.HorizontalPodAutoscaler
 	interval       time.Duration
 	metric         autoscalingv2.MetricIdentifier
 	metricType     autoscalingv2.MetricSourceType
 	query          string
-	orgID          string
 }
 
-func NewInfluxDBCollector(address string, token string, orgID string, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
+func NewInfluxDBCollector(address string, token string, orgID string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
 	collector := &InfluxDBCollector{
-		hpa:        hpa,
 		interval:   interval,
 		metric:     config.Metric,
 		metricType: config.Type,
@@ -66,7 +67,7 @@ func NewInfluxDBCollector(address string, token string, orgID string, hpa *autos
 		// `metricSelector` is flattened into the MetricConfig.Config.
 		queryName, ok := config.Config[influxDBQueryNameLabelKey]
 		if !ok {
-			return nil, fmt.Errorf("selector for Flux query is not specified,"+
+			return nil, fmt.Errorf("selector for Flux query is not specified, "+
 				"please add metricSelector.matchLabels.%s: <...> to .yml description", influxDBQueryNameLabelKey)
 		}
 		if query, ok := config.Config[queryName]; ok {
@@ -93,8 +94,10 @@ func NewInfluxDBCollector(address string, token string, orgID string, hpa *autos
 	if err != nil {
 		return nil, err
 	}
-	collector.influxDBClient = influxDbClient
+	collector.address = address
+	collector.token = token
 	collector.orgID = orgID
+	collector.influxDBClient = influxDbClient
 	return collector, nil
 }
 
