@@ -17,7 +17,7 @@ Here's an example of a `HorizontalPodAutoscaler` resource configured to get
 `requests-per-second` metrics from each pod of the deployment `myapp`.
 
 ```yaml
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -36,8 +36,11 @@ spec:
   metrics:
   - type: Pods
     pods:
-      metricName: requests-per-second
-      targetAverageValue: 1k
+      metric:
+        name: requests-per-second
+      target:
+        averageValue: 1k
+        type: AverageValue
 ```
 
 The `metric-config.*` annotations are used by the `kube-metrics-adapter` to
@@ -51,10 +54,10 @@ policy](https://kubernetes.io/docs/setup/release/version-skew-policy/) offered
 for Kubernetes, this project aims to support the latest three minor releases of
 Kubernetes.
 
-Currently the default supported API is `autoscaling/v2beta1`. However we aim to
-move to `autoscaling/v2beta2` (available since `v1.12`) in the near future as
-this adds a lot of improvements over `v2beta1`. The move to `v2beta2` will most
-likely happen as soon as [GKE adds support for it](https://issuetracker.google.com/issues/135624588).
+The default supported API is `autoscaling/v2beta2` (available since `v1.12`).
+This API MUST be available in the cluster which is the default. However for
+GKE, this requires GKE v1.15.7 according to this [GKE
+Issue](https://issuetracker.google.com/issues/135624588).
 
 ## Building
 
@@ -88,7 +91,7 @@ Currently only `json-path` collection is supported.
 
 | Metric | Description | Type | K8s Versions |
 | ------------ | -------------- | ------- | -- |
-| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Pods | `>=1.10` |
+| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Pods | `>=1.12` |
 
 ### Example
 
@@ -96,7 +99,7 @@ This is an example of using the pod collector to collect metrics from a json
 metrics endpoint of each pod matched by the HPA.
 
 ```yaml
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -117,8 +120,11 @@ spec:
   metrics:
   - type: Pods
     pods:
-      metricName: requests-per-second
-      targetAverageValue: 1k
+      metric:
+        name: requests-per-second
+      target:
+        averageValue: 1k
+        type: AverageValue
 ```
 
 The pod collector is configured through the annotations which specify the
@@ -174,8 +180,8 @@ the trade-offs between the two approaches.
 
 | Metric | Description | Type | Kind | K8s Versions |
 | ------------ | -------------- | ------- | -- | -- |
-| `prometheus-query` | Generic metric which requires a user defined query. | External | | `>=1.10` |
-| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* | `>=1.10` |
+| `prometheus-query` | Generic metric which requires a user defined query. | External | | `>=1.12` |
+| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* | `>=1.12` |
 
 ### Example: External Metric
 
@@ -188,7 +194,7 @@ the `matchLabels` of the metric definition. This allows having multiple
 prometheus queries associated with a single HPA.
 
 ```yaml
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -211,11 +217,14 @@ spec:
   metrics:
   - type: External
     external:
-      metricName: prometheus-query
-      metricSelector:
-        matchLabels:
-          query-name: processed-events-per-second
-      targetAverageValue: 10
+      metric:
+        name: prometheus-query
+        selector:
+          matchLabels:
+            query-name: processed-events-per-second
+      target:
+        type: AverageValue
+        averageValue: "10"
 ```
 
 ### Example: Object Metric [DEPRECATED]
@@ -282,7 +291,7 @@ box so users don't have to define those manually.
 
 | Metric | Description | Type | Kind | K8s Versions |
 | ----------- | -------------- | ------ | ---- | ---- |
-| `requests-per-second` | Scale based on requests per second for a certain ingress. | Object | `Ingress` | `>=1.14` (can work with `>=1.10`) |
+| `requests-per-second` | Scale based on requests per second for a certain ingress. | Object | `Ingress` | `>=1.14` |
 
 ### Example
 
@@ -290,7 +299,7 @@ This is an example of an HPA that will scale based on `requests-per-second` for
 an ingress called `myapp`.
 
 ```yaml
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -304,38 +313,28 @@ spec:
   metrics:
   - type: Object
     object:
-      metricName: requests-per-second
-      target:
+      describedObject:
         apiVersion: extensions/v1beta1
         kind: Ingress
         name: myapp
-      averageValue: 10 # Only works with Kubernetes >=1.14
-      # for Kubernetes <1.14 you can use `targetValue` instead:
-      targetValue: 10 # this must be set, but has no effect if `averageValue` is defined.
-                      # Otherwise it will be treated as targetAverageValue
+      metric:
+        name: requests-per-second
+      target:
+        averageValue: "10"
+        type: AverageValue
 ```
 
 ### Metric weighting based on backend
 
-Skipper supports sending traffic to different backend based on annotations present on the
-`Ingress` object. When the metric name is specified without a backend as `requests-per-second`
-then the number of replicas will be calculated based on the full traffic served by that ingress.
-If however only the traffic being routed to a specific backend should be used then the
-backend name can be specified as a metric name like `requests-per-second,backend1` which would
-return the requests-per-second being sent to the `backend1`. The ingress annotation where
-the backend weights can be obtained can be specified through the flag `--skipper-backends-annotation`.
-
-
-**Note:** For Kubernetes `<v1.14` the HPA does not support `averageValue` for
-metrics of type `Object`. In case of requests per second it does not make sense
-to scale on a summed value because you can not make the total requests per
-second go down by adding more pods. For this reason the skipper collector will
-automatically treat the value you define in `targetValue` as an average per pod
-instead of a total sum.
-
-**ONLY use `targetValue` if you are on Kubernetes
-`<1.14`, it is not as percise as using `averageValue` and will not be supported
-after Kubernetes `v1.16` is released according to the [support policy](https://kubernetes.io/docs/setup/release/version-skew-policy/).**
+Skipper supports sending traffic to different backend based on annotations
+present on the `Ingress` object. When the metric name is specified without a
+backend as `requests-per-second` then the number of replicas will be calculated
+based on the full traffic served by that ingress.  If however only the traffic
+being routed to a specific backend should be used then the backend name can be
+specified as a metric name like `requests-per-second,backend1` which would
+return the requests-per-second being sent to the `backend1`. The ingress
+annotation where the backend weights can be obtained can be specified through
+the flag `--skipper-backends-annotation`.
 
 ## InfluxDB collector
 
@@ -360,10 +359,10 @@ A matching `query-name` label must be defined in the `matchLabels` of the metric
 This allows having multiple flux queries associated with a single HPA.
 
 ```yaml
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: my-hpa
+  name: myapp-hpa
   annotations:
     # These annotations are optional.
     # If specified, then they are used for setting up the InfluxDB client properly,
@@ -395,11 +394,14 @@ spec:
   metrics:
   - type: External
     external:
-      metricName: flux-query
-      metricSelector:
-        matchLabels:
-          query-name: queue_depth
-      targetValue: 1
+      metric:
+        name: flux-query
+        selector:
+          matchLabels:
+            query-name: queue_depth
+      target:
+        type: Value
+        value: "1"
 ```
 
 ## AWS collector
@@ -435,7 +437,7 @@ PolicyDocument:
 
 | Metric | Description | Type | K8s Versions |
 | ------------ | ------- | -- | -- |
-| `sqs-queue-length` | Scale based on SQS queue length | External | `>=1.10` |
+| `sqs-queue-length` | Scale based on SQS queue length | External | `>=1.12` |
 
 ### Example
 
@@ -443,7 +445,7 @@ This is an example of an HPA that will scale based on the length of an SQS
 queue.
 
 ```yaml
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -457,12 +459,15 @@ spec:
   metrics:
   - type: External
     external:
-      metricName: sqs-queue-length
-      metricSelector:
-        matchLabels:
-          queue-name: foobar
-          region: eu-central-1
-      targetAverageValue: 30
+      metric:
+        name: sqs-queue-length
+        selector:
+          matchLabels:
+            queue-name: foobar
+            region: eu-central-1
+      target:
+        averageValue: "30"
+        type: AverageValue
 ```
 
 The `matchLabels` are used by `kube-metrics-adapter` to configure a collector
@@ -483,7 +488,7 @@ The ZMON collector allows scaling based on external metrics exposed by
 
 | Metric | Description | Type | K8s Versions |
 | ------------ | ------- | -- | -- |
-| `zmon-check` | Scale based on any ZMON check results | External | `>=1.10` |
+| `zmon-check` | Scale based on any ZMON check results | External | `>=1.12` |
 
 ### Example
 
@@ -491,7 +496,7 @@ This is an example of an HPA that will scale based on the specified value
 exposed by a ZMON check with id `1234`.
 
 ```yaml
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -509,15 +514,18 @@ spec:
   metrics:
   - type: External
     external:
-      metricName: zmon-check
-      metricSelector:
-        matchLabels:
-          check-id: "1234" # the ZMON check to query for metrics
-          key: "custom.value"
-          tag-application: my-custom-app
-          aggregators: avg # comma separated list of aggregation functions, default: last
-          duration: 5m # default: 10m
-      targetAverageValue: 30
+      metric:
+          name: zmon-check
+          selector:
+            matchLabels:
+              check-id: "1234" # the ZMON check to query for metrics
+              key: "custom.value"
+              tag-application: my-custom-app
+              aggregators: avg # comma separated list of aggregation functions, default: last
+              duration: 5m # default: 10m
+        target:
+          averageValue: "30"
+          type: AverageValue
 ```
 
 The `check-id` specifies the ZMON check to query for the metrics. `key`
