@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -37,6 +38,7 @@ type PodCollector struct {
 	metricType       autoscalingv2.MetricSourceType
 	interval         time.Duration
 	logger           *log.Entry
+	httpClient       *http.Client
 }
 
 type PodMetricsGetter interface {

@@ -7,6 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func compareMetricsGetter(t *testing.T, first, second *JSONPathMetricsGetter) {
+	require.Equal(t, first.jsonPath, second.jsonPath)
+	require.Equal(t, first.scheme, second.scheme)
+	require.Equal(t, first.path, second.path)
+	require.Equal(t, first.port, second.port)
+}
+
 func TestNewJSONPathMetricsGetter(t *testing.T) {
 	configNoAggregator := map[string]string{
 		"json-key": "$.value",
@@ -18,7 +25,7 @@ func TestNewJSONPathMetricsGetter(t *testing.T) {
 	getterNoAggregator, err1 := NewJSONPathMetricsGetter(configNoAggregator)
 
 	require.NoError(t, err1)
-	require.Equal(t, &JSONPathMetricsGetter{
+	compareMetricsGetter(t, &JSONPathMetricsGetter{
 		jsonPath: jpath1,
 		scheme:   "http",
 		path:     "/metrics",
@@ -36,7 +43,7 @@ func TestNewJSONPathMetricsGetter(t *testing.T) {
 	getterAggregator, err2 := NewJSONPathMetricsGetter(configAggregator)
 
 	require.NoError(t, err2)
-	require.Equal(t, &JSONPathMetricsGetter{
+	compareMetricsGetter(t, &JSONPathMetricsGetter{
 		jsonPath:   jpath2,
 		scheme:     "http",
 		path:       "/metrics",

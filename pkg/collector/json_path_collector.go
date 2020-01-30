@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,11 +24,13 @@ type JSONPathMetricsGetter struct {
 	path       string
 	port       int
 	aggregator string
+	client     *http.Client
 }
 
 // NewJSONPathMetricsGetter initializes a new JSONPathMetricsGetter.
 func NewJSONPathMetricsGetter(config map[string]string) (*JSONPathMetricsGetter, error) {
-	getter := &JSONPathMetricsGetter{}
+	httpClient := defaultHTTPClient()
+	getter := &JSONPathMetricsGetter{client: httpClient}
 
 	if v, ok := config["json-key"]; ok {
 		path, err := jsonpath.Compile(v)
@@ -61,11 +64,26 @@ func NewJSONPathMetricsGetter(config map[string]string) (*JSONPathMetricsGetter,
 	return getter, nil
 }
 
+func defaultHTTPClient() *http.Client {
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: 15 * time.Second,
+			}).DialContext,
+			MaxIdleConns:          50,
+			IdleConnTimeout:       90 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+		Timeout: 15 * time.Second,
+	}
+	return client
+}
+
 // GetMetric gets metric from pod by fetching json metrics from the pods metric
 // endpoint and extracting the desired value using the specified json path
 // query.
 func (g *JSONPathMetricsGetter) GetMetric(pod *corev1.Pod) (float64, error) {
-	data, err := getPodMetrics(pod, g.scheme, g.path, g.port)
+	data, err := g.getPodMetrics(pod, g.scheme, g.path, g.port)
 	if err != nil {
 		return 0, err
 	}
@@ -122,14 +140,9 @@ func castSlice(in []interface{}) ([]float64, error) {
 }
 
 // getPodMetrics returns the content of the pods metrics endpoint.
-func getPodMetrics(pod *corev1.Pod, scheme, path string, port int) ([]byte, error) {
+func (g *JSONPathMetricsGetter) getPodMetrics(pod *corev1.Pod, scheme, path string, port int) ([]byte, error) {
 	if pod.Status.PodIP == "" {
 		return nil, fmt.Errorf("pod %s/%s does not have a pod IP", pod.Namespace, pod.Namespace)
-	}
-
-	httpClient := &http.Client{
-		Timeout:   15 * time.Second,
-		Transport: &http.Transport{},
 	}
 
 	if scheme == "" {
@@ -147,7 +160,7 @@ func getPodMetrics(pod *corev1.Pod, scheme, path string, port int) ([]byte, erro
 		return nil, err
 	}
 
-	resp, err := httpClient.Do(request)
+	resp, err := g.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
