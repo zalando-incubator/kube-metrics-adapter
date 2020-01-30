@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sync"
 	"time"
@@ -49,16 +50,17 @@ var (
 // HPAProvider is a base provider for initializing metric collectors based on
 // HPA resources.
 type HPAProvider struct {
-	client             kubernetes.Interface
-	interval           time.Duration
-	collectorScheduler *CollectorScheduler
-	collectorInterval  time.Duration
-	metricSink         chan metricCollection
-	hpaCache           map[resourceReference]autoscalingv2.HorizontalPodAutoscaler
-	metricStore        *MetricStore
-	collectorFactory   *collector.CollectorFactory
-	recorder           kube_record.EventRecorder
-	logger             *log.Entry
+	client                    kubernetes.Interface
+	interval                  time.Duration
+	collectorScheduler        *CollectorScheduler
+	collectorInterval         time.Duration
+	metricSink                chan metricCollection
+	hpaCache                  map[resourceReference]autoscalingv2.HorizontalPodAutoscaler
+	metricStore               *MetricStore
+	collectorFactory          *collector.CollectorFactory
+	recorder                  kube_record.EventRecorder
+	logger                    *log.Entry
+	disregardIncompatibleHPAs bool
 }
 
 // metricCollection is a container for sending collected metrics across a
@@ -69,7 +71,7 @@ type metricCollection struct {
 }
 
 // NewHPAProvider initializes a new HPAProvider.
-func NewHPAProvider(client kubernetes.Interface, interval, collectorInterval time.Duration, collectorFactory *collector.CollectorFactory) *HPAProvider {
+func NewHPAProvider(client kubernetes.Interface, interval, collectorInterval time.Duration, collectorFactory *collector.CollectorFactory, disregardIncompatibleHPAs bool) *HPAProvider {
 	metricsc := make(chan metricCollection)
 
 	return &HPAProvider{
@@ -80,9 +82,10 @@ func NewHPAProvider(client kubernetes.Interface, interval, collectorInterval tim
 		metricStore: NewMetricStore(func() time.Time {
 			return time.Now().UTC().Add(15 * time.Minute)
 		}),
-		collectorFactory: collectorFactory,
-		recorder:         recorder.CreateEventRecorder(client),
-		logger:           log.WithFields(log.Fields{"provider": "hpa"}),
+		collectorFactory:          collectorFactory,
+		recorder:                  recorder.CreateEventRecorder(client),
+		logger:                    log.WithFields(log.Fields{"provider": "hpa"}),
+		disregardIncompatibleHPAs: disregardIncompatibleHPAs,
 	}
 }
 
@@ -154,15 +157,20 @@ func (p *HPAProvider) updateHPAs() error {
 					interval = p.collectorInterval
 				}
 
-				collector, err := p.collectorFactory.NewCollector(&hpa, config, interval)
+				c, err := p.collectorFactory.NewCollector(&hpa, config, interval)
 				if err != nil {
-					p.recorder.Eventf(&hpa, apiv1.EventTypeWarning, "CreateNewMetricsCollector", "Failed to create new metrics collector: %v", err)
+
+					// Only log when it's not a PluginNotFoundError AND flag disregardIncompatibleHPAs is true
+					if !(errors.Is(err, &collector.PluginNotFoundError{}) && p.disregardIncompatibleHPAs) {
+						p.recorder.Eventf(&hpa, apiv1.EventTypeWarning, "CreateNewMetricsCollector", "Failed to create new metrics collector: %v", err)
+					}
+
 					cache = false
 					continue
 				}
 
-				p.logger.Infof("Adding new metrics collector: %T", collector)
-				p.collectorScheduler.Add(resourceRef, config.MetricTypeName, collector)
+				p.logger.Infof("Adding new metrics collector: %T", c)
+				p.collectorScheduler.Add(resourceRef, config.MetricTypeName, c)
 			}
 			newHPAs++
 

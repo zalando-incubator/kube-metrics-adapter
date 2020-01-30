@@ -46,6 +46,14 @@ type CollectorPlugin interface {
 	NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error)
 }
 
+type PluginNotFoundError struct {
+	metricTypeName MetricTypeName
+}
+
+func (p *PluginNotFoundError) Error() string {
+	return fmt.Sprintf("no plugin found for %s", p.metricTypeName)
+}
+
 func (c *CollectorFactory) RegisterPodsCollector(metricCollector string, plugin CollectorPlugin) error {
 	if metricCollector == "" {
 		c.podsPlugins.Any = plugin
@@ -139,7 +147,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 		}
 	}
 
-	return nil, fmt.Errorf("no plugin found for %s", config.MetricTypeName)
+	return nil, &PluginNotFoundError{metricTypeName: config.MetricTypeName}
 }
 
 type MetricTypeName struct {
