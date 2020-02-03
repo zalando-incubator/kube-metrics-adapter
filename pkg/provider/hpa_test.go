@@ -100,26 +100,31 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 
 	value := resource.MustParse("1k")
 
-	hpa := &autoscalingv1.HorizontalPodAutoscaler{
+	hpa := &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "hpa1",
 			Namespace:   "default",
 			Annotations: map[string]string{},
 		},
-		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+		Spec: autoscaling.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscaling.CrossVersionObjectReference{
 				Kind:       "Deployment",
 				Name:       "app",
 				APIVersion: "apps/v1",
 			},
 			MinReplicas: &[]int32{1}[0],
 			MaxReplicas: 10,
-			Metrics: []autoscalingv1.MetricSpec{
+			Metrics: []autoscaling.MetricSpec{
 				{
-					Type: autoscalingv1.ExternalMetricSourceType,
-					External: &autoscalingv1.ExternalMetricSource{
-						MetricName:         "some-other-metric",
-						TargetAverageValue: &value,
+					Type: autoscaling.ExternalMetricSourceType,
+					External: &autoscaling.ExternalMetricSource{
+						Metric: autoscaling.MetricIdentifier{
+							Name: "some-other-metric",
+						},
+						Target: autoscaling.MetricTarget{
+							Type:         autoscaling.AverageValueMetricType,
+							AverageValue: &value,
+						},
 					},
 				},
 			},
@@ -129,7 +134,7 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	var err error
-	_, err = fakeClient.AutoscalingV2beta1().HorizontalPodAutoscalers("default").Create(hpa)
+	_, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Create(hpa)
 	require.NoError(t, err)
 
 	collectorFactory := collector.NewCollectorFactory()
