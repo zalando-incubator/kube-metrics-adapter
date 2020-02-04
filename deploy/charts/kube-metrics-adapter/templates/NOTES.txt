@@ -2,3 +2,12 @@
 In a few minutes you should be able to list metrics using the following command:
 
   kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
+  
+Also if you enabled external metrics:
+  
+  kubectl get --raw /apis/external.metrics.k8s.io/v1beta1
+  
+Wait till deployment is done by:
+
+  kubectl -n {{ .Release.Namespace }} rollout status deployment {{ template "kube-metrics-adapter.fullname" . }}
+
