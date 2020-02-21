@@ -369,10 +369,11 @@ metadata:
     # instead of using the ones specified via CLI. Respectively:
     #  - --influxdb-address
     #  - --influxdb-token
-    #  - --influxdb-org-id
+    #  - --influxdb-org
     metric-config.external.flux-query.influxdb/address: "http://influxdbv2.my-namespace.svc"
     metric-config.external.flux-query.influxdb/token: "secret-token"
-    metric-config.external.flux-query.influxdb/org-id: "deadbeef"
+    # This could be either the organization name or the ID.
+    metric-config.external.flux-query.influxdb/org: "deadbeef"
     # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
     # <configKey> == query-name
     metric-config.external.flux-query.influxdb/queue_depth: |

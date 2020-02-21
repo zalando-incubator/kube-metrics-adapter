@@ -18,7 +18,7 @@ const (
 	InfluxDBMetricName        = "flux-query"
 	influxDBAddressKey        = "address"
 	influxDBTokenKey          = "token"
-	influxDBOrgIDKey          = "org-id"
+	influxDBOrgKey            = "org"
 	influxDBQueryNameLabelKey = "query-name"
 )
 
@@ -26,26 +26,26 @@ type InfluxDBCollectorPlugin struct {
 	kubeClient kubernetes.Interface
 	address    string
 	token      string
-	orgID      string
+	org        string
 }
 
-func NewInfluxDBCollectorPlugin(client kubernetes.Interface, address, token, orgID string) (*InfluxDBCollectorPlugin, error) {
+func NewInfluxDBCollectorPlugin(client kubernetes.Interface, address, token, org string) (*InfluxDBCollectorPlugin, error) {
 	return &InfluxDBCollectorPlugin{
 		kubeClient: client,
 		address:    address,
 		token:      token,
-		orgID:      orgID,
+		org:        org,
 	}, nil
 }
 
 func (p *InfluxDBCollectorPlugin) NewCollector(hpa *v2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewInfluxDBCollector(p.address, p.orgID, p.token, config, interval)
+	return NewInfluxDBCollector(p.address, p.token, p.org, config, interval)
 }
 
 type InfluxDBCollector struct {
 	address string
 	token   string
-	orgID   string
+	org     string
 
 	influxDBClient *influxdb.Client
 	interval       time.Duration
@@ -54,7 +54,7 @@ type InfluxDBCollector struct {
 	query          string
 }
 
-func NewInfluxDBCollector(address string, token string, orgID string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
+func NewInfluxDBCollector(address string, token string, org string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
 	collector := &InfluxDBCollector{
 		interval:   interval,
 		metric:     config.Metric,
@@ -87,8 +87,8 @@ func NewInfluxDBCollector(address string, token string, orgID string, config *Me
 	if v, ok := config.Config[influxDBTokenKey]; ok {
 		token = v
 	}
-	if v, ok := config.Config[influxDBOrgIDKey]; ok {
-		orgID = v
+	if v, ok := config.Config[influxDBOrgKey]; ok {
+		org = v
 	}
 	influxDbClient, err := influxdb.New(address, token)
 	if err != nil {
@@ -96,7 +96,7 @@ func NewInfluxDBCollector(address string, token string, orgID string, config *Me
 	}
 	collector.address = address
 	collector.token = token
-	collector.orgID = orgID
+	collector.org = org
 	collector.influxDBClient = influxDbClient
 	return collector, nil
 }
@@ -109,7 +109,7 @@ type queryResult struct {
 
 // getValue returns the first result gathered from an InfluxDB instance.
 func (c *InfluxDBCollector) getValue() (resource.Quantity, error) {
-	res, err := c.influxDBClient.QueryCSV(context.Background(), c.query, c.orgID)
+	res, err := c.influxDBClient.QueryCSV(context.Background(), c.query, c.org)
 	if err != nil {
 		return resource.Quantity{}, err
 	}
