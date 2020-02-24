@@ -36,7 +36,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if got, want := c.orgID, "deadbeef"; want != got {
+		if got, want := c.org, "deadbeef"; want != got {
 			t.Errorf("unexpected value -want/+got:\n\t-%s\n\t+%s", want, got)
 		}
 		if got, want := c.address, "http://localhost:9999"; want != got {
@@ -69,7 +69,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 				"range3m":    `from(bucket: "?") |> range(start: -3m)`,
 				"address":    "http://localhost:9999",
 				"token":      "sEcr3TT0ken",
-				"org-id":     "deadbeef1234",
+				"org":        "deadbeef1234",
 				"query-name": "range3m",
 			},
 		}
@@ -77,7 +77,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if got, want := c.orgID, "deadbeef1234"; want != got {
+		if got, want := c.org, "deadbeef1234"; want != got {
 			t.Errorf("unexpected value -want/+got:\n\t-%s\n\t+%s", want, got)
 		}
 		if got, want := c.address, "http://localhost:9999"; want != got {

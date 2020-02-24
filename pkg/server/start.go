@@ -92,7 +92,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"address of InfluxDB 2.x server to query (e.g. http://localhost:9999)")
 	flags.StringVar(&o.InfluxDBToken, "influxdb-token", o.InfluxDBToken, ""+
 		"token for InfluxDB 2.x server to query")
-	flags.StringVar(&o.InfluxDBOrgID, "influxdb-org-id", o.InfluxDBOrgID, ""+
+	flags.StringVar(&o.InfluxDBOrg, "influxdb-org", o.InfluxDBOrg, ""+
 		"organization ID for InfluxDB 2.x server to query")
 	flags.StringVar(&o.ZMONKariosDBEndpoint, "zmon-kariosdb-endpoint", o.ZMONKariosDBEndpoint, ""+
 		"url of ZMON KariosDB endpoint to query for ZMON checks")
@@ -183,7 +183,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 	}
 
 	if o.InfluxDBAddress != "" {
-		influxdbPlugin, err := collector.NewInfluxDBCollectorPlugin(client, o.InfluxDBAddress, o.InfluxDBToken, o.InfluxDBOrgID)
+		influxdbPlugin, err := collector.NewInfluxDBCollectorPlugin(client, o.InfluxDBAddress, o.InfluxDBToken, o.InfluxDBOrg)
 		if err != nil {
 			return fmt.Errorf("failed to initialize InfluxDB collector plugin: %v", err)
 		}
@@ -309,8 +309,8 @@ type AdapterServerOptions struct {
 	InfluxDBAddress string
 	// InfluxDBToken is the token used for querying InfluxDB
 	InfluxDBToken string
-	// InfluxDBOrgID is the organization ID used for querying InfluxDB
-	InfluxDBOrgID string
+	// InfluxDBOrg is the organization ID used for querying InfluxDB
+	InfluxDBOrg string
 	// ZMONKariosDBEndpoint enables ZMON check queries to the specified
 	// kariosDB endpoint
 	ZMONKariosDBEndpoint string
