@@ -155,6 +155,17 @@ values of JSONPath expressions that evaluate to arrays/slices of numbers.
 It's optional but when the expression evaluates to an array/slice, it's absence will
 produce an error. The supported aggregation functions are `avg`, `max`, `min` and `sum`.
 
+The `raw-query` configuration option specifies the query params to send along to the endpoint:
+```yaml
+  metric-config.pods.requests-per-second.json-path/path: /metrics
+  metric-config.pods.requests-per-second.json-path/port: "9090"
+  metric-config.pods.requests-per-second.json-path/raw-query: "foo=bar&baz=bop"
+```
+will create a URL like this:
+```
+http://<podIP>:9090/metrics?foo=bar&baz=bop
+```
+
 ## Prometheus collector
 
 The Prometheus collector is a generic collector which can map Prometheus
