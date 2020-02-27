@@ -14,6 +14,8 @@ workflows:
       - helm/lint-chart:
           charts-dir: deploy/charts
           filters:
+            branches:
+              ignore: /.*/
             tags:
               ignore: /.*/
 
