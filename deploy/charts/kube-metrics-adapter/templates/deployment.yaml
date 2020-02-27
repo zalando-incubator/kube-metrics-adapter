@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "kube-metrics-adapter.fullname" . }}
+  labels:
+    app: {{ template "kube-metrics-adapter.name" . }}
+    chart: {{ template "kube-metrics-adapter.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "kube-metrics-adapter.name" . }}
+      release: "{{ .Release.Name }}"
+  template:
+    metadata:
+      labels:
+        app: {{ template "kube-metrics-adapter.name" . }}
+        chart: {{ template "kube-metrics-adapter.chart" . }}
+        release: "{{ .Release.Name }}"
+        heritage: "{{ .Release.Service }}"
+    spec:
+      serviceAccountName: {{ template "kube-metrics-adapter.fullname" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - --secure-port={{ .Values.service.internalPort }}
+        {{- if .Values.aws.enable }}
+        - --aws-external-metrics
+        - --aws-region={{ .Values.aws.region }}
+        {{- end}}
+        - --v={{ .Values.logLevel }}
+        {{- if .Values.prometheus.url }}
+        - --prometheus-server={{ .Values.prometheus.url }}
+        {{- end}}
+        {{- if .Values.tls.enable }}
+        - --tls-cert-file=/var/run/serving-cert/tls.crt
+        - --tls-private-key-file=/var/run/serving-cert/tls.key
+        {{- end}}
+        - --cert-dir=/tmp/cert
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+          name: https
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["all"]
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        {{- if .Values.aws.enable }}
+        - name: ssl-certs
+          mountPath: {{ .Values.sslCertPath }}
+          readOnly: true
+        {{- end}}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.image.pullSecrets | indent 8 }}
+      {{- end }}
+    {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+    {{- end }}
+    {{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+    {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      {{- if .Values.aws.enable }}
+      - name: ssl-certs
+        hostPath:
+          path: {{ .Values.sslCertHostPath }}
+      {{- end}}
