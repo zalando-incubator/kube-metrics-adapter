@@ -1,6 +1,6 @@
 image:
   repository: banzaicloud/kube-metrics-adapter
-  tag: 0.1.1-bzn
+  tag: 0.1.1-bnz
   pullPolicy: IfNotPresent
   pullSecrets: []
 
