@@ -1,0 +1,27 @@
+version: 2.1
+orbs:
+  helm: banzaicloud/helm@0.0.5
+
+general:
+  branches:
+    ignore:
+      - master
+
+workflows:
+
+  helm-chart:
+    jobs:
+      - helm/lint-chart:
+          charts-dir: deploy/charts
+          filters:
+            tags:
+              ignore: /.*/
+
+      - helm/publish-chart:
+          context: helm
+          charts-dir: deploy/charts
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /chart\/kube-metrics-adapter\/\d+.\d+.\d+/
