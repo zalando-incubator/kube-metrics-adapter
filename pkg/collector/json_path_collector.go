@@ -25,6 +25,7 @@ type JSONPathMetricsGetter struct {
 	port       int
 	aggregator string
 	client     *http.Client
+	rawQuery   string
 }
 
 // NewJSONPathMetricsGetter initializes a new JSONPathMetricsGetter.
@@ -47,6 +48,10 @@ func NewJSONPathMetricsGetter(config map[string]string) (*JSONPathMetricsGetter,
 
 	if v, ok := config["path"]; ok {
 		getter.path = v
+	}
+
+	if v, ok := config["raw-query"]; ok {
+		getter.rawQuery = v
 	}
 
 	if v, ok := config["port"]; ok {
@@ -83,7 +88,7 @@ func defaultHTTPClient() *http.Client {
 // endpoint and extracting the desired value using the specified json path
 // query.
 func (g *JSONPathMetricsGetter) GetMetric(pod *corev1.Pod) (float64, error) {
-	data, err := g.getPodMetrics(pod, g.scheme, g.path, g.port)
+	data, err := g.getPodMetrics(pod)
 	if err != nil {
 		return 0, err
 	}
@@ -140,20 +145,12 @@ func castSlice(in []interface{}) ([]float64, error) {
 }
 
 // getPodMetrics returns the content of the pods metrics endpoint.
-func (g *JSONPathMetricsGetter) getPodMetrics(pod *corev1.Pod, scheme, path string, port int) ([]byte, error) {
+func (g *JSONPathMetricsGetter) getPodMetrics(pod *corev1.Pod) ([]byte, error) {
 	if pod.Status.PodIP == "" {
 		return nil, fmt.Errorf("pod %s/%s does not have a pod IP", pod.Namespace, pod.Namespace)
 	}
 
-	if scheme == "" {
-		scheme = "http"
-	}
-
-	metricsURL := url.URL{
-		Scheme: scheme,
-		Host:   fmt.Sprintf("%s:%d", pod.Status.PodIP, port),
-		Path:   path,
-	}
+	metricsURL := g.buildMetricsURL(pod.Status.PodIP)
 
 	request, err := http.NewRequest(http.MethodGet, metricsURL.String(), nil)
 	if err != nil {
@@ -176,6 +173,22 @@ func (g *JSONPathMetricsGetter) getPodMetrics(pod *corev1.Pod, scheme, path stri
 	}
 
 	return data, nil
+}
+
+// buildMetricsURL will build the full URL needed to hit the pod metric endpoint.
+func (g *JSONPathMetricsGetter) buildMetricsURL(podIP string) url.URL {
+	var scheme = g.scheme
+
+	if scheme == "" {
+		scheme = "http"
+	}
+
+	return url.URL{
+		Scheme:   scheme,
+		Host:     fmt.Sprintf("%s:%d", podIP, g.port),
+		Path:     g.path,
+		RawQuery: g.rawQuery,
+	}
 }
 
 // reduce will reduce a slice of numbers given a aggregator function's name. If it's empty or not recognized, an error is returned.
