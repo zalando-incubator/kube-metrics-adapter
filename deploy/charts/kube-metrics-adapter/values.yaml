@@ -36,6 +36,9 @@ resources:
     cpu: 100m
     memory: 100Mi
 
+adapter:
+  podAnnotations: {}
+
 service:
   annotations: {}
   port: 443
