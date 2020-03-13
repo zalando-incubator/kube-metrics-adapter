@@ -49,6 +49,7 @@ The following table lists the configurable parameters of the Prometheus Adapter 
 | `rbac.create`                   | If true, create & use RBAC resources                                            | `true`                                      |
 | `resources`                     | CPU/Memory resource requests/limits                                             | `{}`                                        |                                                                                                        
 | `service.annotations`           | Annotations to add to the service                                               | `{}`                                        |
+| `adapter.podAnnotations`        | Annotations to add to the pods                                                  | `{}`                                        |
 | `service.port`                  | Service port to expose                                                          | `443`                                       |
 | `service.internalPort`          | Service internal port                                                           | `6443`                                      |
 | `service.type`                  | Type of service to create                                                       | `ClusterIP`                                 |

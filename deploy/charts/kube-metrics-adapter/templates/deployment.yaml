@@ -15,6 +15,10 @@ spec:
       release: "{{ .Release.Name }}"
   template:
     metadata:
+    {{- if .Values.adapter.podAnnotations }}
+      annotations:
+{{ toYaml .Values.adapter.podAnnotations | indent 8 }}
+    {{- end }}
       labels:
         app: {{ template "kube-metrics-adapter.name" . }}
         chart: {{ template "kube-metrics-adapter.chart" . }}
