@@ -177,6 +177,8 @@ github.com/influxdata/flux v0.0.0-20190620184636-886e3c28388d h1:U8iWfsBHYJwqUiE
 github.com/influxdata/flux v0.0.0-20190620184636-886e3c28388d/go.mod h1:jvMlODMVoTjT8XESgISlGk1ldX0ME7mWcNGZ4Ssw3uw=
 github.com/influxdata/influxdb-client-go v0.1.4 h1:I3Iqk/L1dDVZ8kEwyM1LiGE3LYN6AQU/zapf2DGx1MI=
 github.com/influxdata/influxdb-client-go v0.1.4/go.mod h1:xJLh/tn0HsGzauZKamoZceTqNNlm45EQqd83ZKmPheI=
+github.com/influxdata/influxdb-client-go v0.1.5 h1:xDXv+MeaAsagGC47AXSYScA3YskWNgBKsE4hlCjgwew=
+github.com/influxdata/influxdb-client-go v0.1.5/go.mod h1:xJLh/tn0HsGzauZKamoZceTqNNlm45EQqd83ZKmPheI=
 github.com/influxdata/line-protocol v0.0.0-20180522152040-32c6aa80de5e/go.mod h1:4kt73NQhadE3daL3WhR5EJ/J2ocX0PZzwxQ0gXJ7oFE=
 github.com/influxdata/line-protocol v0.0.0-20190509173118-5712a8124a9a h1:p2OJKXyrNEo7OefeU+JNp1dpCOZJ8AOpJScpNK/MGDI=
 github.com/influxdata/line-protocol v0.0.0-20190509173118-5712a8124a9a/go.mod h1:4kt73NQhadE3daL3WhR5EJ/J2ocX0PZzwxQ0gXJ7oFE=
