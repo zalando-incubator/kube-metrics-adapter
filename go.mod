@@ -7,7 +7,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.4.1 // indirect
-	github.com/influxdata/influxdb-client-go v0.1.4
+	github.com/influxdata/influxdb-client-go v0.1.5
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20190918110929-3d9be26a50eb
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/prometheus/client_golang v0.9.4
