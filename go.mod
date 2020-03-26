@@ -2,7 +2,7 @@ module github.com/zalando-incubator/kube-metrics-adapter
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
-	github.com/aws/aws-sdk-go v1.29.31
+	github.com/aws/aws-sdk-go v1.29.32
 	github.com/coreos/go-systemd v0.0.0-20180705093442-88bfeed483d3 // indirect
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
