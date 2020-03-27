@@ -128,7 +128,7 @@ func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa
 
 func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 	// TODO: use real context
-	value, err := c.promAPI.Query(context.Background(), c.query, time.Now().UTC())
+	value, _, err := c.promAPI.Query(context.Background(), c.query, time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}

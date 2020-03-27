@@ -331,8 +331,8 @@ func TestSkipperCollector(t *testing.T) {
 			err := makeIngress(client, tc.namespace, tc.ingressName, tc.backend, tc.hostnames, tc.backendWeights)
 			require.NoError(t, err)
 			plugin := makePlugin(tc.metric)
-			hpa := makeHPA(tc.ingressName, tc.backend)
-			config := makeConfig(tc.backend, tc.fakedAverage)
+			hpa := makeHPA(tc.namespace, tc.ingressName, tc.backend)
+			config := makeConfig(tc.ingressName, tc.namespace, tc.backend, tc.fakedAverage)
 			_, err = newDeployment(client, tc.namespace, tc.backend, tc.replicas, tc.readyReplicas)
 			require.NoError(t, err)
 			collector, err := NewSkipperCollector(client, plugin, hpa, config, time.Minute, tc.backendAnnotations, tc.backend)
@@ -341,6 +341,7 @@ func TestSkipperCollector(t *testing.T) {
 			if tc.expectError {
 				require.Error(t, err)
 			} else {
+				require.NoError(t, err)
 				require.Equal(t, map[string]string{"query": tc.expectedQuery}, plugin.config)
 				require.NoError(t, err, "failed to collect metrics: %v", err)
 				require.Len(t, collected, 1, "the number of metrics returned is not 1")
@@ -385,8 +386,9 @@ func makeIngress(client kubernetes.Interface, namespace, ingressName, backend st
 	return err
 }
 
-func makeHPA(ingressName, backend string) *autoscalingv2.HorizontalPodAutoscaler {
+func makeHPA(namespace, ingressName, backend string) *autoscalingv2.HorizontalPodAutoscaler {
 	return &autoscalingv2.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Kind: "Deployment",
@@ -404,9 +406,13 @@ func makeHPA(ingressName, backend string) *autoscalingv2.HorizontalPodAutoscaler
 		},
 	}
 }
-func makeConfig(backend string, fakedAverage bool) *MetricConfig {
+func makeConfig(ingressName, namespace, backend string, fakedAverage bool) *MetricConfig {
 	config := &MetricConfig{
 		MetricTypeName: MetricTypeName{Metric: autoscalingv2.MetricIdentifier{Name: fmt.Sprintf("%s,%s", rpsMetricName, backend)}},
+		ObjectReference: custom_metrics.ObjectReference{
+			Name:      ingressName,
+			Namespace: namespace,
+		},
 		MetricSpec: autoscalingv2.MetricSpec{
 			Object: &autoscalingv2.ObjectMetricSource{
 				Target: autoscalingv2.MetricTarget{},
