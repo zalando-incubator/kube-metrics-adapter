@@ -10,7 +10,7 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.5.0
-	github.com/spf13/cobra v0.0.6
+	github.com/spf13/cobra v0.0.7
 	github.com/stretchr/testify v1.5.1
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20180921141935-824b77fb1f84
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975 // indirect
