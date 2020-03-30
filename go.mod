@@ -7,7 +7,7 @@ require (
 	github.com/influxdata/influxdb-client-go v0.1.5
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20200323093244-5046ce1afe6b
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
-	github.com/prometheus/client_golang v1.0.0
+	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/cobra v0.0.6
