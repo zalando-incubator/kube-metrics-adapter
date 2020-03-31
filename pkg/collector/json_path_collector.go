@@ -147,7 +147,7 @@ func castSlice(in []interface{}) ([]float64, error) {
 // getPodMetrics returns the content of the pods metrics endpoint.
 func (g *JSONPathMetricsGetter) getPodMetrics(pod *corev1.Pod) ([]byte, error) {
 	if pod.Status.PodIP == "" {
-		return nil, fmt.Errorf("pod %s/%s does not have a pod IP", pod.Namespace, pod.Namespace)
+		return nil, fmt.Errorf("pod %s/%s does not have a pod IP", pod.Namespace, pod.Name)
 	}
 
 	metricsURL := g.buildMetricsURL(pod.Status.PodIP)
