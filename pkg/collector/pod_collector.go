@@ -6,8 +6,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector/httpmetrics"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -31,7 +31,7 @@ func (p *PodCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutosc
 
 type PodCollector struct {
 	client           kubernetes.Interface
-	Getter           PodMetricsGetter
+	Getter           httpmetrics.PodMetricsGetter
 	podLabelSelector *metav1.LabelSelector
 	namespace        string
 	metric           autoscalingv2.MetricIdentifier
@@ -39,10 +39,6 @@ type PodCollector struct {
 	interval         time.Duration
 	logger           *log.Entry
 	httpClient       *http.Client
-}
-
-type PodMetricsGetter interface {
-	GetMetric(pod *corev1.Pod) (float64, error)
 }
 
 func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PodCollector, error) {
@@ -62,11 +58,11 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalP
 		logger:           log.WithFields(log.Fields{"Collector": "Pod"}),
 	}
 
-	var getter PodMetricsGetter
+	var getter httpmetrics.PodMetricsGetter
 	switch config.CollectorName {
 	case "json-path":
 		var err error
-		getter, err = NewJSONPathMetricsGetter(config.Config)
+		getter, err = httpmetrics.NewPodMetricsJSONPathGetter(config.Config)
 		if err != nil {
 			return nil, err
 		}
