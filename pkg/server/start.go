@@ -190,6 +190,8 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		collectorFactory.RegisterExternalCollector([]string{collector.InfluxDBMetricName}, influxdbPlugin)
 	}
 
+	plugin, _ := collector.NewHTTPCollectorPlugin()
+	collectorFactory.RegisterExternalCollector([]string{collector.HTTPMetricName}, plugin)
 	// register generic pod collector
 	err = collectorFactory.RegisterPodsCollector("", collector.NewPodCollectorPlugin(client))
 	if err != nil {

@@ -535,9 +535,9 @@ spec:
               tag-application: my-custom-app
               aggregators: avg # comma separated list of aggregation functions, default: last
               duration: 5m # default: 10m
-        target:
-          averageValue: "30"
-          type: AverageValue
+      target:
+        averageValue: "30"
+        type: AverageValue
 ```
 
 The `check-id` specifies the ZMON check to query for the metrics. `key`
@@ -585,3 +585,60 @@ you need to define a `key` or other `tag` with a "star" query syntax like
 `values.*`. This *hack* is in place because it's not allowed to use `*` in the
 metric label definitions. If both annotations and corresponding label is
 defined, then the annotation takes precedence.
+
+## HTTP Collector
+
+The http collector allows collecting metrics from an external endpoint specified in the HPA.
+Currently only `json-path` collection is supported.
+
+### Supported metrics
+
+| Metric | Description | Type | K8s Versions |
+| ------------ | -------------- | ------- | -- |
+| *custom* | No predefined metrics. Metrics are generated from user defined queries. | Pods | `>=1.12` |
+
+### Example
+
+This is an example of using the HTTP collector to collect metrics from a json
+metrics endpoint specified in the annotations.
+
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+  annotations:
+    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    metric-config.external.http.json/json-key: "$.some-metric.value"
+    metric-config.external.http.json/endpoint: "http://metric-source.app-namespace:8080/metrics"
+    metric-config.external.http.json/aggregator: "max"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: External
+    external:
+      metric:
+        name: http
+        selector:
+          matchLabels:
+            identifier: unique-metric-name
+      target:
+        averageValue: 1
+        type: AverageValue
+```
+
+The HTTP collector similar to the Pod Metrics collector. The metric name should always be `http`.
+This value is also used in the annotations to configure the metrics adapter to query the required
+target. The following configuration values are supported:
+
+- `json-key` to specify the JSON path of the metric to be queried
+- `endpoint` the fully formed path to query for the metric. In the above example a Kubernetes _Service_
+    in the namespace `app-namespace` is called.
+- `aggregator` is only required if the metric is an array of values and specifies how the values
+    are aggregated. Currently this option can support the values: `sum`, `max`, `min`, `avg`.
+

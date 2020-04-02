@@ -86,6 +86,21 @@ func TestParser(t *testing.T) {
 				"org-id":  "deadbeef",
 			},
 		},
+		{
+			Name: "http metrics",
+			Annotations: map[string]string{
+				"metric-config.external.http.json/json-key":   "$.metric.value",
+				"metric-config.external.http.json/endpoint":   "http://metric-source.source-namespace.svc.cluster.local:8000/metrics",
+				"metric-config.external.http.json/aggregator": "avg",
+			},
+			MetricName: "http",
+			MetricType: autoscalingv2.ExternalMetricSourceType,
+			ExpectedConfig: map[string]string{
+				"json-key":   "$.metric.value",
+				"endpoint":   "http://metric-source.source-namespace.svc.cluster.local:8000/metrics",
+				"aggregator": "avg",
+			},
+		},
 	} {
 		t.Run(tc.Name, func(t *testing.T) {
 			hpaMap := make(AnnotationConfigMap)
