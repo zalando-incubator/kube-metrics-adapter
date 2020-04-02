@@ -2,7 +2,7 @@ module github.com/zalando-incubator/kube-metrics-adapter
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
-	github.com/aws/aws-sdk-go v1.30.0
+	github.com/aws/aws-sdk-go v1.30.2
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/influxdata/influxdb-client-go v0.1.5
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20200323093244-5046ce1afe6b
