@@ -25,6 +25,7 @@ spec:
         release: "{{ .Release.Name }}"
         heritage: "{{ .Release.Service }}"
     spec:
+      hostNetwork: {{ .Values.enableHostNetwork }}
       serviceAccountName: {{ template "kube-metrics-adapter.fullname" . }}
       securityContext:
         runAsNonRoot: true
