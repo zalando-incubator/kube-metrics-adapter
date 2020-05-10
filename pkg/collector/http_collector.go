@@ -19,6 +19,7 @@ const (
 	HTTPEndpointAnnotationKey = "endpoint"
 	HTTPJsonPathAnnotationKey = "json-key"
 	identifierLabel           = "identifier"
+	aggregatorKey             = "aggregator"
 )
 
 type HTTPCollectorPlugin struct{}
@@ -30,24 +31,29 @@ func NewHTTPCollectorPlugin() (*HTTPCollectorPlugin, error) {
 func (p *HTTPCollectorPlugin) NewCollector(_ *v2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	collector := &HTTPCollector{}
 	var (
-		value string
-		ok    bool
+		value    string
+		ok       bool
+		jsonPath *jsonpath.Compiled
+		err      error
 	)
-	if value, ok = config.Config[HTTPJsonPathAnnotationKey]; !ok {
-		return nil, fmt.Errorf("config value %s not found", HTTPJsonPathAnnotationKey)
+
+	if value, ok = metricLabelOrAnnotation(config, HTTPJsonPathAnnotationKey); !ok {
+		return nil, fmt.Errorf("config value %s not found and value not specified as label", HTTPJsonPathAnnotationKey)
 	}
-	jsonPath, err := jsonpath.Compile(value)
+	jsonPath, err = jsonpath.Compile(value)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse json path: %v", err)
+		return nil, fmt.Errorf("failed to parse json path %v", err)
 	}
 	collector.jsonPath = jsonPath
-	if value, ok = config.Config[HTTPEndpointAnnotationKey]; !ok {
-		return nil, fmt.Errorf("config value %s not found", HTTPEndpointAnnotationKey)
+
+	if value, ok = metricLabelOrAnnotation(config, HTTPEndpointAnnotationKey); !ok {
+		return nil, fmt.Errorf("config value %s not found and value not specified as label", HTTPEndpointAnnotationKey)
 	}
 	collector.endpoint, err = url.Parse(value)
 	if err != nil {
 		return nil, err
 	}
+
 	collector.interval = interval
 	collector.metricType = config.Type
 	if config.Metric.Selector == nil || config.Metric.Selector.MatchLabels == nil {
@@ -56,17 +62,33 @@ func (p *HTTPCollectorPlugin) NewCollector(_ *v2beta2.HorizontalPodAutoscaler, c
 	if _, ok := config.Metric.Selector.MatchLabels[identifierLabel]; !ok {
 		return nil, fmt.Errorf("%s is not specified as a label for metric %s", identifierLabel, config.Metric.Name)
 	}
-	collector.metric = config.Metric
-	var aggFunc httpmetrics.AggregatorFunc
 
-	if val, ok := config.Config["aggregator"]; ok {
-		aggFunc, err = httpmetrics.ParseAggregator(val)
+	collector.metric = config.Metric
+	var (
+		aggFunc httpmetrics.AggregatorFunc
+		aggKey  string
+	)
+
+	if aggKey, ok = metricLabelOrAnnotation(config, aggregatorKey); ok {
+		aggFunc, err = httpmetrics.ParseAggregator(aggKey)
 		if err != nil {
 			return nil, err
 		}
 	}
 	collector.metricsGetter = httpmetrics.NewJSONPathMetricsGetter(httpmetrics.DefaultMetricsHTTPClient(), aggFunc, jsonPath)
 	return collector, nil
+}
+
+func metricLabelOrAnnotation(config *MetricConfig, key string) (string, bool) {
+	if config.Metric.Selector != nil && config.Metric.Selector.MatchLabels != nil {
+		if value, ok := config.Metric.Selector.MatchLabels[key]; ok {
+			return value, true
+		}
+	}
+	if value, ok := config.Config[key]; ok {
+		return value, true
+	}
+	return "", false
 }
 
 type HTTPCollector struct {
