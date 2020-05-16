@@ -3,6 +3,7 @@ package httpmetrics
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/oliveagle/jsonpath"
 	"github.com/stretchr/testify/require"
@@ -130,4 +131,68 @@ func TestBuildMetricsURL(t *testing.T) {
 	expectedURLNoQuery := fmt.Sprintf("%s://%s:%s%s", scheme, ip, port, path)
 	receivedURLNoQuery := getterWithNoQuery.buildMetricsURL(ip)
 	require.Equal(t, receivedURLNoQuery.String(), expectedURLNoQuery)
+}
+
+func TestCustomTimeouts(t *testing.T) {
+	scheme := "http"
+	port := "9090"
+	path := "/v1/test/"
+
+	// Test no custom options results in default timeouts
+	defaultConfig := map[string]string{
+		"json-key":  "$.value",
+		"scheme":    scheme,
+		"path":      path,
+		"port":      port,
+	}
+	defaultTime := time.Duration(15000) * time.Millisecond
+
+	defaultGetter, err1 := NewPodMetricsJSONPathGetter(defaultConfig)
+	require.NoError(t, err1)
+	require.Equal(t, defaultGetter.metricGetter.client.Timeout, defaultTime)
+
+	// Test with custom request timeout
+	configWithRequestTimeout := map[string]string{
+		"json-key":  "$.value",
+		"scheme":    scheme,
+		"path":      path,
+		"port":      port,
+		"request-timeout": "978ms",
+	}
+	exectedTimeout := time.Duration(978) * time.Millisecond
+	customRequestGetter, err2 := NewPodMetricsJSONPathGetter(configWithRequestTimeout)
+	require.NoError(t, err2)
+	require.Equal(t, customRequestGetter.metricGetter.client.Timeout, exectedTimeout)
+
+	// Test with custom connect timeout. Unfortunately, it seems there's no way to access the
+	// connect timeout of the client struct to actually verify it's set :/
+	configWithConnectTimeout := map[string]string{
+		"json-key":  "$.value",
+		"scheme":    scheme,
+		"path":      path,
+		"port":      port,
+		"connect-timeout": "512ms",
+	}
+	customRequestGetter, err3 := NewPodMetricsJSONPathGetter(configWithConnectTimeout)
+	require.NoError(t, err3)
+
+	configWithInvalidTimeout := map[string]string{
+		"json-key":  "$.value",
+		"scheme":    scheme,
+		"path":      path,
+		"port":      port,
+		"request-timeout": "-256ms",
+	}
+	_, err4 := NewPodMetricsJSONPathGetter(configWithInvalidTimeout)
+	require.Error(t, err4)
+
+	configWithInvalidTimeout = map[string]string{
+		"json-key":  "$.value",
+		"scheme":    scheme,
+		"path":      path,
+		"port":      port,
+		"connect-timeout": "-256ms",
+	}
+	_, err5 := NewPodMetricsJSONPathGetter(configWithInvalidTimeout)
+	require.Error(t, err5)
 }

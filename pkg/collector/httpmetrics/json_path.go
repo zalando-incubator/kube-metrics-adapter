@@ -26,19 +26,26 @@ func NewJSONPathMetricsGetter(httpClient *http.Client, aggregatorFunc Aggregator
 	return &JSONPathMetricsGetter{client: httpClient, aggregator: aggregatorFunc, jsonPath: compiledPath}
 }
 
-func DefaultMetricsHTTPClient() *http.Client {
+var DefaultRequestTimeout = 15 * time.Second
+var DefaultConnectTimeout = 15 * time.Second
+
+func CustomMetricsHTTPClient(requestTimeout time.Duration, connectTimeout time.Duration) *http.Client {
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{
-				Timeout: 15 * time.Second,
+				Timeout: connectTimeout,
 			}).DialContext,
 			MaxIdleConns:          50,
 			IdleConnTimeout:       90 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
-		Timeout: 15 * time.Second,
+		Timeout: requestTimeout,
 	}
 	return client
+}
+
+func DefaultMetricsHTTPClient() *http.Client {
+	return CustomMetricsHTTPClient(DefaultRequestTimeout, DefaultConnectTimeout)
 }
 
 // GetMetric gets metric from pod by fetching json metrics from the pods metric

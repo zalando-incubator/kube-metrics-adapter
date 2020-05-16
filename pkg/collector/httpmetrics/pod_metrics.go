@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/oliveagle/jsonpath"
 	v1 "k8s.io/api/core/v1"
@@ -72,7 +73,33 @@ func NewPodMetricsJSONPathGetter(config map[string]string) (*PodMetricsJSONPathG
 			return nil, err
 		}
 	}
-	getter.metricGetter = NewJSONPathMetricsGetter(DefaultMetricsHTTPClient(), aggregator, jsonPath)
+
+	requestTimeout := DefaultRequestTimeout
+	connectTimeout := DefaultConnectTimeout
+
+	if v, ok := config["request-timeout"]; ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return nil, err
+		}
+		if d < 0 {
+			return nil, fmt.Errorf("Invalid request-timeout config value: %s", v)
+		}
+		requestTimeout = d
+	}
+
+	if v, ok := config["connect-timeout"]; ok {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return nil, err
+		}
+		if d < 0 {
+			return nil, fmt.Errorf("Invalid connect-timeout config value: %s", v)
+		}
+		connectTimeout = d
+	}
+
+	getter.metricGetter = NewJSONPathMetricsGetter(CustomMetricsHTTPClient(requestTimeout, connectTimeout), aggregator, jsonPath)
 	return &getter, nil
 }
 

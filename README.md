@@ -166,6 +166,14 @@ will create a URL like this:
 http://<podIP>:9090/metrics?foo=bar&baz=bop
 ```
 
+There are also configuration options for custom (connect and request) timeouts when querying pods for metrics:
+```yaml
+metric-config.pods.requests-per-second.json-path/request-timeout: 2s
+metric-config.pods.requests-per-second.json-path/connect-timeout: 500ms
+```
+
+The default for both of the above values is 15 seconds.
+
 ## Prometheus collector
 
 The Prometheus collector is a generic collector which can map Prometheus
