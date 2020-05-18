@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 	"time"
+	"sync"
 
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -55,7 +56,7 @@ func TestPodCollector(t *testing.T) {
 			for _, m := range metrics {
 				values = append(values, m.Custom.Value.Value())
 			}
-			require.Equal(t, tc.result, values)
+			require.ElementsMatch(t, tc.result, values)
 		})
 	}
 }
@@ -68,9 +69,13 @@ type testMetricsHandler struct {
 	calledCounter uint
 	t             *testing.T
 	metricsPath   string
+	sync.RWMutex
 }
 
 func (h *testMetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.Lock()
+	defer h.Unlock()
+
 	require.Equal(h.t, h.metricsPath, r.URL.Path)
 	require.Less(h.t, int(h.calledCounter), len(h.values))
 	response, err := json.Marshal(testMetricResponse{Values: h.values[h.calledCounter]})
