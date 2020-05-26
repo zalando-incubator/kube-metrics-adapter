@@ -125,7 +125,7 @@ func getWeights(ingressAnnotations map[string]string, backendAnnotations []strin
 
 // getCollector returns a collector for getting the metrics.
 func (c *SkipperCollector) getCollector() (Collector, error) {
-	ingress, err := c.client.ExtensionsV1beta1().Ingresses(c.objectReference.Namespace).Get(c.objectReference.Name, metav1.GetOptions{})
+	ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(c.objectReference.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

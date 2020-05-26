@@ -10,7 +10,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	v1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -382,7 +382,7 @@ func makeIngress(client kubernetes.Interface, namespace, ingressName, backend st
 			Host: hostname,
 		})
 	}
-	_, err := client.ExtensionsV1beta1().Ingresses(namespace).Create(ingress)
+	_, err := client.NetworkingV1beta1().Ingresses(namespace).Create(ingress)
 	return err
 }
 

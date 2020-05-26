@@ -69,9 +69,15 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 			Resource: "pods",
 		}
 	case "Ingress":
+		// group can be either `extentions` or `networking.k8s.io`
+		group := "extensions"
+		gv, err := schema.ParseGroupVersion(value.DescribedObject.APIVersion)
+		if err == nil {
+			group = gv.Group
+		}
 		groupResource = schema.GroupResource{
 			Resource: "ingresses",
-			Group:    "extensions",
+			Group:    group,
 		}
 	}
 
