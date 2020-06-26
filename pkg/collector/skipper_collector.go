@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -125,7 +126,7 @@ func getWeights(ingressAnnotations map[string]string, backendAnnotations []strin
 
 // getCollector returns a collector for getting the metrics.
 func (c *SkipperCollector) getCollector() (Collector, error) {
-	ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(c.objectReference.Name, metav1.GetOptions{})
+	ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(context.TODO(), c.objectReference.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -207,13 +208,13 @@ func targetRefReplicas(client kubernetes.Interface, hpa *autoscalingv2.Horizonta
 	var replicas int32
 	switch hpa.Spec.ScaleTargetRef.Kind {
 	case "Deployment":
-		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return 0, err
 		}
 		replicas = deployment.Status.Replicas
 	case "StatefulSet":
-		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return 0, err
 		}

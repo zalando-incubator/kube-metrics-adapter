@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -32,7 +33,7 @@ func TestTargetRefReplicasDeployments(t *testing.T) {
 
 	// Create an HPA with the deployment as ref
 	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(deployment.Namespace).
-		Create(newHPA(defaultNamespace, name, "Deployment"))
+		Create(context.TODO(), newHPA(defaultNamespace, name, "Deployment"), metav1.CreateOptions{})
 	require.NoError(t, err)
 
 	replicas, err := targetRefReplicas(client, hpa)
@@ -49,7 +50,7 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 
 	// Create an HPA with the statefulSet as ref
 	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(statefulSet.Namespace).
-		Create(newHPA(defaultNamespace, name, "StatefulSet"))
+		Create(context.TODO(), newHPA(defaultNamespace, name, "StatefulSet"), metav1.CreateOptions{})
 	require.NoError(t, err)
 
 	replicas, err := targetRefReplicas(client, hpa)
@@ -73,7 +74,7 @@ func newHPA(namesapce string, refName string, refKind string) *autoscalingv2.Hor
 }
 
 func newDeployment(client *fake.Clientset, namespace string, name string, replicas, readyReplicas int32) (*appsv1.Deployment, error) {
-	return client.AppsV1().Deployments(namespace).Create(&appsv1.Deployment{
+	return client.AppsV1().Deployments(namespace).Create(context.TODO(), &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -83,11 +84,11 @@ func newDeployment(client *fake.Clientset, namespace string, name string, replic
 			ReadyReplicas: replicas,
 			Replicas:      readyReplicas,
 		},
-	})
+	}, metav1.CreateOptions{})
 }
 
 func newStatefulSet(client *fake.Clientset, namespace string, name string) (*appsv1.StatefulSet, error) {
-	return client.AppsV1().StatefulSets(namespace).Create(&appsv1.StatefulSet{
+	return client.AppsV1().StatefulSets(namespace).Create(context.TODO(), &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -96,7 +97,7 @@ func newStatefulSet(client *fake.Clientset, namespace string, name string) (*app
 			ReadyReplicas: 1,
 			Replicas:      2,
 		},
-	})
+	}, metav1.CreateOptions{})
 }
 
 func TestSkipperCollector(t *testing.T) {
@@ -382,7 +383,7 @@ func makeIngress(client kubernetes.Interface, namespace, ingressName, backend st
 			Host: hostname,
 		})
 	}
-	_, err := client.NetworkingV1beta1().Ingresses(namespace).Create(ingress)
+	_, err := client.NetworkingV1beta1().Ingresses(namespace).Create(context.TODO(), ingress, metav1.CreateOptions{})
 	return err
 }
 
