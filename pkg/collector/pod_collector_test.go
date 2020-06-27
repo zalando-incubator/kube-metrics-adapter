@@ -1,14 +1,15 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"testing"
 	"time"
-	"sync"
 
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -115,7 +116,7 @@ func makeTestPods(t *testing.T, testServer string, metricName string, port strin
 				PodIP: testServer,
 			},
 		}
-		_, err := client.CoreV1().Pods(testNamespace).Create(testPod)
+		_, err := client.CoreV1().Pods(testNamespace).Create(context.TODO(), testPod, v1.CreateOptions{})
 		require.NoError(t, err)
 	}
 }
@@ -129,7 +130,7 @@ func makeTestDeployment(t *testing.T, client kubernetes.Interface) *appsv1.Deplo
 			},
 		},
 	}
-	_, err := client.AppsV1().Deployments(testNamespace).Create(&deployment)
+	_, err := client.AppsV1().Deployments(testNamespace).Create(context.TODO(), &deployment, v1.CreateOptions{})
 	require.NoError(t, err)
 	return &deployment
 
@@ -149,7 +150,7 @@ func makeTestHPA(t *testing.T, client kubernetes.Interface) *autoscalingv2.Horiz
 			},
 		},
 	}
-	_, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers("test-namespace").Create(hpa)
+	_, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers("test-namespace").Create(context.TODO(), hpa, v1.CreateOptions{})
 	require.NoError(t, err)
 	return hpa
 }

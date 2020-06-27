@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -8,9 +9,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector/httpmetrics"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
@@ -81,7 +82,7 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 		LabelSelector: labels.Set(c.podLabelSelector.MatchLabels).String(),
 	}
 
-	pods, err := c.client.CoreV1().Pods(c.namespace).List(opts)
+	pods, err := c.client.CoreV1().Pods(c.namespace).List(context.TODO(), opts)
 	if err != nil {
 		return nil, err
 	}
@@ -95,9 +96,9 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 	values := make([]CollectedMetric, 0, len(pods.Items))
 	for i := 0; i < len(pods.Items); i++ {
 		select {
-		case err := <- errCh:
+		case err := <-errCh:
 			c.logger.Error(err)
-		case resp := <- ch:
+		case resp := <-ch:
 			values = append(values, resp)
 		}
 	}
@@ -135,13 +136,13 @@ func (c *PodCollector) getPodMetric(pod corev1.Pod, ch chan CollectedMetric, err
 func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (*metav1.LabelSelector, error) {
 	switch hpa.Spec.ScaleTargetRef.Kind {
 	case "Deployment":
-		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
 		return deployment.Spec.Selector, nil
 	case "StatefulSet":
-		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

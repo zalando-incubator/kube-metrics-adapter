@@ -70,7 +70,7 @@ func TestUpdateHPAs(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	var err error
-	hpa, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Create(hpa)
+	hpa, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Create(context.TODO(), hpa, metav1.CreateOptions{})
 	require.NoError(t, err)
 
 	collectorFactory := collector.NewCollectorFactory()
@@ -86,7 +86,7 @@ func TestUpdateHPAs(t *testing.T) {
 
 	// update HPA
 	hpa.Annotations["metric-config.pods.requests-per-second.json-path/port"] = "8080"
-	_, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Update(hpa)
+	_, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Update(context.TODO(), hpa, metav1.UpdateOptions{})
 	require.NoError(t, err)
 
 	err = provider.updateHPAs()
@@ -134,7 +134,7 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	var err error
-	_, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Create(hpa)
+	_, err = fakeClient.AutoscalingV2beta2().HorizontalPodAutoscalers("default").Create(context.TODO(), hpa, metav1.CreateOptions{})
 	require.NoError(t, err)
 
 	collectorFactory := collector.NewCollectorFactory()
