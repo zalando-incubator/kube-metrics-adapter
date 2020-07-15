@@ -112,7 +112,7 @@ func TestSkipperCollector(t *testing.T) {
 		expectError        bool
 		fakedAverage       bool
 		namespace          string
-		backendWeights     map[string]map[string]int
+		backendWeights     map[string]map[string]float64
 		replicas           int32
 		readyReplicas      int32
 		backendAnnotations []string
@@ -138,7 +138,7 @@ func TestSkipperCollector(t *testing.T) {
 			collectedMetric:    1000,
 			namespace:          "default",
 			backend:            "backend1",
-			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 60, "backend1": 40}},
+			backendWeights:     map[string]map[string]float64{testBackendWeightsAnnotation: {"backend2": 60.0, "backend1": 40}},
 			replicas:           1,
 			readyReplicas:      1,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -152,7 +152,7 @@ func TestSkipperCollector(t *testing.T) {
 			collectedMetric:    1000,
 			namespace:          "default",
 			backend:            "backend1",
-			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 60, "backend1": 40}},
+			backendWeights:     map[string]map[string]float64{testBackendWeightsAnnotation: {"backend2": 60, "backend1": 40}},
 			replicas:           1,
 			readyReplicas:      1,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -167,7 +167,7 @@ func TestSkipperCollector(t *testing.T) {
 			fakedAverage:       true,
 			namespace:          "default",
 			backend:            "backend1",
-			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 50, "backend1": 50}},
+			backendWeights:     map[string]map[string]float64{testBackendWeightsAnnotation: {"backend2": 50, "backend1": 50}},
 			replicas:           5,
 			readyReplicas:      5,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -181,7 +181,7 @@ func TestSkipperCollector(t *testing.T) {
 			collectedMetric:    1500,
 			namespace:          "default",
 			backend:            "backend1",
-			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 50, "backend1": 50}},
+			backendWeights:     map[string]map[string]float64{testBackendWeightsAnnotation: {"backend2": 50, "backend1": 50}},
 			replicas:           5, // this is not taken into account
 			readyReplicas:      5,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -195,7 +195,7 @@ func TestSkipperCollector(t *testing.T) {
 			collectedMetric:    0,
 			namespace:          "default",
 			backend:            "backend1",
-			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
+			backendWeights:     map[string]map[string]float64{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
 			replicas:           5,
 			readyReplicas:      5,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -210,7 +210,7 @@ func TestSkipperCollector(t *testing.T) {
 			fakedAverage:    true,
 			namespace:       "default",
 			backend:         "backend1",
-			backendWeights: map[string]map[string]int{
+			backendWeights: map[string]map[string]float64{
 				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
 				testStacksetWeightsAnnotation: {"backend2": 0, "backend1": 100},
 			},
@@ -227,7 +227,7 @@ func TestSkipperCollector(t *testing.T) {
 			collectedMetric: 1500,
 			namespace:       "default",
 			backend:         "backend1",
-			backendWeights: map[string]map[string]int{
+			backendWeights: map[string]map[string]float64{
 				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
 				testStacksetWeightsAnnotation: {"backend2": 0, "backend1": 100},
 			},
@@ -244,7 +244,7 @@ func TestSkipperCollector(t *testing.T) {
 			collectedMetric:    0,
 			namespace:          "default",
 			backend:            "backend3",
-			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
+			backendWeights:     map[string]map[string]float64{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
 			replicas:           1,
 			readyReplicas:      1,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -258,7 +258,7 @@ func TestSkipperCollector(t *testing.T) {
 			collectedMetric:    1500,
 			namespace:          "default",
 			backend:            "backend3",
-			backendWeights:     map[string]map[string]int{},
+			backendWeights:     map[string]map[string]float64{},
 			replicas:           1,
 			readyReplicas:      1,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -272,7 +272,7 @@ func TestSkipperCollector(t *testing.T) {
 			expectError:        true,
 			namespace:          "default",
 			backend:            "",
-			backendWeights:     map[string]map[string]int{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
+			backendWeights:     map[string]map[string]float64{testBackendWeightsAnnotation: {"backend2": 100, "backend1": 0}},
 			replicas:           1,
 			readyReplicas:      1,
 			backendAnnotations: []string{testBackendWeightsAnnotation},
@@ -301,7 +301,7 @@ func TestSkipperCollector(t *testing.T) {
 			fakedAverage:    true,
 			namespace:       "default",
 			backend:         "backend2",
-			backendWeights: map[string]map[string]int{
+			backendWeights: map[string]map[string]float64{
 				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
 				testStacksetWeightsAnnotation: {"backend1": 100},
 			},
@@ -314,12 +314,12 @@ func TestSkipperCollector(t *testing.T) {
 			metric:          1500,
 			ingressName:     "dummy-ingress",
 			hostnames:       []string{"example.org"},
-			expectedQuery:   `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host=~"example_org"}[1m])) * 0.2000)`,
+			expectedQuery:   `scalar(sum(rate(skipper_serve_host_duration_seconds_count{host=~"example_org"}[1m])) * 0.2050)`,
 			collectedMetric: 1500,
 			namespace:       "default",
 			backend:         "backend2",
-			backendWeights: map[string]map[string]int{
-				testBackendWeightsAnnotation:  {"backend2": 20, "backend1": 80},
+			backendWeights: map[string]map[string]float64{
+				testBackendWeightsAnnotation:  {"backend2": 20.5, "backend1": 79.5},
 				testStacksetWeightsAnnotation: {"backend1": 100},
 			},
 			replicas:           5,
@@ -352,7 +352,7 @@ func TestSkipperCollector(t *testing.T) {
 	}
 }
 
-func makeIngress(client kubernetes.Interface, namespace, ingressName, backend string, hostnames []string, backendWeights map[string]map[string]int) error {
+func makeIngress(client kubernetes.Interface, namespace, ingressName, backend string, hostnames []string, backendWeights map[string]map[string]float64) error {
 	annotations := make(map[string]string)
 	for anno, weights := range backendWeights {
 		sWeights, err := json.Marshal(weights)
