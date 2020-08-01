@@ -20,12 +20,12 @@ require (
 	golang.org/x/tools v0.0.0-20200204192400-7124308813f3 // indirect
 	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
-	k8s.io/api v0.18.5
-	k8s.io/apimachinery v0.18.5
-	k8s.io/client-go v0.18.5
+	k8s.io/api v0.18.6
+	k8s.io/apimachinery v0.18.6
+	k8s.io/client-go v0.18.6
 	k8s.io/component-base v0.18.5
 	k8s.io/klog v1.0.0
-	k8s.io/metrics v0.18.5
+	k8s.io/metrics v0.18.6
 )
 
 go 1.13
