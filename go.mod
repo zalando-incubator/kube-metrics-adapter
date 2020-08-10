@@ -2,7 +2,7 @@ module github.com/zalando-incubator/kube-metrics-adapter
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
-	github.com/aws/aws-sdk-go v1.33.5
+	github.com/aws/aws-sdk-go v1.34.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/influxdata/influxdb-client-go v0.1.5
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20200618121405-54026617ec44
@@ -20,12 +20,12 @@ require (
 	golang.org/x/tools v0.0.0-20200204192400-7124308813f3 // indirect
 	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
-	k8s.io/api v0.18.5
-	k8s.io/apimachinery v0.18.5
-	k8s.io/client-go v0.18.5
-	k8s.io/component-base v0.18.5
+	k8s.io/api v0.18.6
+	k8s.io/apimachinery v0.18.6
+	k8s.io/client-go v0.18.6
+	k8s.io/component-base v0.18.6
 	k8s.io/klog v1.0.0
-	k8s.io/metrics v0.18.5
+	k8s.io/metrics v0.18.6
 )
 
 go 1.13
