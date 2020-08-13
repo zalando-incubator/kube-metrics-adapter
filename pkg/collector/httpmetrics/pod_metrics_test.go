@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oliveagle/jsonpath"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,12 +22,11 @@ func TestNewPodJSONPathMetricsGetter(t *testing.T) {
 		"path":     "/metrics",
 		"port":     "9090",
 	}
-	jpath1, _ := jsonpath.Compile(configNoAggregator["json-key"])
 	getterNoAggregator, err1 := NewPodMetricsJSONPathGetter(configNoAggregator)
 
 	require.NoError(t, err1)
 	compareMetricsGetter(t, &PodMetricsJSONPathGetter{
-		metricGetter: &JSONPathMetricsGetter{jsonPath: jpath1},
+		metricGetter: &JSONPathMetricsGetter{jsonPath: configNoAggregator["json-key"]},
 		scheme:       "http",
 		path:         "/metrics",
 		port:         9090,
@@ -41,12 +39,11 @@ func TestNewPodJSONPathMetricsGetter(t *testing.T) {
 		"port":       "9090",
 		"aggregator": "avg",
 	}
-	jpath2, _ := jsonpath.Compile(configAggregator["json-key"])
 	getterAggregator, err2 := NewPodMetricsJSONPathGetter(configAggregator)
 
 	require.NoError(t, err2)
 	compareMetricsGetter(t, &PodMetricsJSONPathGetter{
-		metricGetter: &JSONPathMetricsGetter{jsonPath: jpath2, aggregator: Average},
+		metricGetter: &JSONPathMetricsGetter{jsonPath: configAggregator["json-key"], aggregator: Average},
 		scheme:       "http",
 		path:         "/metrics",
 		port:         9090,
@@ -79,12 +76,11 @@ func TestNewPodJSONPathMetricsGetter(t *testing.T) {
 		"port":      "9090",
 		"raw-query": "foo=bar&baz=bop",
 	}
-	jpath5, _ := jsonpath.Compile(configWithRawQuery["json-key"])
 	getterWithRawQuery, err5 := NewPodMetricsJSONPathGetter(configWithRawQuery)
 
 	require.NoError(t, err5)
 	compareMetricsGetter(t, &PodMetricsJSONPathGetter{
-		metricGetter: &JSONPathMetricsGetter{jsonPath: jpath5},
+		metricGetter: &JSONPathMetricsGetter{jsonPath: configWithRawQuery["json-key"]},
 		scheme:       "http",
 		path:         "/metrics",
 		port:         9090,
@@ -107,8 +103,6 @@ func TestBuildMetricsURL(t *testing.T) {
 		"port":      port,
 		"raw-query": rawQuery,
 	}
-	_, err := jsonpath.Compile(configWithRawQuery["json-key"])
-	require.NoError(t, err)
 	getterWithRawQuery, err1 := NewPodMetricsJSONPathGetter(configWithRawQuery)
 	require.NoError(t, err1)
 
@@ -123,8 +117,6 @@ func TestBuildMetricsURL(t *testing.T) {
 		"path":     path,
 		"port":     port,
 	}
-	_, err2 := jsonpath.Compile(configWithNoQuery["json-key"])
-	require.NoError(t, err2)
 	getterWithNoQuery, err3 := NewPodMetricsJSONPathGetter(configWithNoQuery)
 	require.NoError(t, err3)
 
@@ -140,10 +132,10 @@ func TestCustomTimeouts(t *testing.T) {
 
 	// Test no custom options results in default timeouts
 	defaultConfig := map[string]string{
-		"json-key":  "$.value",
-		"scheme":    scheme,
-		"path":      path,
-		"port":      port,
+		"json-key": "$.value",
+		"scheme":   scheme,
+		"path":     path,
+		"port":     port,
 	}
 	defaultTime := time.Duration(15000) * time.Millisecond
 
@@ -153,10 +145,10 @@ func TestCustomTimeouts(t *testing.T) {
 
 	// Test with custom request timeout
 	configWithRequestTimeout := map[string]string{
-		"json-key":  "$.value",
-		"scheme":    scheme,
-		"path":      path,
-		"port":      port,
+		"json-key":        "$.value",
+		"scheme":          scheme,
+		"path":            path,
+		"port":            port,
 		"request-timeout": "978ms",
 	}
 	exectedTimeout := time.Duration(978) * time.Millisecond
@@ -167,30 +159,30 @@ func TestCustomTimeouts(t *testing.T) {
 	// Test with custom connect timeout. Unfortunately, it seems there's no way to access the
 	// connect timeout of the client struct to actually verify it's set :/
 	configWithConnectTimeout := map[string]string{
-		"json-key":  "$.value",
-		"scheme":    scheme,
-		"path":      path,
-		"port":      port,
+		"json-key":        "$.value",
+		"scheme":          scheme,
+		"path":            path,
+		"port":            port,
 		"connect-timeout": "512ms",
 	}
-	customRequestGetter, err3 := NewPodMetricsJSONPathGetter(configWithConnectTimeout)
+	_, err3 := NewPodMetricsJSONPathGetter(configWithConnectTimeout)
 	require.NoError(t, err3)
 
 	configWithInvalidTimeout := map[string]string{
-		"json-key":  "$.value",
-		"scheme":    scheme,
-		"path":      path,
-		"port":      port,
+		"json-key":        "$.value",
+		"scheme":          scheme,
+		"path":            path,
+		"port":            port,
 		"request-timeout": "-256ms",
 	}
 	_, err4 := NewPodMetricsJSONPathGetter(configWithInvalidTimeout)
 	require.Error(t, err4)
 
 	configWithInvalidTimeout = map[string]string{
-		"json-key":  "$.value",
-		"scheme":    scheme,
-		"path":      path,
-		"port":      port,
+		"json-key":        "$.value",
+		"scheme":          scheme,
+		"path":            path,
+		"port":            port,
 		"connect-timeout": "-256ms",
 	}
 	_, err5 := NewPodMetricsJSONPathGetter(configWithInvalidTimeout)

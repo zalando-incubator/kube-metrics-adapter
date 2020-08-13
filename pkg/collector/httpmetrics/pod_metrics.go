@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/oliveagle/jsonpath"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -33,18 +32,13 @@ func (g PodMetricsJSONPathGetter) GetMetric(pod *v1.Pod) (float64, error) {
 func NewPodMetricsJSONPathGetter(config map[string]string) (*PodMetricsJSONPathGetter, error) {
 	getter := PodMetricsJSONPathGetter{}
 	var (
-		jsonPath   *jsonpath.Compiled
+		jsonPath   string
 		aggregator AggregatorFunc
 		err        error
 	)
 
 	if v, ok := config["json-key"]; ok {
-		path, err := jsonpath.Compile(v)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse json path definition: %v", err)
-		}
-
-		jsonPath = path
+		jsonPath = v
 	}
 
 	if v, ok := config["scheme"]; ok {
@@ -99,7 +93,11 @@ func NewPodMetricsJSONPathGetter(config map[string]string) (*PodMetricsJSONPathG
 		connectTimeout = d
 	}
 
-	getter.metricGetter = NewJSONPathMetricsGetter(CustomMetricsHTTPClient(requestTimeout, connectTimeout), aggregator, jsonPath)
+	jsonPathGetter, err := NewJSONPathMetricsGetter(CustomMetricsHTTPClient(requestTimeout, connectTimeout), aggregator, jsonPath)
+	if err != nil {
+		return nil, err
+	}
+	getter.metricGetter = jsonPathGetter
 	return &getter, nil
 }
 

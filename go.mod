@@ -8,12 +8,12 @@ require (
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20200618121405-54026617ec44
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.10.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.7
+	github.com/spyzhov/ajson v0.4.2
 	github.com/stretchr/testify v1.6.1
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20180921141935-824b77fb1f84
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45

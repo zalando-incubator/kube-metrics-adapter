@@ -1,7 +1,6 @@
 package httpmetrics
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -9,21 +8,26 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/oliveagle/jsonpath"
+	"github.com/spyzhov/ajson"
 )
 
 // JSONPathMetricsGetter is a metrics getter which looks up pod metrics by
 // querying the pods metrics endpoint and lookup the metric value as defined by
 // the json path query.
 type JSONPathMetricsGetter struct {
-	jsonPath   *jsonpath.Compiled
+	jsonPath   string
 	aggregator AggregatorFunc
 	client     *http.Client
 }
 
 // NewJSONPathMetricsGetter initializes a new JSONPathMetricsGetter.
-func NewJSONPathMetricsGetter(httpClient *http.Client, aggregatorFunc AggregatorFunc, compiledPath *jsonpath.Compiled) *JSONPathMetricsGetter {
-	return &JSONPathMetricsGetter{client: httpClient, aggregator: aggregatorFunc, jsonPath: compiledPath}
+func NewJSONPathMetricsGetter(httpClient *http.Client, aggregatorFunc AggregatorFunc, jsonPath string) (*JSONPathMetricsGetter, error) {
+	// check that jsonPath parses
+	_, err := ajson.ParseJSONPath(jsonPath)
+	if err != nil {
+		return nil, err
+	}
+	return &JSONPathMetricsGetter{client: httpClient, aggregator: aggregatorFunc, jsonPath: jsonPath}, nil
 }
 
 var DefaultRequestTimeout = 15 * time.Second
@@ -58,57 +62,45 @@ func (g *JSONPathMetricsGetter) GetMetric(metricsURL url.URL) (float64, error) {
 	}
 
 	// parse data
-	var jsonData interface{}
-	err = json.Unmarshal(data, &jsonData)
+	root, err := ajson.Unmarshal(data)
 	if err != nil {
 		return 0, err
 	}
 
-	res, err := g.jsonPath.Lookup(jsonData)
+	nodes, err := root.JSONPath(g.jsonPath)
 	if err != nil {
 		return 0, err
 	}
 
-	switch res := res.(type) {
-	case int:
-		return float64(res), nil
-	case float32:
-		return float64(res), nil
-	case float64:
-		return res, nil
-	case []interface{}:
+	if len(nodes) > 1 {
+		return 0, fmt.Errorf("unexpected json: expected single numeric or array value")
+	}
+
+	node := nodes[0]
+	if node.IsArray() {
 		if g.aggregator == nil {
 			return 0, fmt.Errorf("no aggregator function has been specified")
 		}
-		s, err := castSlice(res)
-		if err != nil {
-			return 0, err
+		values := make([]float64, 0, len(nodes))
+		items, _ := node.GetArray()
+		for _, item := range items {
+			value, err := item.GetNumeric()
+			if err != nil {
+				return 0, fmt.Errorf("did not find numeric type: %w", err)
+			}
+			values = append(values, value)
 		}
-		return g.aggregator(s...), nil
-	default:
-		return 0, fmt.Errorf("unsupported type %T", res)
-	}
-}
-
-// castSlice takes a slice of interface and returns a slice of float64 if all
-// values in slice were castable, else returns an error
-func castSlice(in []interface{}) ([]float64, error) {
-	var out []float64
-
-	for _, v := range in {
-		switch v := v.(type) {
-		case int:
-			out = append(out, float64(v))
-		case float32:
-			out = append(out, float64(v))
-		case float64:
-			out = append(out, v)
-		default:
-			return nil, fmt.Errorf("slice was returned by JSONPath, but value inside is unsupported: %T", v)
-		}
+		return g.aggregator(values...), nil
+	} else if node.IsNumeric() {
+		res, _ := node.GetNumeric()
+		return res, nil
 	}
 
-	return out, nil
+	value, err := node.Value()
+	if err != nil {
+		return 0, fmt.Errorf("failed to check value of jsonPath result: %w", err)
+	}
+	return 0, fmt.Errorf("unsupported type %T", value)
 }
 
 func (g *JSONPathMetricsGetter) fetchMetrics(metricsURL url.URL) ([]byte, error) {
