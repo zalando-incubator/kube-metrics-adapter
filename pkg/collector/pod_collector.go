@@ -61,7 +61,7 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalP
 	}
 
 	var getter httpmetrics.PodMetricsGetter
-	switch config.CollectorName {
+	switch config.CollectorType {
 	case "json-path":
 		var err error
 		getter, err = httpmetrics.NewPodMetricsJSONPathGetter(config.Config)
@@ -69,7 +69,7 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalP
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("format '%s' not supported", config.CollectorName)
+		return nil, fmt.Errorf("format '%s' not supported", config.CollectorType)
 	}
 
 	c.Getter = getter

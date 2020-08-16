@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	PrometheusMetricName          = "prometheus-query"
+	PrometheusMetricType          = "prometheus"
+	PrometheusMetricNameLegacy    = "prometheus-query"
 	prometheusQueryNameLabelKey   = "query-name"
 	prometheusServerAnnotationKey = "prometheus-server"
 )

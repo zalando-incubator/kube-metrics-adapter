@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	// ZMONCheckMetric defines the metric name for metrics based on ZMON
+	// ZMONMetricType defines the metric type for metrics based on ZMON
 	// checks.
-	ZMONCheckMetric            = "zmon-check"
+	ZMONMetricType             = "zmon"
+	ZMONCheckMetricLegacy      = "zmon-check"
 	zmonCheckIDLabelKey        = "check-id"
 	zmonKeyLabelKey            = "key"
 	zmonDurationLabelKey       = "duration"
@@ -42,12 +43,7 @@ func NewZMONCollectorPlugin(zmon zmon.ZMON) (*ZMONCollectorPlugin, error) {
 
 // NewCollector initializes a new ZMON collector from the specified HPA.
 func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	switch config.Metric.Name {
-	case ZMONCheckMetric:
-		return NewZMONCollector(c.zmon, config, interval)
-	}
-
-	return nil, fmt.Errorf("metric '%s' not supported", config.Metric.Name)
+	return NewZMONCollector(c.zmon, config, interval)
 }
 
 // ZMONCollector defines a collector that is able to collect metrics from ZMON.

@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	HTTPMetricName            = "http"
+	HTTPJSONPathType          = "json-path"
+	HTTPMetricNameLegacy      = "http"
 	HTTPEndpointAnnotationKey = "endpoint"
 	HTTPJsonPathAnnotationKey = "json-key"
 	identifierLabel           = "identifier"

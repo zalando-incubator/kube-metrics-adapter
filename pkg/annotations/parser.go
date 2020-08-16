@@ -15,7 +15,7 @@ const (
 )
 
 type AnnotationConfigs struct {
-	CollectorName string
+	CollectorType string
 	Configs       map[string]string
 	PerReplica    bool
 	Interval      time.Duration
@@ -64,14 +64,14 @@ func (m AnnotationConfigMap) Parse(annotations map[string]string) error {
 		config, ok := m[key]
 		if !ok {
 			config = &AnnotationConfigs{
-				CollectorName: metricCollector,
+				CollectorType: metricCollector,
 				Configs:       map[string]string{},
 			}
 			m[key] = config
 		}
 
 		// TODO: fail if collector name doesn't match
-		if config.CollectorName != metricCollector {
+		if config.CollectorType != metricCollector {
 			continue
 		}
 

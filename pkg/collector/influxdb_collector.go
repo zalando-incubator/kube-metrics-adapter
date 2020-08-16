@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	InfluxDBMetricName        = "flux-query"
+	InfluxDBMetricType        = "influxdb"
+	InfluxDBMetricNameLegacy  = "flux-query"
 	influxDBAddressKey        = "address"
 	influxDBTokenKey          = "token"
 	influxDBOrgKey            = "org"
