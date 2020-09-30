@@ -142,7 +142,7 @@ example the following JSON data would be expected:
 ```
 
 The json-path query support depends on the
-[github.com/oliveagle/jsonpath](https://github.com/oliveagle/jsonpath) library.
+[github.com/spyzhov/ajson](https://github.com/spyzhov/ajson) library.
 See the README for possible queries. It's expected that the metric you query
 returns something that can be turned into a `float64`.
 

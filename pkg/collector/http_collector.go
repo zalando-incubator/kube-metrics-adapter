@@ -7,7 +7,6 @@ import (
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector/httpmetrics"
 
-	"github.com/oliveagle/jsonpath"
 	"k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,14 +35,12 @@ func (p *HTTPCollectorPlugin) NewCollector(_ *v2beta2.HorizontalPodAutoscaler, c
 	if value, ok = config.Config[HTTPJsonPathAnnotationKey]; !ok {
 		return nil, fmt.Errorf("config value %s not found", HTTPJsonPathAnnotationKey)
 	}
-	jsonPath, err := jsonpath.Compile(value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse json path: %v", err)
-	}
-	collector.jsonPath = jsonPath
+	jsonPath := value
+
 	if value, ok = config.Config[HTTPEndpointAnnotationKey]; !ok {
 		return nil, fmt.Errorf("config value %s not found", HTTPEndpointAnnotationKey)
 	}
+	var err error
 	collector.endpoint, err = url.Parse(value)
 	if err != nil {
 		return nil, err
@@ -65,13 +62,16 @@ func (p *HTTPCollectorPlugin) NewCollector(_ *v2beta2.HorizontalPodAutoscaler, c
 			return nil, err
 		}
 	}
-	collector.metricsGetter = httpmetrics.NewJSONPathMetricsGetter(httpmetrics.DefaultMetricsHTTPClient(), aggFunc, jsonPath)
+	jsonPathGetter, err := httpmetrics.NewJSONPathMetricsGetter(httpmetrics.DefaultMetricsHTTPClient(), aggFunc, jsonPath)
+	if err != nil {
+		return nil, err
+	}
+	collector.metricsGetter = jsonPathGetter
 	return collector, nil
 }
 
 type HTTPCollector struct {
 	endpoint      *url.URL
-	jsonPath      *jsonpath.Compiled
 	interval      time.Duration
 	metricType    v2beta2.MetricSourceType
 	metricsGetter *httpmetrics.JSONPathMetricsGetter
