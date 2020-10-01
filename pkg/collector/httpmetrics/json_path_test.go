@@ -1,6 +1,7 @@
 package httpmetrics
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,7 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 		jsonPath     string
 		result       float64
 		aggregator   AggregatorFunc
+		err          error
 	}{
 		{
 			name:         "basic single value",
@@ -49,6 +51,18 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 			result:       5,
 			aggregator:   Average,
 		},
+		{
+			name:         "json path not resulting in array or number should lead to error",
+			jsonResponse: []byte(`{"metric.value":5}`),
+			jsonPath:     "$['invalid.metric.values']",
+			err:          errors.New("unexpected json: expected single numeric or array value"),
+		},
+		{
+			name:         "invalid json should error",
+			jsonResponse: []byte(`{`),
+			jsonPath:     "$['invalid.metric.values']",
+			err:          errors.New("unexpected end of file"),
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := makeTestHTTPServer(t, tc.jsonResponse)
@@ -58,6 +72,11 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 			url, err := url.Parse(fmt.Sprintf("%s/metrics", server.URL))
 			require.NoError(t, err)
 			metric, err := getter.GetMetric(*url)
+			if tc.err != nil {
+				require.Error(t, err)
+				require.Equal(t, tc.err.Error(), err.Error())
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tc.result, metric)
 		})

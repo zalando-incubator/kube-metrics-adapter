@@ -72,7 +72,7 @@ func (g *JSONPathMetricsGetter) GetMetric(metricsURL url.URL) (float64, error) {
 		return 0, err
 	}
 
-	if len(nodes) > 1 {
+	if len(nodes) != 1 {
 		return 0, fmt.Errorf("unexpected json: expected single numeric or array value")
 	}
 
