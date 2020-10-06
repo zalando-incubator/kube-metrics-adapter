@@ -28,4 +28,7 @@ require (
 	k8s.io/metrics v0.18.8
 )
 
+// use version that provides: https://github.com/kubernetes-sigs/custom-metrics-apiserver/pull/65
+replace github.com/kubernetes-incubator/custom-metrics-apiserver => github.com/mikkeloscar/custom-metrics-apiserver v0.0.0-20200626202535-cd2d550cf55d
+
 go 1.13

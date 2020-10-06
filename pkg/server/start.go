@@ -126,6 +126,8 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		return err
 	}
 
+	config.GenericConfig.OpenAPIConfig.Info.Title = "kube-metrics-adapter"
+
 	var clientConfig *rest.Config
 	if len(o.RemoteKubeConfigFile) > 0 {
 		loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: o.RemoteKubeConfigFile}
