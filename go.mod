@@ -5,7 +5,7 @@ require (
 	github.com/aws/aws-sdk-go v1.35.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/influxdata/influxdb-client-go v0.1.5
-	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20200618121405-54026617ec44
+	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20201023074945-51cc7b53320e
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
@@ -27,8 +27,5 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/metrics v0.18.8
 )
-
-// use version that provides: https://github.com/kubernetes-sigs/custom-metrics-apiserver/pull/65
-replace github.com/kubernetes-incubator/custom-metrics-apiserver => github.com/mikkeloscar/custom-metrics-apiserver v0.0.0-20200626202535-cd2d550cf55d
 
 go 1.13
