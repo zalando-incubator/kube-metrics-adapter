@@ -202,6 +202,16 @@ the trade-offs between the two approaches.
 | `prometheus-query` | Generic metric which requires a user defined query. | External | | `>=1.12` |
 | *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* | `>=1.12` |
 
+### Configure Scrape Interval
+
+There is a way to set the interval via an annotation like:
+
+```yaml
+metric-config.external.prometheus-query.prometheus/interval: 30s
+```
+
+Default is 1 minute.
+
 ### Example: External Metric
 
 This is an example of an HPA configured to get metrics based on a Prometheus
