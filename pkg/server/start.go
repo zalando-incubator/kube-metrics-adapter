@@ -25,14 +25,18 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/apiserver"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/zalando-incubator/cluster-lifecycle-manager/pkg/credentials-loader/platformiam"
+	generatedopenapi "github.com/zalando-incubator/kube-metrics-adapter/pkg/api/generated/openapi"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
 	"golang.org/x/oauth2"
+	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -126,7 +130,9 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		return err
 	}
 
+	config.GenericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(apiserver.Scheme))
 	config.GenericConfig.OpenAPIConfig.Info.Title = "kube-metrics-adapter"
+	config.GenericConfig.OpenAPIConfig.Info.Version = "1.0.0"
 
 	var clientConfig *rest.Config
 	if len(o.RemoteKubeConfigFile) > 0 {
