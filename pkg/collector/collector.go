@@ -156,7 +156,9 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 			if typ, ok := config.Metric.Selector.MatchLabels[typeLabelKey]; ok {
 				pluginKey = typ
 			}
-		} else {
+		}
+
+		if pluginKey == "" {
 			pluginKey = config.Metric.Name
 			c.logger.Warnf("HPA %s/%s is using deprecated metric type identifier '%s'", hpa.Namespace, hpa.Name, config.Metric.Name)
 		}
