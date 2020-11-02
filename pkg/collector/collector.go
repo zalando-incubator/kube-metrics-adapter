@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/annotations"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
@@ -23,6 +24,7 @@ type CollectorFactory struct {
 	podsPlugins     pluginMap
 	objectPlugins   objectPluginMap
 	externalPlugins map[string]CollectorPlugin
+	logger          *log.Entry
 }
 
 type objectPluginMap struct {
@@ -43,6 +45,7 @@ func NewCollectorFactory() *CollectorFactory {
 			Named: map[string]*pluginMap{},
 		},
 		externalPlugins: map[string]CollectorPlugin{},
+		logger:          log.WithFields(log.Fields{"collector": "true"}),
 	}
 }
 
@@ -155,6 +158,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 			}
 		} else {
 			pluginKey = config.Metric.Name
+			c.logger.Warnf("HPA %s/%s is using deprecated metric type identifier '%s'", hpa.Namespace, hpa.Name, config.Metric.Name)
 		}
 
 		if plugin, ok := c.externalPlugins[pluginKey]; ok {
