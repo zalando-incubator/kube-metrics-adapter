@@ -26,7 +26,7 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 
 	config := &MetricConfig{
 		MetricTypeName: MetricTypeName{
-			Metric: newMetricIdentifier(ZMONCheckMetric),
+			Metric: newMetricIdentifier("foo-check", ZMONMetricType),
 		},
 		Config: map[string]string{
 			zmonCheckIDLabelKey:             "1234",
@@ -50,28 +50,26 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 	require.Equal(t, []string{"max"}, zmonCollector.aggregators)
 	require.Equal(t, map[string]string{"alias": "cluster_alias"}, zmonCollector.tags)
 
-	// should fail if the metric name isn't ZMON
-	config.Metric = newMetricIdentifier("non-zmon-check")
-	_, err = collectPlugin.NewCollector(nil, config, 1*time.Second)
-	require.Error(t, err)
-
 	// should fail if the check id is not specified.
 	delete(config.Config, zmonCheckIDLabelKey)
-	config.Metric.Name = ZMONCheckMetric
+	config.Metric.Name = "foo-check"
 	_, err = collectPlugin.NewCollector(nil, config, 1*time.Second)
 	require.Error(t, err)
 }
 
-func newMetricIdentifier(metricName string) autoscalingv2.MetricIdentifier {
-	selector := metav1.LabelSelector{}
+func newMetricIdentifier(metricName, metricType string) autoscalingv2.MetricIdentifier {
+	selector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"type": metricType,
+		},
+	}
 	return autoscalingv2.MetricIdentifier{Name: metricName, Selector: &selector}
 }
 
 func TestZMONCollectorGetMetrics(tt *testing.T) {
-
 	config := &MetricConfig{
 		MetricTypeName: MetricTypeName{
-			Metric: newMetricIdentifier(ZMONCheckMetric),
+			Metric: newMetricIdentifier("foo-check", ZMONMetricType),
 			Type:   "foo",
 		},
 		Config: map[string]string{

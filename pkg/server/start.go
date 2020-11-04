@@ -174,7 +174,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to register prometheus object collector plugin: %v", err)
 		}
 
-		collectorFactory.RegisterExternalCollector([]string{collector.PrometheusMetricName}, promPlugin)
+		collectorFactory.RegisterExternalCollector([]string{collector.PrometheusMetricType, collector.PrometheusMetricNameLegacy}, promPlugin)
 
 		// skipper collector can only be enabled if prometheus is.
 		if o.SkipperIngressMetrics {
@@ -195,11 +195,11 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		if err != nil {
 			return fmt.Errorf("failed to initialize InfluxDB collector plugin: %v", err)
 		}
-		collectorFactory.RegisterExternalCollector([]string{collector.InfluxDBMetricName}, influxdbPlugin)
+		collectorFactory.RegisterExternalCollector([]string{collector.InfluxDBMetricType, collector.InfluxDBMetricNameLegacy}, influxdbPlugin)
 	}
 
 	plugin, _ := collector.NewHTTPCollectorPlugin()
-	collectorFactory.RegisterExternalCollector([]string{collector.HTTPMetricName}, plugin)
+	collectorFactory.RegisterExternalCollector([]string{collector.HTTPJSONPathType, collector.HTTPMetricNameLegacy}, plugin)
 	// register generic pod collector
 	err = collectorFactory.RegisterPodsCollector("", collector.NewPodCollectorPlugin(client))
 	if err != nil {
@@ -224,7 +224,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to initialize ZMON collector plugin: %v", err)
 		}
 
-		collectorFactory.RegisterExternalCollector([]string{collector.ZMONCheckMetric}, zmonPlugin)
+		collectorFactory.RegisterExternalCollector([]string{collector.ZMONMetricType, collector.ZMONCheckMetricLegacy}, zmonPlugin)
 	}
 
 	awsSessions := make(map[string]*session.Session, len(o.AWSRegions))

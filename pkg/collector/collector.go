@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/annotations"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+)
+
+const (
+	typeLabelKey = "type"
 )
 
 type ObjectReference struct {
@@ -19,6 +24,7 @@ type CollectorFactory struct {
 	podsPlugins     pluginMap
 	objectPlugins   objectPluginMap
 	externalPlugins map[string]CollectorPlugin
+	logger          *log.Entry
 }
 
 type objectPluginMap struct {
@@ -39,6 +45,7 @@ func NewCollectorFactory() *CollectorFactory {
 			Named: map[string]*pluginMap{},
 		},
 		externalPlugins: map[string]CollectorPlugin{},
+		logger:          log.WithFields(log.Fields{"collector": "true"}),
 	}
 }
 
@@ -112,7 +119,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 	switch config.Type {
 	case autoscalingv2.PodsMetricSourceType:
 		// first try to find a plugin by format
-		if plugin, ok := c.podsPlugins.Named[config.CollectorName]; ok {
+		if plugin, ok := c.podsPlugins.Named[config.CollectorType]; ok {
 			return plugin.NewCollector(hpa, config, interval)
 		}
 
@@ -123,7 +130,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 	case autoscalingv2.ObjectMetricSourceType:
 		// first try to find a plugin by kind
 		if kinds, ok := c.objectPlugins.Named[config.ObjectReference.Kind]; ok {
-			if plugin, ok := kinds.Named[config.CollectorName]; ok {
+			if plugin, ok := kinds.Named[config.CollectorType]; ok {
 				return plugin.NewCollector(hpa, config, interval)
 			}
 
@@ -134,7 +141,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 		}
 
 		// else try to find a default plugin for this kind
-		if plugin, ok := c.objectPlugins.Any.Named[config.CollectorName]; ok {
+		if plugin, ok := c.objectPlugins.Any.Named[config.CollectorType]; ok {
 			return plugin.NewCollector(hpa, config, interval)
 		}
 
@@ -142,7 +149,21 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 			return c.objectPlugins.Any.Any.NewCollector(hpa, config, interval)
 		}
 	case autoscalingv2.ExternalMetricSourceType:
-		if plugin, ok := c.externalPlugins[config.Metric.Name]; ok {
+		// First type to get metric type from the `type` label,
+		// otherwise fall back to the legacy metric name based mapping.
+		var pluginKey string
+		if config.Metric.Selector != nil && config.Metric.Selector.MatchLabels != nil {
+			if typ, ok := config.Metric.Selector.MatchLabels[typeLabelKey]; ok {
+				pluginKey = typ
+			}
+		}
+
+		if pluginKey == "" {
+			pluginKey = config.Metric.Name
+			c.logger.Warnf("HPA %s/%s is using deprecated metric type identifier '%s'", hpa.Namespace, hpa.Name, config.Metric.Name)
+		}
+
+		if plugin, ok := c.externalPlugins[pluginKey]; ok {
 			return plugin.NewCollector(hpa, config, interval)
 		}
 	}
@@ -168,7 +189,7 @@ type Collector interface {
 
 type MetricConfig struct {
 	MetricTypeName
-	CollectorName   string
+	CollectorType   string
 	Config          map[string]string
 	ObjectReference custom_metrics.ObjectReference
 	PerReplica      bool
@@ -228,7 +249,7 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 
 		annotationConfigs, present := parser.GetAnnotationConfig(typeName.Metric.Name, typeName.Type)
 		if present {
-			config.CollectorName = annotationConfigs.CollectorName
+			config.CollectorType = annotationConfigs.CollectorType
 			config.Interval = annotationConfigs.Interval
 			config.PerReplica = annotationConfigs.PerReplica
 			// configs specified in annotations takes precedence

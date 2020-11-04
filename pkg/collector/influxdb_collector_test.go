@@ -24,7 +24,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 					},
 				},
 			},
-			CollectorName: "influxdb",
+			CollectorType: "influxdb",
 			Config: map[string]string{
 				"range1m":    `from(bucket: "?") |> range(start: -1m)`,
 				"range2m":    `from(bucket: "?") |> range(start: -2m)`,
@@ -62,7 +62,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 					},
 				},
 			},
-			CollectorName: "influxdb",
+			CollectorType: "influxdb",
 			Config: map[string]string{
 				"range1m":    `from(bucket: "?") |> range(start: -1m)`,
 				"range2m":    `from(bucket: "?") |> range(start: -2m)`,
@@ -140,7 +140,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 		t.Run("error - "+tc.name, func(t *testing.T) {
 			m := &MetricConfig{
 				MetricTypeName: tc.mTypeName,
-				CollectorName:  "influxdb",
+				CollectorType:  "influxdb",
 				Config:         tc.config,
 			}
 			_, err := NewInfluxDBCollector("http://localhost:9999", "secret", "deadbeef", m, time.Second)

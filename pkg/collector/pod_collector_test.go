@@ -97,7 +97,7 @@ func makeTestHTTPServer(t *testing.T, values [][]int64) (string, string, *testMe
 
 func makeTestConfig(port string) *MetricConfig {
 	return &MetricConfig{
-		CollectorName: "json-path",
+		CollectorType: "json-path",
 		Config:        map[string]string{"json-key": "$.values", "port": port, "path": "/metrics", "aggregator": "sum"},
 	}
 }

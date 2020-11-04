@@ -22,7 +22,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
-    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.pods.requests-per-second.json-path/json-key: "$.http_server.rps"
     metric-config.pods.requests-per-second.json-path/path: /metrics
     metric-config.pods.requests-per-second.json-path/port: "9090"
@@ -104,7 +104,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
-    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.pods.requests-per-second.json-path/json-key: "$.http_server.rps"
     metric-config.pods.requests-per-second.json-path/path: /metrics
     metric-config.pods.requests-per-second.json-path/port: "9090"
@@ -216,11 +216,10 @@ Default is 1 minute.
 
 This is an example of an HPA configured to get metrics based on a Prometheus
 query. The query is defined in the annotation
-`metric-config.external.prometheus-query.prometheus/processed-events-per-second`
+`metric-config.external.processed-events-per-second.prometheus/query`
 where `processed-events-per-second` is the query name which will be associated
-with the result of the query. A matching `query-name` label must be defined in
-the `matchLabels` of the metric definition. This allows having multiple
-prometheus queries associated with a single HPA.
+with the result of the query.
+This allows having multiple prometheus queries associated with a single HPA.
 
 ```yaml
 apiVersion: autoscaling/v2beta2
@@ -231,10 +230,9 @@ metadata:
     # This annotation is optional.
     # If specified, then this prometheus server is used,
     # instead of the prometheus server specified as the CLI argument `--prometheus-server`.
-    metric-config.external.prometheus-query.prometheus/prometheus-server: http://prometheus.my-namespace.svc
-    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
-    # <configKey> == query-name
-    metric-config.external.prometheus-query.prometheus/processed-events-per-second: |
+    metric-config.external.processed-events-per-second.prometheus/prometheus-server: http://prometheus.my-namespace.svc
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
+    metric-config.external.processed-events-per-second.prometheus/query: |
       scalar(sum(rate(event-service_events_count{application="event-service",processed="true"}[1m])))
 spec:
   scaleTargetRef:
@@ -247,10 +245,10 @@ spec:
   - type: External
     external:
       metric:
-        name: prometheus-query
+        name: processed-events-per-second
         selector:
           matchLabels:
-            query-name: processed-events-per-second
+            type: prometheus
       target:
         type: AverageValue
         averageValue: "10"
@@ -281,7 +279,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
-    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.object.processed-events-per-second.prometheus/query: |
       scalar(sum(rate(event-service_events_count{application="event-service",processed="true"}[1m])))
     metric-config.object.processed-events-per-second.prometheus/per-replica: "true"
@@ -382,10 +380,9 @@ we only support Flux instead of InfluxQL.
 
 This is an example of an HPA configured to get metrics based on a Flux query.
 The query is defined in the annotation
-`metric-config.external.flux-query.influxdb/queue_depth`
-where `queue_depth` is the query name which will be associated with the result of the query.
-A matching `query-name` label must be defined in the `matchLabels` of the metric definition.
-This allows having multiple flux queries associated with a single HPA.
+`metric-config.external.<metricName>.influxdb/query` where `<metricName>` is
+the query name which will be associated with the result of the query.  This
+allows having multiple flux queries associated with a single HPA.
 
 ```yaml
 apiVersion: autoscaling/v2beta2
@@ -399,13 +396,13 @@ metadata:
     #  - --influxdb-address
     #  - --influxdb-token
     #  - --influxdb-org
-    metric-config.external.flux-query.influxdb/address: "http://influxdbv2.my-namespace.svc"
-    metric-config.external.flux-query.influxdb/token: "secret-token"
+    metric-config.external.queue-depth.influxdb/address: "http://influxdbv2.my-namespace.svc"
+    metric-config.external.queue-depth.influxdb/token: "secret-token"
     # This could be either the organization name or the ID.
-    metric-config.external.flux-query.influxdb/org: "deadbeef"
-    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+    metric-config.external.queue-depth.influxdb/org: "deadbeef"
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     # <configKey> == query-name
-    metric-config.external.flux-query.influxdb/queue_depth: |
+    metric-config.external.queue-depth.influxdb/query: |
         from(bucket: "apps")
           |> range(start: -30s)
           |> filter(fn: (r) => r._measurement == "queue_depth")
@@ -425,10 +422,10 @@ spec:
   - type: External
     external:
       metric:
-        name: flux-query
+        name: queue-depth
         selector:
           matchLabels:
-            query-name: queue_depth
+            type: influxdb
       target:
         type: Value
         value: "1"
@@ -490,9 +487,10 @@ spec:
   - type: External
     external:
       metric:
-        name: sqs-queue-length
+        name: my-sqs
         selector:
           matchLabels:
+            type: sqs-queue-length
             queue-name: foobar
             region: eu-central-1
       target:
@@ -531,9 +529,9 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
-    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
-    metric-config.external.zmon-check.zmon/key: "custom.*"
-    metric-config.external.zmon-check.zmon/tag-application: "my-custom-app-*"
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
+    metric-config.external.my-zmon-check.zmon/key: "custom.*"
+    metric-config.external.my-zmon-check.zmon/tag-application: "my-custom-app-*"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -545,9 +543,10 @@ spec:
   - type: External
     external:
       metric:
-          name: zmon-check
+          name: my-zmon-check
           selector:
             matchLabels:
+              type: zmon
               check-id: "1234" # the ZMON check to query for metrics
               key: "custom.value"
               tag-application: my-custom-app
@@ -597,8 +596,8 @@ specify a duration of `5m` then the query will return metric points for the
 last 5 minutes and apply the specified aggregation with the same duration .e.g
 `max(5m)`.
 
-The annotations `metric-config.external.zmon-check.zmon/key` and
-`metric-config.external.zmon-check.zmon/tag-<name>` can be optionally used if
+The annotations `metric-config.external.my-zmon-check.zmon/key` and
+`metric-config.external.my-zmon-check.zmon/tag-<name>` can be optionally used if
 you need to define a `key` or other `tag` with a "star" query syntax like
 `values.*`. This *hack* is in place because it's not allowed to use `*` in the
 metric label definitions. If both annotations and corresponding label is
@@ -626,10 +625,10 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
-    # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
-    metric-config.external.http.json/json-key: "$.some-metric.value"
-    metric-config.external.http.json/endpoint: "http://metric-source.app-namespace:8080/metrics"
-    metric-config.external.http.json/aggregator: "max"
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
+    metric-config.external.unique-metric-name.json-path/json-key: "$.some-metric.value"
+    metric-config.external.unique-metric-name.json-path/endpoint: "http://metric-source.app-namespace:8080/metrics"
+    metric-config.external.unique-metric-name.json-path/aggregator: "max"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -641,10 +640,10 @@ spec:
   - type: External
     external:
       metric:
-        name: http
+        name: unique-metric-name
         selector:
           matchLabels:
-            identifier: unique-metric-name
+            type: json-path
       target:
         averageValue: 1
         type: AverageValue
@@ -659,4 +658,3 @@ target. The following configuration values are supported:
     in the namespace `app-namespace` is called.
 - `aggregator` is only required if the metric is an array of values and specifies how the values
     are aggregated. Currently this option can support the values: `sum`, `max`, `min`, `avg`.
-
