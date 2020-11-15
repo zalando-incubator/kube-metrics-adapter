@@ -1,0 +1,8 @@
+kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+resources:
+  - docs/custom-metrics-apiservice.yaml
+  - docs/deployment.yaml
+  - docs/external-metrics-apiservice.yaml
+  - docs/rbac.yaml
+  - docs/service.yaml
