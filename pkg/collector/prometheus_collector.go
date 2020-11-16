@@ -97,16 +97,22 @@ func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa
 			return nil, fmt.Errorf("selector for prometheus query is not specified")
 		}
 
-		queryName, ok := config.Config[prometheusQueryNameLabelKey]
-		if !ok {
-			return nil, fmt.Errorf("query name not specified on metric")
-		}
-
-		if v, ok := config.Config[queryName]; ok {
+		if v, ok := config.Config["query"]; ok {
 			// TODO: validate query
 			c.query = v
 		} else {
-			return nil, fmt.Errorf("no prometheus query defined for metric")
+			// support legacy behavior of mapping query name to metric
+			queryName, ok := config.Config[prometheusQueryNameLabelKey]
+			if !ok {
+				return nil, fmt.Errorf("query or query name not specified on metric")
+			}
+
+			if v, ok := config.Config[queryName]; ok {
+				// TODO: validate query
+				c.query = v
+			} else {
+				return nil, fmt.Errorf("no prometheus query defined for metric")
+			}
 		}
 
 		// Use custom Prometheus URL if defined in HPA annotation.
