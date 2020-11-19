@@ -229,7 +229,11 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 
 	awsSessions := make(map[string]*session.Session, len(o.AWSRegions))
 	for _, region := range o.AWSRegions {
-		awsSessions[region], err = session.NewSession(&aws.Config{Region: aws.String(region)})
+		awsSessions[region], err = session.NewSessionWithOptions(session.Options{
+			Config: aws.Config{
+				Region: aws.String(region),
+			},
+		})
 		if err != nil {
 			return fmt.Errorf("unabled to create aws session for region: %s", region)
 		}
