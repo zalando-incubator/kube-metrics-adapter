@@ -3,12 +3,11 @@ module github.com/zalando-incubator/kube-metrics-adapter
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
 	github.com/aws/aws-sdk-go v1.35.19
-	github.com/go-openapi/spec v0.19.12
+	github.com/go-openapi/spec v0.19.15
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/influxdata/influxdb-client-go v0.1.5
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20201023074945-51cc7b53320e
 	github.com/lib/pq v1.2.0 // indirect
-	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.8.0
@@ -18,9 +17,7 @@ require (
 	github.com/spyzhov/ajson v0.4.2
 	github.com/stretchr/testify v1.6.1
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20180921141935-824b77fb1f84
-	golang.org/x/net v0.0.0-20201031054903-ff519b6c9102 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/text v0.3.4 // indirect
 	golang.org/x/tools v0.0.0-20200204192400-7124308813f3 // indirect
 	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
