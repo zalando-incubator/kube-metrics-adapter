@@ -5,7 +5,7 @@ require (
 	github.com/aws/aws-sdk-go v1.35.19
 	github.com/go-openapi/spec v0.19.12
 	github.com/googleapis/gnostic v0.2.0 // indirect
-	github.com/influxdata/influxdb-client-go v0.1.5
+	github.com/influxdata/influxdb-client-go v0.2.0
 	github.com/kubernetes-incubator/custom-metrics-apiserver v0.0.0-20201023074945-51cc7b53320e
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
