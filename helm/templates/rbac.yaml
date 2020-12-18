@@ -1,13 +1,7 @@
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: custom-metrics-apiserver
-  namespace: kube-system
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: custom-metrics-server-resources
+  name: kube-metrics-adapter-server-resources
 rules:
 - apiGroups:
   - custom.metrics.k8s.io
@@ -27,7 +21,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: custom-metrics-resource-reader
+  name: kube-metrics-adapter-resource-reader
 rules:
 - apiGroups:
   - ""
@@ -35,6 +29,7 @@ rules:
   - namespaces
   - pods
   - services
+  - configmaps
   verbs:
   - get
   - list
@@ -42,7 +37,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: custom-metrics-resource-collector
+  name: kube-metrics-adapter-resource-collector
 rules:
 - apiGroups:
   - ""
@@ -86,11 +81,11 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: custom-metrics-server-resources
+  name: kube-metrics-adapter-server-resources
 subjects:
 - kind: ServiceAccount
   name: horizontal-pod-autoscaler
-  namespace: kube-system
+  namespace: {{ .Values.namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -103,12 +98,12 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: horizontal-pod-autoscaler
-  namespace: kube-system
+  namespace: {{ .Values.namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: custom-metrics-auth-reader
+  name: kube-metrics-adapter-auth-reader
   namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -116,8 +111,8 @@ roleRef:
   name: extension-apiserver-authentication-reader
 subjects:
 - kind: ServiceAccount
-  name: custom-metrics-apiserver
-  namespace: kube-system
+  name: kube-metrics-adapter
+  namespace: {{ .Values.namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -129,18 +124,31 @@ roleRef:
   name: system:auth-delegator
 subjects:
 - kind: ServiceAccount
-  name: custom-metrics-apiserver
-  namespace: kube-system
+  name: kube-metrics-adapter
+  namespace: {{ .Values.namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: custom-metrics-resource-collector
+  name: kube-metrics-adapter-resource-collector
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: custom-metrics-resource-collector
+  name: kube-metrics-adapter-resource-collector
 subjects:
 - kind: ServiceAccount
-  name: custom-metrics-apiserver
-  namespace: kube-system
+  name: kube-metrics-adapter
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-metrics-adapter-resource-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-metrics-adapter-resource-reader
+subjects:
+- kind: ServiceAccount
+  name: kube-metrics-adapter
+  namespace: {{ .Values.namespace }}
