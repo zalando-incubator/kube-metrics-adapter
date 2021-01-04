@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kube-metrics-adapter
+version: 0.1.9
+description: kube-metrics-adapter helm chart
+home: https://github.com/zalando-incubator/kube-metrics-adapter
+maintainers:
+  - name: The Zalando Incubator
+    email: opensource@zalando.de
+    url: https://github.com/zalando-incubator

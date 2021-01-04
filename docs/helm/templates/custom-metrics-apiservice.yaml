@@ -1,0 +1,15 @@
+{{- if .Values.enableCustomMetricsApi }}
+apiVersion: apiregistration.k8s.io/v1beta1
+kind: APIService
+metadata:
+  name: v1beta1.custom.metrics.k8s.io
+spec:
+  service:
+    name: kube-metrics-adapter
+    namespace: {{ .Values.namespace }}
+  group: custom.metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: {{ .Values.tls.skipTLSVerify }}
+  groupPriorityMinimum: 100
+  versionPriority: 100
+{{- end}}

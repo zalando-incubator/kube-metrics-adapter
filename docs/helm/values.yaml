@@ -1,0 +1,94 @@
+namespace: kube-system
+
+replicas: 1
+
+registry:
+  image: registry.opensource.zalan.do/teapot/kube-metrics-adapter
+  imageTag: v0.1.9
+  imagePullPolicy: IfNotPresent
+
+service:
+  port: 443
+  internalPort: 443
+
+addDirectoryHeader:
+contentionProfiling:
+profiling:
+enableCustomMetricsApi:
+enableExternalMetricsApi:
+credentialsDirectory:
+disregardIncompatibleHPAs:
+http2MaxStreamsPerConnection:
+listerKubeConfig:
+skipperBackendsAnnotation:
+skipperIngressMetrics:
+token:
+vmodule:
+
+authentication:
+  kubeConfig:
+  skipLookup:
+  tokenWebhookCacheTtl:
+  tolerateLookupFailure:
+
+authorization:
+  kubeConfig:
+  alwaysAllowPaths:
+  webhookCache:
+    authorizedTtl:
+    unauthorizedTtl:
+
+aws:
+  externalMetrics:
+  region:
+
+influxDB:
+  address:
+  organization:
+  token:
+
+log:
+  alsoToStderr:
+  toStderr:
+  flushFrequency:
+  backtraceAtTraceLocation:
+  directory:
+  file:
+  fileMaxSize:
+  level:
+  stderrThreshold:
+  skipHeaders:
+  skipLogHeaders:
+
+prometheus:
+  server: http://prometheus.kube-system.svc.cluster.local
+  metricsAddress:
+
+requestHeader:
+  allowedNames:
+  clientCaFile:
+  extraHeadersPrefix:
+  groupHeaders:
+  usernameHeaders:
+
+tls:
+  skipTLSVerify: true
+  certificateDirectory:
+  clientCaFile:
+  certFile:
+  cipherSuites:
+  minVersion:
+  privateKeyFile:
+  sniCertKey:
+
+zmon:
+  kariosdbEndpoint:
+  tokenName:
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 100Mi
+  requests:
+    cpu: 100m
+    memory: 100Mi
