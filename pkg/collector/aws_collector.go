@@ -33,12 +33,7 @@ func NewAWSCollectorPlugin(sessions map[string]*session.Session) *AWSCollectorPl
 
 // NewCollector initializes a new skipper collector from the specified HPA.
 func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	switch config.Metric.Name {
-	case AWSSQSQueueLengthMetric:
-		return NewAWSSQSCollector(c.sessions, config, interval)
-	}
-
-	return nil, fmt.Errorf("metric '%s' not supported", config.Metric.Name)
+	return NewAWSSQSCollector(c.sessions, config, interval)
 }
 
 type AWSSQSCollector struct {
