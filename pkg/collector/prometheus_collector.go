@@ -174,7 +174,8 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 	switch c.metricType {
 	case autoscalingv2.ObjectMetricSourceType:
 		metricValue = CollectedMetric{
-			Type: c.metricType,
+			Namespace: c.hpa.Namespace,
+			Type:      c.metricType,
 			Custom: custom_metrics.MetricValue{
 				DescribedObject: c.objectReference,
 				Metric:          custom_metrics.MetricIdentifier{Name: c.metric.Name, Selector: c.metric.Selector},
@@ -184,7 +185,8 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 		}
 	case autoscalingv2.ExternalMetricSourceType:
 		metricValue = CollectedMetric{
-			Type: c.metricType,
+			Namespace: c.hpa.Namespace,
+			Type:      c.metricType,
 			External: external_metrics.ExternalMetricValue{
 				MetricName:   c.metric.Name,
 				MetricLabels: c.metric.Selector.MatchLabels,

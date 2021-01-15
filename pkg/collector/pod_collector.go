@@ -118,7 +118,8 @@ func (c *PodCollector) getPodMetric(pod corev1.Pod, ch chan CollectedMetric, err
 	}
 
 	ch <- CollectedMetric{
-		Type: c.metricType,
+		Namespace: c.namespace,
+		Type:      c.metricType,
 		Custom: custom_metrics.MetricValue{
 			DescribedObject: custom_metrics.ObjectReference{
 				APIVersion: "v1",

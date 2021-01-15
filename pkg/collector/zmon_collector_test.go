@@ -96,7 +96,8 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 			},
 			collectedMetrics: []CollectedMetric{
 				{
-					Type: config.Type,
+					Namespace: "default",
+					Type:      config.Type,
 					External: external_metrics.ExternalMetricValue{
 						MetricName:   config.Metric.Name,
 						MetricLabels: config.Metric.Selector.MatchLabels,
@@ -115,7 +116,13 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 				dataPoints: ti.dataPoints,
 			}
 
-			zmonCollector, err := NewZMONCollector(z, config, 1*time.Second)
+			hpa := &autoscalingv2.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+			}
+
+			zmonCollector, err := NewZMONCollector(z, hpa, config, 1*time.Second)
 			require.NoError(t, err)
 
 			metrics, _ := zmonCollector.GetMetrics()

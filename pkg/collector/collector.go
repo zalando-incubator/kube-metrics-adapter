@@ -177,9 +177,10 @@ type MetricTypeName struct {
 }
 
 type CollectedMetric struct {
-	Type     autoscalingv2.MetricSourceType
-	Custom   custom_metrics.MetricValue
-	External external_metrics.ExternalMetricValue
+	Type      autoscalingv2.MetricSourceType
+	Namespace string
+	Custom    custom_metrics.MetricValue
+	External  external_metrics.ExternalMetricValue
 }
 
 type Collector interface {
