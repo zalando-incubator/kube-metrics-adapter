@@ -20,7 +20,15 @@ pipeline:
     cmd: |
       if [[ $CDP_TARGET_BRANCH == master && ! $CDP_PULL_REQUEST_NUMBER ]]; then
         IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter
-        VERSION=$(git describe --tags --always)
+        LATEST_VERSION=$(git describe --tags --always | awk -F \- '{print $1}')
+        CUR_PART=$(echo $LATEST_VERSION | awk -F . '{print $1"."$2}')
+        VERSION_PART=$(cat VERSION)
+        OLD_PATCH=$(echo $LATEST_VERSION | awk -F . '{print $3}')
+        NEW_PATCH=$((OLD_PATCH + 1))
+        if [ "$CUR_PART" != "$VERSION_PART" ]; then NEW_PATCH=0; fi
+        VERSION=${VERSION_PART}.${NEW_PATCH}
+        echo "Creating release for tag: ${VERSION}"
+
       else
         IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter-test
         VERSION=$CDP_BUILD_VERSION
@@ -28,3 +36,18 @@ pipeline:
       IMAGE=$IMAGE VERSION=$VERSION make build.docker
       git diff --stat --exit-code
       IMAGE=$IMAGE VERSION=$VERSION make build.push
+      if [[ $CDP_TARGET_BRANCH == master && ! $CDP_PULL_REQUEST_NUMBER ]]; then
+        echo "create release page"
+        tf=$(mktemp)
+        echo -e "### Changes\n" >$tf
+        git log -1 --pretty=%B | grep -v 'Signed-off-by:' | grep -v -E '^\s*$' | grep -vE '^\*' >>$tf
+        echo -e "\n### Docker image\n" >>$tf
+        echo -e "Docker image is available in Zalando's Open Source registry:\n" >>$tf
+        echo -e '```' >>$tf
+        echo -e "docker run -it registry.opensource.zalan.do/teapot/kube-metrics-adapter:${VERSION} --help" >>$tf
+        echo -e '```' >>$tf
+        echo "################################"
+        cat $tf
+        echo "################################"
+        git gh-release --message-from-file "${tf}" $VERSION
+      fi
