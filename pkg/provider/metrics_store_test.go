@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"

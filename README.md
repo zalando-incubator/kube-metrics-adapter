@@ -10,7 +10,7 @@ It supports scaling based on [Prometheus metrics](https://prometheus.io/), [SQS 
 
 It discovers Horizontal Pod Autoscaling resources and starts to collect the
 requested metrics and stores them in memory. It's implemented using the
-[custom-metrics-apiserver](https://github.com/kubernetes-incubator/custom-metrics-apiserver)
+[custom-metrics-apiserver](https://github.com/kubernetes-sigs/custom-metrics-apiserver)
 library.
 
 Here's an example of a `HorizontalPodAutoscaler` resource configured to get
