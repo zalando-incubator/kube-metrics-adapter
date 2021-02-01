@@ -25,8 +25,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/apiserver"
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/apiserver"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/zalando-incubator/cluster-lifecycle-manager/pkg/credentials-loader/platformiam"
