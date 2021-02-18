@@ -19,7 +19,7 @@ clean:
 	rm -rf $(OPENAPI)
 
 test:
-	go test -v $(GOPKGS)
+	go test -v -coverprofile=profile.cov $(GOPKGS)
 
 check:
 	go mod download

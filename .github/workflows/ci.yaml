@@ -1,0 +1,25 @@
+name: ci
+on: [push, pull_request]
+env:
+  GO111MODULE: on
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '^1.16'
+    - run: go version
+    - run: go get github.com/mattn/goveralls
+      env:
+        GO111MODULE: off
+    - run: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_RELEASE}
+      env:
+        GOLANGCI_RELEASE: v1.37.0
+    - run: make build.docker
+    - run: make test
+    - run: make check
+    - run: goveralls -coverprofile=profile.cov -service=github
+      env:
+        COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
