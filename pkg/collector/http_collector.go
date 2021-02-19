@@ -27,8 +27,10 @@ func NewHTTPCollectorPlugin() (*HTTPCollectorPlugin, error) {
 	return &HTTPCollectorPlugin{}, nil
 }
 
-func (p *HTTPCollectorPlugin) NewCollector(_ *v2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	collector := &HTTPCollector{}
+func (p *HTTPCollectorPlugin) NewCollector(hpa *v2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	collector := &HTTPCollector{
+		namespace: hpa.Namespace,
+	}
 	var (
 		value string
 		ok    bool
@@ -74,6 +76,7 @@ func (p *HTTPCollectorPlugin) NewCollector(_ *v2beta2.HorizontalPodAutoscaler, c
 type HTTPCollector struct {
 	endpoint      *url.URL
 	interval      time.Duration
+	namespace     string
 	metricType    v2beta2.MetricSourceType
 	metricsGetter *httpmetrics.JSONPathMetricsGetter
 	metric        v2beta2.MetricIdentifier
@@ -86,7 +89,8 @@ func (c *HTTPCollector) GetMetrics() ([]CollectedMetric, error) {
 	}
 
 	value := CollectedMetric{
-		Type: c.metricType,
+		Namespace: c.namespace,
+		Type:      c.metricType,
 		External: external_metrics.ExternalMetricValue{
 			MetricName:   c.metric.Name,
 			MetricLabels: c.metric.Selector.MatchLabels,

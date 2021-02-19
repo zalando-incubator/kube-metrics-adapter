@@ -33,7 +33,7 @@ func NewAWSCollectorPlugin(sessions map[string]*session.Session) *AWSCollectorPl
 
 // NewCollector initializes a new skipper collector from the specified HPA.
 func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewAWSSQSCollector(c.sessions, config, interval)
+	return NewAWSSQSCollector(c.sessions, hpa, config, interval)
 }
 
 type AWSSQSCollector struct {
@@ -42,11 +42,12 @@ type AWSSQSCollector struct {
 	region     string
 	queueURL   string
 	queueName  string
+	namespace  string
 	metric     autoscalingv2.MetricIdentifier
 	metricType autoscalingv2.MetricSourceType
 }
 
-func NewAWSSQSCollector(sessions map[string]*session.Session, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
+func NewAWSSQSCollector(sessions map[string]*session.Session, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
 	if config.Metric.Selector == nil {
 		return nil, fmt.Errorf("selector for queue is not specified")
 	}
@@ -80,6 +81,7 @@ func NewAWSSQSCollector(sessions map[string]*session.Session, config *MetricConf
 		interval:   interval,
 		queueURL:   aws.StringValue(resp.QueueUrl),
 		queueName:  name,
+		namespace:  hpa.Namespace,
 		metric:     config.Metric,
 		metricType: config.Type,
 	}, nil
@@ -103,7 +105,8 @@ func (c *AWSSQSCollector) GetMetrics() ([]CollectedMetric, error) {
 		}
 
 		metricValue := CollectedMetric{
-			Type: c.metricType,
+			Namespace: c.namespace,
+			Type:      c.metricType,
 			External: external_metrics.ExternalMetricValue{
 				MetricName:   c.metric.Name,
 				MetricLabels: c.metric.Selector.MatchLabels,

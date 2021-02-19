@@ -40,7 +40,7 @@ func NewInfluxDBCollectorPlugin(client kubernetes.Interface, address, token, org
 }
 
 func (p *InfluxDBCollectorPlugin) NewCollector(hpa *v2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewInfluxDBCollector(p.address, p.token, p.org, config, interval)
+	return NewInfluxDBCollector(hpa, p.address, p.token, p.org, config, interval)
 }
 
 type InfluxDBCollector struct {
@@ -53,13 +53,15 @@ type InfluxDBCollector struct {
 	metric         autoscalingv2.MetricIdentifier
 	metricType     autoscalingv2.MetricSourceType
 	query          string
+	namespace      string
 }
 
-func NewInfluxDBCollector(address string, token string, org string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
+func NewInfluxDBCollector(hpa *v2beta2.HorizontalPodAutoscaler, address string, token string, org string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
 	collector := &InfluxDBCollector{
 		interval:   interval,
 		metric:     config.Metric,
 		metricType: config.Type,
+		namespace:  hpa.Namespace,
 	}
 	switch configType := config.Type; configType {
 	case autoscalingv2.ObjectMetricSourceType:
@@ -135,7 +137,8 @@ func (c *InfluxDBCollector) GetMetrics() ([]CollectedMetric, error) {
 		return nil, err
 	}
 	cm := CollectedMetric{
-		Type: c.metricType,
+		Namespace: c.namespace,
+		Type:      c.metricType,
 		External: external_metrics.ExternalMetricValue{
 			MetricName:   c.metric.Name,
 			MetricLabels: c.metric.Selector.MatchLabels,

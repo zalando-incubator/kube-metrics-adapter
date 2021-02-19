@@ -129,6 +129,7 @@ func (p *HPAProvider) updateHPAs() error {
 	newHPAs := 0
 
 	for _, hpa := range hpas.Items {
+		hpa := *hpa.DeepCopy()
 		resourceRef := resourceReference{
 			Name:      hpa.Name,
 			Namespace: hpa.Namespace,
@@ -246,7 +247,8 @@ func (p *HPAProvider) collectMetrics(ctx context.Context) {
 						value.Custom.DescribedObject.Name,
 					)
 				case autoscalingv2.ExternalMetricSourceType:
-					p.logger.Infof("Collected new external metric '%s' (%s) [%s]",
+					p.logger.Infof("Collected new external metric '%s/%s' (%s) [%s]",
+						value.Namespace,
 						value.External.MetricName,
 						value.External.Value.String(),
 						labels.Set(value.External.MetricLabels).String(),

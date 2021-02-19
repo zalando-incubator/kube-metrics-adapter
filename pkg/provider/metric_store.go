@@ -31,8 +31,10 @@ type externalMetricsStoredMetric struct {
 
 // MetricStore is a simple in-memory Metrics Store for HPA metrics.
 type MetricStore struct {
-	customMetricsStore   map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric
-	externalMetricsStore map[string]map[string]externalMetricsStoredMetric
+	// metricName -> referencedResource -> objectNamespace -> objectName -> metric
+	customMetricsStore map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric
+	// namespace -> metricName -> labels -> metric
+	externalMetricsStore map[string]map[string]map[string]externalMetricsStoredMetric
 	metricsTTLCalculator func() time.Time
 	sync.RWMutex
 }
@@ -41,7 +43,7 @@ type MetricStore struct {
 func NewMetricStore(ttlCalculator func() time.Time) *MetricStore {
 	return &MetricStore{
 		customMetricsStore:   make(map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric, 0),
-		externalMetricsStore: make(map[string]map[string]externalMetricsStoredMetric, 0),
+		externalMetricsStore: make(map[string]map[string]map[string]externalMetricsStoredMetric, 0),
 		metricsTTLCalculator: ttlCalculator,
 	}
 }
@@ -52,7 +54,7 @@ func (s *MetricStore) Insert(value collector.CollectedMetric) {
 	case autoscalingv2.ObjectMetricSourceType, autoscalingv2.PodsMetricSourceType:
 		s.insertCustomMetric(value.Custom)
 	case autoscalingv2.ExternalMetricSourceType:
-		s.insertExternalMetric(value.External)
+		s.insertExternalMetric(value.Namespace, value.External)
 	}
 }
 
@@ -120,7 +122,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 }
 
 // insertExternalMetric inserts an external metric into the store.
-func (s *MetricStore) insertExternalMetric(metric external_metrics.ExternalMetricValue) {
+func (s *MetricStore) insertExternalMetric(namespace string, metric external_metrics.ExternalMetricValue) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -131,11 +133,19 @@ func (s *MetricStore) insertExternalMetric(metric external_metrics.ExternalMetri
 
 	labelsKey := hashLabelMap(metric.MetricLabels)
 
-	if metrics, ok := s.externalMetricsStore[metric.MetricName]; ok {
-		metrics[labelsKey] = storedMetric
+	if metrics, ok := s.externalMetricsStore[namespace]; ok {
+		if labels, ok := metrics[metric.MetricName]; ok {
+			labels[labelsKey] = storedMetric
+		} else {
+			metrics[metric.MetricName] = map[string]externalMetricsStoredMetric{
+				labelsKey: storedMetric,
+			}
+		}
 	} else {
-		s.externalMetricsStore[metric.MetricName] = map[string]externalMetricsStoredMetric{
-			labelsKey: storedMetric,
+		s.externalMetricsStore[namespace] = map[string]map[string]externalMetricsStoredMetric{
+			metric.MetricName: {
+				labelsKey: storedMetric,
+			},
 		}
 	}
 }
@@ -250,10 +260,12 @@ func (s *MetricStore) GetExternalMetric(namespace string, selector labels.Select
 	s.RLock()
 	defer s.RUnlock()
 
-	if metrics, ok := s.externalMetricsStore[info.Metric]; ok {
-		for _, metric := range metrics {
-			if selector.Matches(labels.Set(metric.Value.MetricLabels)) {
-				matchedMetrics = append(matchedMetrics, metric.Value)
+	if metrics, ok := s.externalMetricsStore[namespace]; ok {
+		if selectors, ok := metrics[info.Metric]; ok {
+			for _, sel := range selectors {
+				if selector.Matches(labels.Set(sel.Value.MetricLabels)) {
+					matchedMetrics = append(matchedMetrics, sel.Value)
+				}
 			}
 		}
 	}
@@ -268,11 +280,13 @@ func (s *MetricStore) ListAllExternalMetrics() []provider.ExternalMetricInfo {
 
 	metricsInfo := make([]provider.ExternalMetricInfo, 0, len(s.externalMetricsStore))
 
-	for metricName := range s.externalMetricsStore {
-		info := provider.ExternalMetricInfo{
-			Metric: metricName,
+	for _, metrics := range s.externalMetricsStore {
+		for metricName := range metrics {
+			info := provider.ExternalMetricInfo{
+				Metric: metricName,
+			}
+			metricsInfo = append(metricsInfo, info)
 		}
-		metricsInfo = append(metricsInfo, info)
 	}
 	return metricsInfo
 }
@@ -306,14 +320,19 @@ func (s *MetricStore) RemoveExpired() {
 	}
 
 	// cleanup external metrics
-	for metricName, metrics := range s.externalMetricsStore {
-		for k, metric := range metrics {
-			if metric.TTL.Before(time.Now().UTC()) {
-				delete(metrics, k)
+	for namespace, metrics := range s.externalMetricsStore {
+		for metricName, selectors := range metrics {
+			for k, metric := range selectors {
+				if metric.TTL.Before(time.Now().UTC()) {
+					delete(selectors, k)
+				}
+			}
+			if len(selectors) == 0 {
+				delete(metrics, metricName)
 			}
 		}
 		if len(metrics) == 0 {
-			delete(s.externalMetricsStore, metricName)
+			delete(s.externalMetricsStore, namespace)
 		}
 	}
 }

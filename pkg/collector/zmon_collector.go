@@ -43,7 +43,7 @@ func NewZMONCollectorPlugin(zmon zmon.ZMON) (*ZMONCollectorPlugin, error) {
 
 // NewCollector initializes a new ZMON collector from the specified HPA.
 func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewZMONCollector(c.zmon, config, interval)
+	return NewZMONCollector(c.zmon, hpa, config, interval)
 }
 
 // ZMONCollector defines a collector that is able to collect metrics from ZMON.
@@ -57,10 +57,11 @@ type ZMONCollector struct {
 	aggregators []string
 	metric      autoscalingv2.MetricIdentifier
 	metricType  autoscalingv2.MetricSourceType
+	namespace   string
 }
 
 // NewZMONCollector initializes a new ZMONCollector.
-func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Duration) (*ZMONCollector, error) {
+func NewZMONCollector(zmon zmon.ZMON, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*ZMONCollector, error) {
 	if config.Metric.Selector == nil {
 		return nil, fmt.Errorf("selector for zmon-check is not specified")
 	}
@@ -117,6 +118,7 @@ func NewZMONCollector(zmon zmon.ZMON, config *MetricConfig, interval time.Durati
 		aggregators: aggregators,
 		metric:      config.Metric,
 		metricType:  config.Type,
+		namespace:   hpa.Namespace,
 	}, nil
 }
 
@@ -136,7 +138,8 @@ func (c *ZMONCollector) GetMetrics() ([]CollectedMetric, error) {
 	point := dataPoints[len(dataPoints)-1]
 
 	metricValue := CollectedMetric{
-		Type: c.metricType,
+		Namespace: c.namespace,
+		Type:      c.metricType,
 		External: external_metrics.ExternalMetricValue{
 			MetricName:   c.metric.Name,
 			MetricLabels: c.metric.Selector.MatchLabels,

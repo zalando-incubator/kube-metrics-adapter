@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -60,7 +62,12 @@ func TestHTTPCollector(t *testing.T) {
 			plugin, err := NewHTTPCollectorPlugin()
 			require.NoError(t, err)
 			testConfig := makeTestHTTPCollectorConfig(testServer, tc.aggregator)
-			collector, err := plugin.NewCollector(nil, testConfig, testInterval)
+			hpa := &autoscalingv2.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+			}
+			collector, err := plugin.NewCollector(hpa, testConfig, testInterval)
 			require.NoError(t, err)
 			metrics, err := collector.GetMetrics()
 			require.NoError(t, err)

@@ -26,10 +26,11 @@ func newMetricIdentifier(metricName string) custom_metrics.MetricIdentifier {
 }
 func TestInternalMetricStorage(t *testing.T) {
 	var metricStoreTests = []struct {
-		test   string
-		insert collector.CollectedMetric
-		list   []provider.CustomMetricInfo
-		byName struct {
+		test          string
+		insert        collector.CollectedMetric
+		list          []provider.CustomMetricInfo
+		expectedFound bool
+		byName        struct {
 			name types.NamespacedName
 			info provider.CustomMetricInfo
 		}
@@ -54,6 +55,7 @@ func TestInternalMetricStorage(t *testing.T) {
 					},
 				},
 			},
+			expectedFound: true,
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{},
@@ -101,6 +103,7 @@ func TestInternalMetricStorage(t *testing.T) {
 					},
 				},
 			},
+			expectedFound: true,
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
@@ -156,6 +159,7 @@ func TestInternalMetricStorage(t *testing.T) {
 					},
 				},
 			},
+			expectedFound: true,
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{},
@@ -202,6 +206,7 @@ func TestInternalMetricStorage(t *testing.T) {
 					},
 				},
 			},
+			expectedFound: true,
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
@@ -243,6 +248,63 @@ func TestInternalMetricStorage(t *testing.T) {
 				},
 			},
 		},
+		{
+			test: "get an Ingress metric from wrong namespace",
+			insert: collector.CollectedMetric{
+				Type: autoscalingv2.MetricSourceType("Object"),
+				Custom: custom_metrics.MetricValue{
+					Metric: newMetricIdentifier("metric-per-unit"),
+					Value:  *resource.NewQuantity(0, ""),
+					DescribedObject: custom_metrics.ObjectReference{
+						Name:       "metricObject",
+						Namespace:  "right",
+						Kind:       "Ingress",
+						APIVersion: "extensions/v1beta1",
+					},
+				},
+			},
+			expectedFound: false,
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{
+						Group:    "extensions",
+						Resource: "ingresses",
+					},
+					Namespaced: true,
+					Metric:     "metric-per-unit",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject", Namespace: "wrong"},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "extensions",
+						Resource: "ingresses",
+					},
+					Namespaced: true,
+					Metric:     "metric-per-unit",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "wrong",
+				selector:  labels.Everything(),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "extensions",
+						Resource: "ingresses",
+					},
+					Namespaced: true,
+					Metric:     "metric-per-unit",
+				},
+			},
+		},
 	}
 
 	for _, tc := range metricStoreTests {
@@ -261,14 +323,14 @@ func TestInternalMetricStorage(t *testing.T) {
 			// Get the metric by name
 			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info)
 
-			if tc.insert.Custom != (custom_metrics.MetricValue{}) {
+			if tc.expectedFound {
 				require.Equal(t, tc.insert.Custom, *metric)
 				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
 				require.Equal(t, tc.insert.Custom, metrics.Items[0])
 			} else {
 				require.Nil(t, metric)
 				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
-				require.Nil(t, metrics)
+				require.Len(t, metrics.Items, 0)
 			}
 
 		})
@@ -707,11 +769,39 @@ func TestExternalMetricStorage(t *testing.T) {
 				namespace string
 				selector  labels.Selector
 				info      provider.ExternalMetricInfo
-			}{namespace: "",
-				selector: labels.Everything(),
+			}{
+				namespace: "",
+				selector:  labels.Everything(),
 				info: provider.ExternalMetricInfo{
 					Metric: "metric-per-unit",
-				}},
+				},
+			},
+		},
+		{
+			test: "insert/list/get an external metric with namespace",
+			insert: collector.CollectedMetric{
+				Namespace: "foo",
+				Type:      autoscalingv2.MetricSourceType("External"),
+				External: external_metrics.ExternalMetricValue{
+					MetricName:   "metric-per-unit",
+					Value:        *resource.NewQuantity(0, ""),
+					MetricLabels: map[string]string{"application": "some-app"},
+				},
+			},
+			list: provider.ExternalMetricInfo{
+				Metric: "metric-per-unit",
+			},
+			get: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.ExternalMetricInfo
+			}{
+				namespace: "foo",
+				selector:  labels.Everything(),
+				info: provider.ExternalMetricInfo{
+					Metric: "metric-per-unit",
+				},
+			},
 		},
 	}
 
@@ -740,10 +830,11 @@ func TestExternalMetricStorage(t *testing.T) {
 
 func TestMultipleExternalMetricStorage(t *testing.T) {
 	var metricStoreTests = []struct {
-		test   string
-		insert []collector.CollectedMetric
-		list   provider.ExternalMetricInfo
-		get    struct {
+		test        string
+		insert      []collector.CollectedMetric
+		expectedIdx int
+		list        []provider.ExternalMetricInfo
+		get         struct {
 			namespace string
 			selector  labels.Selector
 			info      provider.ExternalMetricInfo
@@ -769,18 +860,117 @@ func TestMultipleExternalMetricStorage(t *testing.T) {
 					},
 				},
 			},
-			list: provider.ExternalMetricInfo{
-				Metric: "metric-per-unit",
+			expectedIdx: 1,
+			list: []provider.ExternalMetricInfo{
+				{
+					Metric: "metric-per-unit",
+				},
 			},
 			get: struct {
 				namespace string
 				selector  labels.Selector
 				info      provider.ExternalMetricInfo
-			}{namespace: "",
-				selector: labels.Everything(),
+			}{
+				namespace: "",
+				selector:  labels.Everything(),
 				info: provider.ExternalMetricInfo{
 					Metric: "metric-per-unit",
-				}},
+				},
+			},
+		},
+		{
+			test: "external metrics are namespaced",
+			insert: []collector.CollectedMetric{
+				{
+					Namespace: "one",
+					Type:      autoscalingv2.MetricSourceType("External"),
+					External: external_metrics.ExternalMetricValue{
+						MetricName:   "metric-per-unit",
+						Value:        *resource.NewQuantity(0, ""),
+						MetricLabels: map[string]string{"application": "some-app"},
+					},
+				},
+				{
+					Namespace: "two",
+					Type:      autoscalingv2.MetricSourceType("External"),
+					External: external_metrics.ExternalMetricValue{
+						MetricName:   "metric-per-unit",
+						Value:        *resource.NewQuantity(1, ""),
+						MetricLabels: map[string]string{"application": "some-app"},
+					},
+				},
+			},
+			expectedIdx: 1,
+			list: []provider.ExternalMetricInfo{
+				{
+					Metric: "metric-per-unit",
+				},
+				{
+					Metric: "metric-per-unit",
+				},
+			},
+			get: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.ExternalMetricInfo
+			}{
+				namespace: "two",
+				selector:  labels.Everything(),
+				info: provider.ExternalMetricInfo{
+					Metric: "metric-per-unit",
+				},
+			},
+		},
+		{
+			test: "external metrics looked up by labels",
+			insert: []collector.CollectedMetric{
+				{
+					Type: autoscalingv2.MetricSourceType("External"),
+					External: external_metrics.ExternalMetricValue{
+						MetricName:   "metric-per-unit",
+						Value:        *resource.NewQuantity(0, ""),
+						MetricLabels: map[string]string{"application": "some-app-one"},
+					},
+				},
+				{
+					Type: autoscalingv2.MetricSourceType("External"),
+					External: external_metrics.ExternalMetricValue{
+						MetricName:   "metric-per-unit",
+						Value:        *resource.NewQuantity(1, ""),
+						MetricLabels: map[string]string{"application": "some-app-two"},
+					},
+				},
+				{
+					Type: autoscalingv2.MetricSourceType("External"),
+					External: external_metrics.ExternalMetricValue{
+						MetricName:   "metric-per-unit-x",
+						Value:        *resource.NewQuantity(1, ""),
+						MetricLabels: map[string]string{"application": "some-app-two"},
+					},
+				},
+			},
+			expectedIdx: 0,
+			list: []provider.ExternalMetricInfo{
+				{
+					Metric: "metric-per-unit",
+				},
+				{
+					Metric: "metric-per-unit-x",
+				},
+			},
+			get: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.ExternalMetricInfo
+			}{
+				namespace: "",
+				selector: labels.Set(map[string]string{
+					"application": "some-app-one",
+				}).AsSelector(),
+				info: provider.ExternalMetricInfo{
+					Metric: "metric-per-unit",
+				},
+			},
 		},
 	}
 
@@ -799,12 +989,12 @@ func TestMultipleExternalMetricStorage(t *testing.T) {
 			// Get the metric by name
 			metrics, err := metricsStore.GetExternalMetric(tc.get.namespace, tc.get.selector, tc.get.info)
 			require.NoError(t, err)
-			require.NotContains(t, metrics.Items, tc.insert[0].External)
-			require.Contains(t, metrics.Items, tc.insert[1].External)
+			require.Len(t, metrics.Items, 1)
+			require.Contains(t, metrics.Items, tc.insert[tc.expectedIdx].External)
 
 			// List a metric with value
 			metricInfos := metricsStore.ListAllExternalMetrics()
-			require.Equal(t, tc.list, metricInfos[0])
+			require.EqualValues(t, tc.list, metricInfos)
 		})
 	}
 
