@@ -20,8 +20,8 @@ require (
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.20.0
-	k8s.io/apimachinery v0.20.0
+	k8s.io/api v0.20.4
+	k8s.io/apimachinery v0.20.4
 	k8s.io/apiserver v0.20.0
 	k8s.io/client-go v0.20.0
 	k8s.io/component-base v0.20.0
