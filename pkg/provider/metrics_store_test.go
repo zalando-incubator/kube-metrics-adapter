@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -994,6 +995,10 @@ func TestMultipleExternalMetricStorage(t *testing.T) {
 
 			// List a metric with value
 			metricInfos := metricsStore.ListAllExternalMetrics()
+			// sort list for stable comparison
+			sort.Slice(metricInfos, func(i, j int) bool {
+				return metricInfos[i].Metric < metricInfos[j].Metric
+			})
 			require.EqualValues(t, tc.list, metricInfos)
 		})
 	}
