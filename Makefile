@@ -10,6 +10,10 @@ GOPKGS        = $(shell go list ./...)
 BUILD_FLAGS   ?= -v
 OPENAPI       ?= pkg/api/generated/openapi/zz_generated.openapi.go
 LDFLAGS       ?= -X main.version=$(VERSION) -w -s
+CRD_SOURCES    = $(shell find pkg/apis/zalando.org -name '*.go')
+CRD_TYPE_SOURCE = pkg/apis/zalando.org/v1/types.go
+GENERATED_CRDS = docs/scaling_schedules_crd.yaml
+GENERATED      = pkg/apis/zalando.org/v1/zz_generated.deepcopy.go
 
 
 default: build.local
@@ -18,13 +22,21 @@ clean:
 	rm -rf build
 	rm -rf $(OPENAPI)
 
-test:
+test: $(GENERATED)
 	go test -v -coverprofile=profile.cov $(GOPKGS)
 
-check:
+check: $(GENERATED)
 	go mod download
 	golangci-lint run --timeout=2m ./...
 
+
+$(GENERATED): go.mod $(CRD_TYPE_SOURCE)
+	./hack/update-codegen.sh
+
+$(GENERATED_CRDS): $(GENERATED) $(CRD_SOURCES)
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd:crdVersions=v1 paths=./pkg/apis/... output:crd:dir=docs || /bin/true || true
+	mv docs/zalando.org_clusterscalingschedules.yaml docs/cluster_scaling_schedules_crd.yaml
+	mv docs/zalando.org_scalingschedules.yaml docs/scaling_schedules_crd.yaml
 
 $(OPENAPI): go.mod
 	go run k8s.io/kube-openapi/cmd/openapi-gen \

@@ -9,13 +9,10 @@ require (
 	github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20201216091021-1b9fa998bbaa
 	github.com/magefile/mage v1.11.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/mattn/go-isatty v0.0.10 // indirect
-	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.18.0
 	github.com/sirupsen/logrus v1.8.0
-	github.com/spf13/cobra v0.0.7
+	github.com/spf13/cobra v1.1.1
 	github.com/spyzhov/ajson v0.4.2
 	github.com/stretchr/testify v1.7.0
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20180921141935-824b77fb1f84
@@ -28,10 +25,12 @@ require (
 	k8s.io/apimachinery v0.20.4
 	k8s.io/apiserver v0.20.4
 	k8s.io/client-go v0.20.4
+	k8s.io/code-generator v0.20.4
 	k8s.io/component-base v0.20.4
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
 	k8s.io/metrics v0.20.4
+	sigs.k8s.io/controller-tools v0.5.0
 )
 
 go 1.16
