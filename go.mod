@@ -7,11 +7,10 @@ require (
 	github.com/influxdata/influxdb-client-go v0.2.0
 	github.com/influxdata/line-protocol v0.0.0-20201012155213-5f565037cbc9 // indirect
 	github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20201216091021-1b9fa998bbaa
-	github.com/magefile/mage v1.11.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.18.0
-	github.com/sirupsen/logrus v1.8.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spyzhov/ajson v0.4.2
 	github.com/stretchr/testify v1.7.0
