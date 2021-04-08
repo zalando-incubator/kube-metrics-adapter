@@ -161,7 +161,7 @@ func (p *HPAProvider) updateHPAs() error {
 				c, err := p.collectorFactory.NewCollector(&hpa, config, interval)
 				if err != nil {
 
-          // Only log when it's not a PluginNotFoundError AND flag disregardIncompatibleHPAs is true
+					// Only log when it's not a PluginNotFoundError AND flag disregardIncompatibleHPAs is true
 					var pluginNotFoundError *collector.PluginNotFoundError
 
 					if !(errors.As(err, &pluginNotFoundError) && p.disregardIncompatibleHPAs) {
