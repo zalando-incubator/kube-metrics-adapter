@@ -30,7 +30,7 @@ check: $(GENERATED)
 	golangci-lint run --timeout=2m ./...
 
 
-$(GENERATED): go.mod $(CRD_TYPE_SOURCE)
+$(GENERATED): go.mod $(CRD_TYPE_SOURCE) $(OPENAPI)
 	./hack/update-codegen.sh
 
 $(GENERATED_CRDS): $(GENERATED) $(CRD_SOURCES)
@@ -48,17 +48,17 @@ $(OPENAPI): go.mod
 		-O zz_generated.openapi \
 		-r /dev/null
 
-build.local: build/$(BINARY)
+build.local: build/$(BINARY) $(GENERATED_CRDS)
 build.linux: build/linux/$(BINARY)
 build.osx: build/osx/$(BINARY)
 
-build/$(BINARY): go.mod $(SOURCES) $(OPENAPI)
+build/$(BINARY): go.mod $(SOURCES) $(GENERATED)
 	CGO_ENABLED=0 go build -o build/$(BINARY) $(BUILD_FLAGS) -ldflags "$(LDFLAGS)" .
 
-build/linux/$(BINARY): go.mod $(SOURCES) $(OPENAPI)
+build/linux/$(BINARY): go.mod $(SOURCES) $(GENERATED)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/linux/$(BINARY) -ldflags "$(LDFLAGS)" .
 
-build/osx/$(BINARY): go.mod $(SOURCES) $(OPENAPI)
+build/osx/$(BINARY): go.mod $(SOURCES) $(GENERATED)
 	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/osx/$(BINARY) -ldflags "$(LDFLAGS)" .
 
 build.docker: build.linux
