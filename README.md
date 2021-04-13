@@ -110,6 +110,7 @@ metadata:
     metric-config.pods.requests-per-second.json-path/port: "9090"
     metric-config.pods.requests-per-second.json-path/scheme: "https"
     metric-config.pods.requests-per-second.json-path/aggregator: "max"
+    metric-config.pods.requests-per-second.json-path/interval: "60s" # optional
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -202,16 +203,6 @@ the trade-offs between the two approaches.
 | `prometheus-query` | Generic metric which requires a user defined query. | External | | `>=1.12` |
 | *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* | `>=1.12` |
 
-### Configure Scrape Interval
-
-There is a way to set the interval via an annotation like:
-
-```yaml
-metric-config.external.prometheus-query.prometheus/interval: 30s
-```
-
-Default is 1 minute.
-
 ### Example: External Metric
 
 This is an example of an HPA configured to get metrics based on a Prometheus
@@ -234,6 +225,7 @@ metadata:
     # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.external.processed-events-per-second.prometheus/query: |
       scalar(sum(rate(event-service_events_count{application="event-service",processed="true"}[1m])))
+    metric-config.external.processed-events-per-second.prometheus/interval: "60s" # optional
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -411,6 +403,7 @@ metadata:
           // Rename "_value" to "metricvalue" for letting the metrics server properly unmarshal the result.
           |> rename(columns: {_value: "metricvalue"})
           |> keep(columns: ["metricvalue"])
+    metric-config.external.queue-depth.influxdb/interval: "60s" # optional
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -532,6 +525,7 @@ metadata:
     # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.external.my-zmon-check.zmon/key: "custom.*"
     metric-config.external.my-zmon-check.zmon/tag-application: "my-custom-app-*"
+    metric-config.external.my-zmon-check.zmon/interval: "60s" # optional
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -629,6 +623,7 @@ metadata:
     metric-config.external.unique-metric-name.json-path/json-key: "$.some-metric.value"
     metric-config.external.unique-metric-name.json-path/endpoint: "http://metric-source.app-namespace:8080/metrics"
     metric-config.external.unique-metric-name.json-path/aggregator: "max"
+    metric-config.external.unique-metric-name.json-path/interval: "60s" # optional
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -658,3 +653,15 @@ target. The following configuration values are supported:
     in the namespace `app-namespace` is called.
 - `aggregator` is only required if the metric is an array of values and specifies how the values
     are aggregated. Currently this option can support the values: `sum`, `max`, `min`, `avg`.
+
+### Scrape Interval
+
+It's possible to configure the scrape interval for each of the metric types via
+an annotation:
+
+```yaml
+metric-config.<metricType>.<metricName>.<collectorType>/interval: "30s"
+```
+
+The default is `60s` but can be reduced to let the adapter collect metrics more
+often.
