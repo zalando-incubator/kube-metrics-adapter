@@ -88,7 +88,6 @@ type SchedulePeriod struct {
 
 // ScheduleDay represents the valid inputs for days in a SchedulePeriod.
 // +kubebuilder:validation:Enum=Sun;Mon;Tue;Wed;Thu;Fri;Sat
-// +k8s:deepcopy-gen=true
 type ScheduleDay string
 
 const (
@@ -104,7 +103,6 @@ const (
 // ScheduleDate is a RFC3339 representation of the date for a Schedule
 // of the OneTime type.
 // +kubebuilder:validation:Format="date-time"
-// +k8s:deepcopy-gen=true
 type ScheduleDate string
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
