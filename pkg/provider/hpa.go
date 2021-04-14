@@ -7,12 +7,11 @@ import (
 	"sync"
 	"time"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
-	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
-	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +21,9 @@ import (
 	kube_record "k8s.io/client-go/tools/record"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
-	"github.com/hashicorp/go-multierror"
+
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
 )
 
 var (
