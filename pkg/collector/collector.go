@@ -62,8 +62,7 @@ func (p *PluginNotFoundError) Error() string {
 }
 
 func (p *PluginNotFoundError) Is(target error) bool {
-	t, ok := target.(*PluginNotFoundError)
-	_ = t
+	_, ok := target.(*PluginNotFoundError)
 	return ok
 }
 
