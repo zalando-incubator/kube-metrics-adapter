@@ -22,6 +22,7 @@ import (
 	kube_record "k8s.io/client-go/tools/record"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -128,6 +129,9 @@ func (p *HPAProvider) updateHPAs() error {
 
 	newHPAs := 0
 
+	// Multi errors object used in loops where they have to continue but in the end an error should be reported
+	var errs error
+
 	for _, hpa := range hpas.Items {
 		hpa := *hpa.DeepCopy()
 		resourceRef := resourceReference{
@@ -148,6 +152,7 @@ func (p *HPAProvider) updateHPAs() error {
 			metricConfigs, err := collector.ParseHPAMetrics(&hpa)
 			if err != nil {
 				p.logger.Errorf("Failed to parse HPA metrics: %v", err)
+				errs = multierror.Append(errs, err)
 				continue
 			}
 
@@ -164,6 +169,7 @@ func (p *HPAProvider) updateHPAs() error {
 					// Only log when it's not a PluginNotFoundError AND flag disregardIncompatibleHPAs is true
 					if !(errors.Is(err, &collector.PluginNotFoundError{}) && p.disregardIncompatibleHPAs) {
 						p.recorder.Eventf(&hpa, apiv1.EventTypeWarning, "CreateNewMetricsCollector", "Failed to create new metrics collector: %v", err)
+						errs = multierror.Append(errs, err)
 					}
 
 					cache = false
@@ -196,7 +202,8 @@ func (p *HPAProvider) updateHPAs() error {
 
 	p.logger.Infof("Found %d new/updated HPA(s)", newHPAs)
 	p.hpaCache = newHPACache
-	return nil
+
+	return errs
 }
 
 // equalHPA returns true if two HPAs are identical (apart from their status).
