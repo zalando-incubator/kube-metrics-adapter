@@ -61,6 +61,11 @@ func (p *PluginNotFoundError) Error() string {
 	return fmt.Sprintf("no plugin found for %s", p.metricTypeName)
 }
 
+func (p *PluginNotFoundError) Is(target error) bool {
+	_, ok := target.(*PluginNotFoundError)
+	return ok
+}
+
 func (c *CollectorFactory) RegisterPodsCollector(metricCollector string, plugin CollectorPlugin) error {
 	if metricCollector == "" {
 		c.podsPlugins.Any = plugin
