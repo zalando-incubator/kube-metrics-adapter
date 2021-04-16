@@ -38,6 +38,7 @@ type PodCollector struct {
 	namespace        string
 	metric           autoscalingv2.MetricIdentifier
 	metricType       autoscalingv2.MetricSourceType
+	minPodAge				 time.Duration
 	interval         time.Duration
 	logger           *log.Entry
 	httpClient       *http.Client
@@ -55,6 +56,7 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalP
 		namespace:        hpa.Namespace,
 		metric:           config.Metric,
 		metricType:       config.Type,
+		minPodAge:        config.MinPodAge,
 		interval:         interval,
 		podLabelSelector: selector,
 		logger:           log.WithFields(log.Fields{"Collector": "Pod"}),
@@ -89,12 +91,27 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 
 	ch := make(chan CollectedMetric)
 	errCh := make(chan error)
+	skippedPodsCount := 0
+
 	for _, pod := range pods.Items {
-		go c.getPodMetric(pod, ch, errCh)
+		t := time.Now()
+		podAge := time.Duration(t.Sub(pod.ObjectMeta.CreationTimestamp.Time).Nanoseconds())
+
+		if podAge > c.minPodAge {
+			if IsPodReady(pod) {
+				go c.getPodMetric(pod, ch, errCh)
+			} else {
+				skippedPodsCount++
+				c.logger.Warnf("Skipping metrics collection for pod %s because it's status is not Ready.", pod.Name)
+			}
+		} else {
+			skippedPodsCount++
+			c.logger.Warnf("Skipping metrics collection for pod %s because it's age is %s and min-pod-age is set to %s", pod.Name, podAge, c.minPodAge)
+		}
 	}
 
-	values := make([]CollectedMetric, 0, len(pods.Items))
-	for i := 0; i < len(pods.Items); i++ {
+	values := make([]CollectedMetric, 0, (len(pods.Items) - skippedPodsCount))
+	for i := 0; i < (len(pods.Items) - skippedPodsCount); i++ {
 		select {
 		case err := <-errCh:
 			c.logger.Error(err)
@@ -151,4 +168,19 @@ func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.Horizon
 	}
 
 	return nil, fmt.Errorf("unable to get pod label selector for scale target ref '%s'", hpa.Spec.ScaleTargetRef.Kind)
+}
+
+// IsPodReady extracts corev1.PodReady condition from the given pod object and
+// returns the true if the condition corev1.PodReady is found. Returns -1 and false if the condition is not present.
+func IsPodReady(pod corev1.Pod) bool {
+	conditions := pod.Status.Conditions
+	if conditions == nil {
+		return false
+	}
+	for i := range conditions {
+		if conditions[i].Type == corev1.PodReady {
+			return true
+		}
+	}
+	return false
 }

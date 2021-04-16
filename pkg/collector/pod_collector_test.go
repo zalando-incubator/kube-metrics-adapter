@@ -45,9 +45,89 @@ func TestPodCollector(t *testing.T) {
 			plugin := NewPodCollectorPlugin(client)
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
-			makeTestPods(t, host, port, "test-metric", client, 5)
+			creationTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
+			minPodAge := time.Duration(0 * time.Second)
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning)}
+			makeTestPods(t, host, port, "test-metric", client, 5, creationTimestamp, podCondition)
 			testHPA := makeTestHPA(t, client)
-			testConfig := makeTestConfig(port)
+			testConfig := makeTestConfig(port, minPodAge)
+			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
+			require.NoError(t, err)
+			metrics, err := collector.GetMetrics()
+			require.NoError(t, err)
+			require.Equal(t, len(metrics), int(metricsHandler.calledCounter))
+			var values []int64
+			for _, m := range metrics {
+				values = append(values, m.Custom.Value.Value())
+			}
+			require.ElementsMatch(t, tc.result, values)
+		})
+	}
+}
+
+func TestPodCollectorWithMinPodAge(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		metrics [][]int64
+		result  []int64
+	}{
+		{
+			name:    "simple-with-min-pod-age",
+			metrics: [][]int64{{1}, {3}, {8}, {5}, {2}},
+			result:  []int64{},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset()
+			plugin := NewPodCollectorPlugin(client)
+			makeTestDeployment(t, client)
+			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
+			// Setting pods age to 30 seconds
+			creationTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
+			// Pods that are not older that 60 seconds (all in this case) should not be processed
+			minPodAge := time.Duration(60 * time.Second)
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning)}
+			makeTestPods(t, host, port, "test-metric", client, 5, creationTimestamp, podCondition)
+			testHPA := makeTestHPA(t, client)
+			testConfig := makeTestConfig(port, minPodAge)
+			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
+			require.NoError(t, err)
+			metrics, err := collector.GetMetrics()
+			require.NoError(t, err)
+			require.Equal(t, len(metrics), int(metricsHandler.calledCounter))
+			var values []int64
+			for _, m := range metrics {
+				values = append(values, m.Custom.Value.Value())
+			}
+			require.ElementsMatch(t, tc.result, values)
+		})
+	}
+}
+
+func TestPodCollectorWithPodCondition(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		metrics [][]int64
+		result  []int64
+	}{
+		{
+			name:    "simple-with-pod-condition",
+			metrics: [][]int64{{1}, {3}, {8}, {5}, {2}},
+			result:  []int64{},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset()
+			plugin := NewPodCollectorPlugin(client)
+			makeTestDeployment(t, client)
+			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
+			creationTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
+			minPodAge := time.Duration(0 * time.Second)
+			//Pods in state corev1.PodScheduled should not be processed
+			podCondition := corev1.PodCondition{Type: corev1.PodScheduled, Status: corev1.ConditionStatus(corev1.PodRunning)}
+			makeTestPods(t, host, port, "test-metric", client, 5, creationTimestamp, podCondition)
+			testHPA := makeTestHPA(t, client)
+			testConfig := makeTestConfig(port, minPodAge)
 			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
 			require.NoError(t, err)
 			metrics, err := collector.GetMetrics()
@@ -95,14 +175,15 @@ func makeTestHTTPServer(t *testing.T, values [][]int64) (string, string, *testMe
 	return url.Hostname(), url.Port(), metricsHandler
 }
 
-func makeTestConfig(port string) *MetricConfig {
+func makeTestConfig(port string, minPodAge time.Duration) *MetricConfig {
 	return &MetricConfig{
 		CollectorType: "json-path",
 		Config:        map[string]string{"json-key": "$.values", "port": port, "path": "/metrics", "aggregator": "sum"},
+		MinPodAge: minPodAge,
 	}
 }
 
-func makeTestPods(t *testing.T, testServer string, metricName string, port string, client kubernetes.Interface, replicas int) {
+func makeTestPods(t *testing.T, testServer string, metricName string, port string, client kubernetes.Interface, replicas int, creationTimestamp v1.Time, podCondition corev1.PodCondition) {
 	for i := 0; i < replicas; i++ {
 		testPod := &corev1.Pod{
 			ObjectMeta: v1.ObjectMeta{
@@ -111,9 +192,11 @@ func makeTestPods(t *testing.T, testServer string, metricName string, port strin
 				Annotations: map[string]string{
 					fmt.Sprintf("metric-config.pods.%s.json-path/port", metricName): port,
 				},
+				CreationTimestamp: creationTimestamp,
 			},
 			Status: corev1.PodStatus{
 				PodIP: testServer,
+				Conditions: []corev1.PodCondition{podCondition},
 			},
 		}
 		_, err := client.CoreV1().Pods(testNamespace).Create(context.TODO(), testPod, v1.CreateOptions{})

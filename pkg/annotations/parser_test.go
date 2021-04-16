@@ -24,10 +24,11 @@ func TestParser(t *testing.T) {
 		{
 			Name: "pod metrics",
 			Annotations: map[string]string{
-				"metric-config.pods.requests-per-second.json-path/json-key": "$.http_server.rps",
-				"metric-config.pods.requests-per-second.json-path/path":     "/metrics",
-				"metric-config.pods.requests-per-second.json-path/port":     "9090",
-				"metric-config.pods.requests-per-second.json-path/scheme":   "https",
+				"metric-config.pods.requests-per-second.json-path/json-key":      "$.http_server.rps",
+				"metric-config.pods.requests-per-second.json-path/path":          "/metrics",
+				"metric-config.pods.requests-per-second.json-path/port":          "9090",
+				"metric-config.pods.requests-per-second.json-path/scheme":        "https",
+				"metric-config.pods.requests-per-second.json-path/min-pod-age":   "30s",
 			},
 			MetricName: "requests-per-second",
 			MetricType: autoscalingv2.PodsMetricSourceType,
