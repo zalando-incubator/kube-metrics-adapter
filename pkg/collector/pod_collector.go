@@ -38,7 +38,7 @@ type PodCollector struct {
 	namespace        string
 	metric           autoscalingv2.MetricIdentifier
 	metricType       autoscalingv2.MetricSourceType
-	minPodAge				 time.Duration
+	minPodAge        time.Duration
 	interval         time.Duration
 	logger           *log.Entry
 	httpClient       *http.Client
