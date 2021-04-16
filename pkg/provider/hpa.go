@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -130,9 +129,6 @@ func (p *HPAProvider) updateHPAs() error {
 
 	newHPAs := 0
 
-	// Multi errors object used in loops where they have to continue but in the end an error should be reported
-	var errs error
-
 	for _, hpa := range hpas.Items {
 		hpa := *hpa.DeepCopy()
 		resourceRef := resourceReference{
@@ -153,7 +149,6 @@ func (p *HPAProvider) updateHPAs() error {
 			metricConfigs, err := collector.ParseHPAMetrics(&hpa)
 			if err != nil {
 				p.logger.Errorf("Failed to parse HPA metrics: %v", err)
-				errs = multierror.Append(errs, err)
 				continue
 			}
 
@@ -170,7 +165,6 @@ func (p *HPAProvider) updateHPAs() error {
 					// Only log when it's not a PluginNotFoundError AND flag disregardIncompatibleHPAs is true
 					if !(errors.Is(err, &collector.PluginNotFoundError{}) && p.disregardIncompatibleHPAs) {
 						p.recorder.Eventf(&hpa, apiv1.EventTypeWarning, "CreateNewMetricsCollector", "Failed to create new metrics collector: %v", err)
-						errs = multierror.Append(errs, err)
 					}
 
 					cache = false
@@ -204,7 +198,7 @@ func (p *HPAProvider) updateHPAs() error {
 	p.logger.Infof("Found %d new/updated HPA(s)", newHPAs)
 	p.hpaCache = newHPACache
 
-	return errs
+	return nil
 }
 
 // equalHPA returns true if two HPAs are identical (apart from their status).
