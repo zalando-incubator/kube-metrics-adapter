@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -27,6 +29,33 @@ func (c mockCollector) GetMetrics() ([]collector.CollectedMetric, error) {
 
 func (c mockCollector) Interval() time.Duration {
 	return 1 * time.Second
+}
+
+type event struct {
+	Object    runtime.Object
+	EventType string
+	Reason    string
+	Message   string
+}
+
+type mockEventRecorder struct {
+	Events []event
+}
+
+func (r *mockEventRecorder) Event(object runtime.Object, eventtype, reason, message string) {
+	r.Events = append(r.Events, event{
+		Object:    object,
+		EventType: eventtype,
+		Reason:    reason,
+		Message:   message,
+	})
+}
+
+func (r *mockEventRecorder) Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...interface{}) {
+	r.Event(object, eventtype, reason, fmt.Sprintf(messageFmt, args...))
+}
+
+func (r *mockEventRecorder) AnnotatedEventf(object runtime.Object, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{}) {
 }
 
 func TestUpdateHPAs(t *testing.T) {
@@ -141,9 +170,26 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 	err = collectorFactory.RegisterPodsCollector("", mockCollectorPlugin{})
 	require.NoError(t, err)
 
+	eventRecorder := &mockEventRecorder{}
 	provider := NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, true)
+	provider.recorder = eventRecorder
 	provider.collectorScheduler = NewCollectorScheduler(context.Background(), provider.metricSink)
 
 	err = provider.updateHPAs()
 	require.NoError(t, err)
+
+	// we don't expect any events if disregardIncompatibleHPAs=true
+	require.Len(t, eventRecorder.Events, 0)
+
+	// check for events when disregardIncompatibleHPAs=false
+	eventRecorder = &mockEventRecorder{}
+	provider = NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, false)
+	provider.recorder = eventRecorder
+	provider.collectorScheduler = NewCollectorScheduler(context.Background(), provider.metricSink)
+
+	err = provider.updateHPAs()
+	require.NoError(t, err)
+
+	// we expect an event when disregardIncompatibleHPAs=false
+	require.Len(t, eventRecorder.Events, 1)
 }
