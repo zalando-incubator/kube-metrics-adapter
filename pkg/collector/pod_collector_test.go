@@ -179,7 +179,7 @@ func makeTestConfig(port string, minPodAge time.Duration) *MetricConfig {
 	return &MetricConfig{
 		CollectorType: "json-path",
 		Config:        map[string]string{"json-key": "$.values", "port": port, "path": "/metrics", "aggregator": "sum"},
-		MinPodAge: minPodAge,
+		MinPodAge:     minPodAge,
 	}
 }
 
@@ -195,7 +195,7 @@ func makeTestPods(t *testing.T, testServer string, metricName string, port strin
 				CreationTimestamp: creationTimestamp,
 			},
 			Status: corev1.PodStatus{
-				PodIP: testServer,
+				PodIP:      testServer,
 				Conditions: []corev1.PodCondition{podCondition},
 			},
 		}
