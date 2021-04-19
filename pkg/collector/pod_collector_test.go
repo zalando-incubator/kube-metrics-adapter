@@ -45,12 +45,12 @@ func TestPodCollector(t *testing.T) {
 			plugin := NewPodCollectorPlugin(client)
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
-			creationTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
-			minPodAge := time.Duration(0 * time.Second)
-			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning)}
-			makeTestPods(t, host, port, "test-metric", client, 5, creationTimestamp, podCondition)
+			lastReadyTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
+			minPodReadyAge := time.Duration(0 * time.Second)
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning), LastTransitionTime: lastReadyTransitionTimeTimestamp}
+			makeTestPods(t, host, port, "test-metric", client, 5, podCondition)
 			testHPA := makeTestHPA(t, client)
-			testConfig := makeTestConfig(port, minPodAge)
+			testConfig := makeTestConfig(port, minPodReadyAge)
 			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
 			require.NoError(t, err)
 			metrics, err := collector.GetMetrics()
@@ -65,14 +65,14 @@ func TestPodCollector(t *testing.T) {
 	}
 }
 
-func TestPodCollectorWithMinPodAge(t *testing.T) {
+func TestPodCollectorWithMinPodReadyAge(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		metrics [][]int64
 		result  []int64
 	}{
 		{
-			name:    "simple-with-min-pod-age",
+			name:    "simple-with-min-pod-ready-age",
 			metrics: [][]int64{{1}, {3}, {8}, {5}, {2}},
 			result:  []int64{},
 		},
@@ -83,13 +83,13 @@ func TestPodCollectorWithMinPodAge(t *testing.T) {
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
 			// Setting pods age to 30 seconds
-			creationTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
+			lastReadyTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
 			// Pods that are not older that 60 seconds (all in this case) should not be processed
-			minPodAge := time.Duration(60 * time.Second)
-			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning)}
-			makeTestPods(t, host, port, "test-metric", client, 5, creationTimestamp, podCondition)
+			minPodReadyAge := time.Duration(60 * time.Second)
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning), LastTransitionTime: lastReadyTransitionTimeTimestamp}
+			makeTestPods(t, host, port, "test-metric", client, 5, podCondition)
 			testHPA := makeTestHPA(t, client)
-			testConfig := makeTestConfig(port, minPodAge)
+			testConfig := makeTestConfig(port, minPodReadyAge)
 			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
 			require.NoError(t, err)
 			metrics, err := collector.GetMetrics()
@@ -121,13 +121,13 @@ func TestPodCollectorWithPodCondition(t *testing.T) {
 			plugin := NewPodCollectorPlugin(client)
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
-			creationTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
-			minPodAge := time.Duration(0 * time.Second)
+			lastScheduledTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
+			minPodReadyAge := time.Duration(0 * time.Second)
 			//Pods in state corev1.PodScheduled should not be processed
-			podCondition := corev1.PodCondition{Type: corev1.PodScheduled, Status: corev1.ConditionStatus(corev1.PodRunning)}
-			makeTestPods(t, host, port, "test-metric", client, 5, creationTimestamp, podCondition)
+			podCondition := corev1.PodCondition{Type: corev1.PodScheduled, Status: corev1.ConditionStatus(corev1.PodRunning), LastTransitionTime: lastScheduledTransitionTimeTimestamp}
+			makeTestPods(t, host, port, "test-metric", client, 5, podCondition)
 			testHPA := makeTestHPA(t, client)
-			testConfig := makeTestConfig(port, minPodAge)
+			testConfig := makeTestConfig(port, minPodReadyAge)
 			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
 			require.NoError(t, err)
 			metrics, err := collector.GetMetrics()
@@ -175,15 +175,15 @@ func makeTestHTTPServer(t *testing.T, values [][]int64) (string, string, *testMe
 	return url.Hostname(), url.Port(), metricsHandler
 }
 
-func makeTestConfig(port string, minPodAge time.Duration) *MetricConfig {
+func makeTestConfig(port string, minPodReadyAge time.Duration) *MetricConfig {
 	return &MetricConfig{
-		CollectorType: "json-path",
-		Config:        map[string]string{"json-key": "$.values", "port": port, "path": "/metrics", "aggregator": "sum"},
-		MinPodAge:     minPodAge,
+		CollectorType:  "json-path",
+		Config:         map[string]string{"json-key": "$.values", "port": port, "path": "/metrics", "aggregator": "sum"},
+		MinPodReadyAge: minPodReadyAge,
 	}
 }
 
-func makeTestPods(t *testing.T, testServer string, metricName string, port string, client kubernetes.Interface, replicas int, creationTimestamp v1.Time, podCondition corev1.PodCondition) {
+func makeTestPods(t *testing.T, testServer string, metricName string, port string, client kubernetes.Interface, replicas int, podCondition corev1.PodCondition) {
 	for i := 0; i < replicas; i++ {
 		testPod := &corev1.Pod{
 			ObjectMeta: v1.ObjectMeta{
@@ -192,7 +192,6 @@ func makeTestPods(t *testing.T, testServer string, metricName string, port strin
 				Annotations: map[string]string{
 					fmt.Sprintf("metric-config.pods.%s.json-path/port", metricName): port,
 				},
-				CreationTimestamp: creationTimestamp,
 			},
 			Status: corev1.PodStatus{
 				PodIP:      testServer,
