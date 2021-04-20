@@ -99,7 +99,7 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 		isPodReady, podReadyAge := GetPodReadyAge(pod)
 
 		if isPodReady {
-			if podReadyAge > c.minPodReadyAge {
+			if podReadyAge >= c.minPodReadyAge {
 				go c.getPodMetric(pod, ch, errCh)
 			} else {
 				skippedPodsCount++
@@ -182,7 +182,6 @@ func GetPodReadyAge(pod corev1.Pod) (bool, time.Duration) {
 	for i := range conditions {
 		if conditions[i].Type == corev1.PodReady {
 			podReadyAge = time.Since(conditions[i].LastTransitionTime.Time)
-			fmt.Printf("podReadyAge: %s", podReadyAge)
 			return true, podReadyAge
 		}
 	}
