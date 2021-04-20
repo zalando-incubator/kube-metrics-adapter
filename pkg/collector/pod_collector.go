@@ -103,11 +103,11 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 				go c.getPodMetric(pod, ch, errCh)
 			} else {
 				skippedPodsCount++
-				c.logger.Warnf("Skipping metrics collection for pod %s because it's ready age is %s and min-pod-ready-age is set to %s", pod.Name, podReadyAge, c.minPodReadyAge)
+				c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's ready age is %s and min-pod-ready-age is set to %s", pod.Namespace, pod.Name, podReadyAge, c.minPodReadyAge)
 			}
 		} else {
 			skippedPodsCount++
-			c.logger.Warnf("Skipping metrics collection for pod %s because it's status is not Ready.", pod.Name)
+			c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's status is not Ready.", pod.Namespace, pod.Name)
 		}
 	}
 
@@ -172,9 +172,8 @@ func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.Horizon
 }
 
 // GetPodReadyAge extracts corev1.PodReady condition from the given pod object and
-// returns true, time.Duration() for pod.LastTransitionTime if the condition corev1.PodReady is found. Returns time.Duration(0s), false if the condition is not present.
+// returns true, time.Duration() for LastTransitionTime if the condition corev1.PodReady is found. Returns time.Duration(0s), false if the condition is not present.
 func GetPodReadyAge(pod corev1.Pod) (bool, time.Duration) {
-	t := time.Now()
 	podReadyAge := time.Duration(0 * time.Second)
 	conditions := pod.Status.Conditions
 	if conditions == nil {
@@ -182,7 +181,8 @@ func GetPodReadyAge(pod corev1.Pod) (bool, time.Duration) {
 	}
 	for i := range conditions {
 		if conditions[i].Type == corev1.PodReady {
-			podReadyAge = time.Duration(t.Sub(conditions[i].LastTransitionTime.Time).Nanoseconds())
+			podReadyAge = time.Since(conditions[i].LastTransitionTime.Time)
+			fmt.Printf("podReadyAge: %s", podReadyAge)
 			return true, podReadyAge
 		}
 	}
