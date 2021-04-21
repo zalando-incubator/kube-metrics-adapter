@@ -47,7 +47,7 @@ func TestPodCollector(t *testing.T) {
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
 			lastReadyTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
 			minPodReadyAge := time.Duration(0 * time.Second)
-			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning), LastTransitionTime: lastReadyTransitionTimeTimestamp}
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastTransitionTime: lastReadyTransitionTimeTimestamp}
 			makeTestPods(t, host, port, "test-metric", client, 5, podCondition)
 			testHPA := makeTestHPA(t, client)
 			testConfig := makeTestConfig(port, minPodReadyAge)
@@ -86,7 +86,7 @@ func TestPodCollectorWithMinPodReadyAge(t *testing.T) {
 			lastReadyTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
 			// Pods that are not older that 60 seconds (all in this case) should not be processed
 			minPodReadyAge := time.Duration(60 * time.Second)
-			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionStatus(corev1.PodRunning), LastTransitionTime: lastReadyTransitionTimeTimestamp}
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastTransitionTime: lastReadyTransitionTimeTimestamp}
 			makeTestPods(t, host, port, "test-metric", client, 5, podCondition)
 			testHPA := makeTestHPA(t, client)
 			testConfig := makeTestConfig(port, minPodReadyAge)
@@ -123,8 +123,8 @@ func TestPodCollectorWithPodCondition(t *testing.T) {
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
 			lastScheduledTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
 			minPodReadyAge := time.Duration(0 * time.Second)
-			//Pods in state corev1.PodScheduled should not be processed
-			podCondition := corev1.PodCondition{Type: corev1.PodScheduled, Status: corev1.ConditionStatus(corev1.PodRunning), LastTransitionTime: lastScheduledTransitionTimeTimestamp}
+			//Pods in state corev1.PodReady == corev1.ConditionFalse should not be processed
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionFalse, LastTransitionTime: lastScheduledTransitionTimeTimestamp}
 			makeTestPods(t, host, port, "test-metric", client, 5, podCondition)
 			testHPA := makeTestHPA(t, client)
 			testConfig := makeTestConfig(port, minPodReadyAge)
