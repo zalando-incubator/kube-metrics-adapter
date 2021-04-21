@@ -180,7 +180,7 @@ func GetPodReadyAge(pod corev1.Pod) (bool, time.Duration) {
 		return false, podReadyAge
 	}
 	for i := range conditions {
-		if conditions[i].Type == corev1.PodReady {
+		if conditions[i].Type == corev1.PodReady && conditions[i].Status == corev1.ConditionTrue {
 			podReadyAge = time.Since(conditions[i].LastTransitionTime.Time)
 			return true, podReadyAge
 		}
