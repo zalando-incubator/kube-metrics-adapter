@@ -12,13 +12,15 @@ const (
 	customMetricsPrefix      = "metric-config."
 	perReplicaMetricsConfKey = "per-replica"
 	intervalMetricsConfKey   = "interval"
+	minPodReadyAgeConfKey    = "min-pod-ready-age"
 )
 
 type AnnotationConfigs struct {
-	CollectorType string
-	Configs       map[string]string
-	PerReplica    bool
-	Interval      time.Duration
+	CollectorType  string
+	Configs        map[string]string
+	PerReplica     bool
+	Interval       time.Duration
+	MinPodReadyAge time.Duration
 }
 
 type MetricConfigKey struct {
@@ -86,6 +88,15 @@ func (m AnnotationConfigMap) Parse(annotations map[string]string) error {
 				return fmt.Errorf("failed to parse interval value %s for %s: %v", val, key, err)
 			}
 			config.Interval = interval
+			continue
+		}
+
+		if parts[1] == minPodReadyAgeConfKey {
+			minPodReadyAge, err := time.ParseDuration(val)
+			if err != nil {
+				return fmt.Errorf("failed to parse min-pod-ready-age value %s for %s: %v", val, key, err)
+			}
+			config.MinPodReadyAge = minPodReadyAge
 			continue
 		}
 

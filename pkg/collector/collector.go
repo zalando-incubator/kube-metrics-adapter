@@ -200,6 +200,7 @@ type MetricConfig struct {
 	ObjectReference custom_metrics.ObjectReference
 	PerReplica      bool
 	Interval        time.Duration
+	MinPodReadyAge  time.Duration
 	MetricSpec      autoscalingv2.MetricSpec
 }
 
@@ -258,6 +259,7 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 			config.CollectorType = annotationConfigs.CollectorType
 			config.Interval = annotationConfigs.Interval
 			config.PerReplica = annotationConfigs.PerReplica
+			config.MinPodReadyAge = annotationConfigs.MinPodReadyAge
 			// configs specified in annotations takes precedence
 			// over labels
 			for k, v := range annotationConfigs.Configs {

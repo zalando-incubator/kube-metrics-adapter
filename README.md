@@ -111,6 +111,7 @@ metadata:
     metric-config.pods.requests-per-second.json-path/scheme: "https"
     metric-config.pods.requests-per-second.json-path/aggregator: "max"
     metric-config.pods.requests-per-second.json-path/interval: "60s" # optional
+    metric-config.pods.requests-per-second.json-path/min-pod-ready-age: "30s" # optional
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -174,6 +175,11 @@ metric-config.pods.requests-per-second.json-path/connect-timeout: 500ms
 ```
 
 The default for both of the above values is 15 seconds.
+
+The `min-pod-ready-age` configuration option instructs the service to start collecting metrics from the pods only if they are "older" (time elapsed after pod reached "Ready" state) than the specified amount of time.
+This is handy when pods need to warm up before HPAs will start tracking their metrics.
+
+The default value is 0 seconds.
 
 ## Prometheus collector
 

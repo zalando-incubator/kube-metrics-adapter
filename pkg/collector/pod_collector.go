@@ -7,7 +7,6 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector/httpmetrics"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -15,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
+
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector/httpmetrics"
 )
 
 type PodCollectorPlugin struct {
@@ -38,6 +39,7 @@ type PodCollector struct {
 	namespace        string
 	metric           autoscalingv2.MetricIdentifier
 	metricType       autoscalingv2.MetricSourceType
+	minPodReadyAge   time.Duration
 	interval         time.Duration
 	logger           *log.Entry
 	httpClient       *http.Client
@@ -55,6 +57,7 @@ func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalP
 		namespace:        hpa.Namespace,
 		metric:           config.Metric,
 		metricType:       config.Type,
+		minPodReadyAge:   config.MinPodReadyAge,
 		interval:         interval,
 		podLabelSelector: selector,
 		logger:           log.WithFields(log.Fields{"Collector": "Pod"}),
@@ -89,12 +92,27 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 
 	ch := make(chan CollectedMetric)
 	errCh := make(chan error)
+	skippedPodsCount := 0
+
 	for _, pod := range pods.Items {
-		go c.getPodMetric(pod, ch, errCh)
+
+		isPodReady, podReadyAge := GetPodReadyAge(pod)
+
+		if isPodReady {
+			if podReadyAge >= c.minPodReadyAge {
+				go c.getPodMetric(pod, ch, errCh)
+			} else {
+				skippedPodsCount++
+				c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's ready age is %s and min-pod-ready-age is set to %s", pod.Namespace, pod.Name, podReadyAge, c.minPodReadyAge)
+			}
+		} else {
+			skippedPodsCount++
+			c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's status is not Ready.", pod.Namespace, pod.Name)
+		}
 	}
 
-	values := make([]CollectedMetric, 0, len(pods.Items))
-	for i := 0; i < len(pods.Items); i++ {
+	values := make([]CollectedMetric, 0, (len(pods.Items) - skippedPodsCount))
+	for i := 0; i < (len(pods.Items) - skippedPodsCount); i++ {
 		select {
 		case err := <-errCh:
 			c.logger.Error(err)
@@ -151,4 +169,22 @@ func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.Horizon
 	}
 
 	return nil, fmt.Errorf("unable to get pod label selector for scale target ref '%s'", hpa.Spec.ScaleTargetRef.Kind)
+}
+
+// GetPodReadyAge extracts corev1.PodReady condition from the given pod object and
+// returns true, time.Duration() for LastTransitionTime if the condition corev1.PodReady is found. Returns time.Duration(0s), false if the condition is not present.
+func GetPodReadyAge(pod corev1.Pod) (bool, time.Duration) {
+	podReadyAge := time.Duration(0 * time.Second)
+	conditions := pod.Status.Conditions
+	if conditions == nil {
+		return false, podReadyAge
+	}
+	for i := range conditions {
+		if conditions[i].Type == corev1.PodReady && conditions[i].Status == corev1.ConditionTrue {
+			podReadyAge = time.Since(conditions[i].LastTransitionTime.Time)
+			return true, podReadyAge
+		}
+	}
+
+	return false, podReadyAge
 }
