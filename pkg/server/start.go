@@ -116,6 +116,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.StringVar(&o.MetricsAddress, "metrics-address", o.MetricsAddress, "The address where to serve prometheus metrics")
 	flags.BoolVar(&o.DisregardIncompatibleHPAs, "disregard-incompatible-hpas", o.DisregardIncompatibleHPAs, ""+
 		"disregard failing to create collectors for incompatible HPAs")
+	flags.DurationVar(&o.MetricsTTL, "metrics-ttl", 15*time.Minute, "TTL for metrics that are stored in in-memory cache.")
+	flags.DurationVar(&o.GCInterval, "garbage-collector-interval", 10*time.Minute, "Interval to clean up metrics that are stored in in-memory cache.")
 	return cmd
 }
 
@@ -243,7 +245,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		collectorFactory.RegisterExternalCollector([]string{collector.AWSSQSQueueLengthMetric}, collector.NewAWSCollectorPlugin(awsSessions))
 	}
 
-	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory, o.DisregardIncompatibleHPAs)
+	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory, o.DisregardIncompatibleHPAs, o.MetricsTTL, o.GCInterval)
 
 	go hpaProvider.Run(ctx)
 
@@ -350,4 +352,8 @@ type AdapterServerOptions struct {
 	// Whether to disregard failing to create collectors for incompatible HPAs - such as when using
 	// kube-metrics-adapter beside another Metrics Provider
 	DisregardIncompatibleHPAs bool
+	// TTL for metrics that are stored in in-memory cache
+	MetricsTTL time.Duration
+	// Interval to clean up metrics that are stored in in-memory cache
+	GCInterval time.Duration
 }

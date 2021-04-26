@@ -106,7 +106,7 @@ func TestUpdateHPAs(t *testing.T) {
 	err = collectorFactory.RegisterPodsCollector("", mockCollectorPlugin{})
 	require.NoError(t, err)
 
-	provider := NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, false)
+	provider := NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, false, 1*time.Second, 1*time.Second)
 	provider.collectorScheduler = NewCollectorScheduler(context.Background(), provider.metricSink)
 
 	err = provider.updateHPAs()
@@ -171,7 +171,7 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 	require.NoError(t, err)
 
 	eventRecorder := &mockEventRecorder{}
-	provider := NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, true)
+	provider := NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, true, 1*time.Second, 1*time.Second)
 	provider.recorder = eventRecorder
 	provider.collectorScheduler = NewCollectorScheduler(context.Background(), provider.metricSink)
 
@@ -183,7 +183,7 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 
 	// check for events when disregardIncompatibleHPAs=false
 	eventRecorder = &mockEventRecorder{}
-	provider = NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, false)
+	provider = NewHPAProvider(fakeClient, 1*time.Second, 1*time.Second, collectorFactory, false, 1*time.Second, 1*time.Second)
 	provider.recorder = eventRecorder
 	provider.collectorScheduler = NewCollectorScheduler(context.Background(), provider.metricSink)
 
