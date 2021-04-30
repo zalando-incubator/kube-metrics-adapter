@@ -106,7 +106,7 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 				skippedPodsCount++
 				c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's ready age is %s and min-pod-ready-age is set to %s", pod.Namespace, pod.Name, podReadyAge, c.minPodReadyAge)
 			} else {
-        go c.getPodMetric(pod, ch, errCh)
+				go c.getPodMetric(pod, ch, errCh)
 			}
 		} else {
 			skippedPodsCount++
