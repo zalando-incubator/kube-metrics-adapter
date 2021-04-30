@@ -227,8 +227,6 @@ func makeTestConfig(port string, minPodReadyAge time.Duration) *MetricConfig {
 }
 
 func makeTestPods(t *testing.T, testServer string, metricName string, port string, client kubernetes.Interface, replicas int, podCondition corev1.PodCondition, podDeletionTimestamp time.Time) {
-
-
 	for i := 0; i < replicas; i++ {
 		testPod := &corev1.Pod{
 			ObjectMeta: v1.ObjectMeta{
