@@ -49,7 +49,7 @@ func TestPodCollector(t *testing.T) {
 			minPodReadyAge := time.Duration(0 * time.Second)
 			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastTransitionTime: lastReadyTransitionTimeTimestamp}
 			podDeletionTimestamp := time.Time{}
-			makeTestPods(t, host, port, "test-metric", client, 5, podCondition,podDeletionTimestamp)
+			makeTestPods(t, host, port, "test-metric", client, 5, podCondition, podDeletionTimestamp)
 			testHPA := makeTestHPA(t, client)
 			testConfig := makeTestConfig(port, minPodReadyAge)
 			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
@@ -144,7 +144,6 @@ func TestPodCollectorWithPodCondition(t *testing.T) {
 		})
 	}
 }
-
 
 func TestPodCollectorWithPodTerminatingCondition(t *testing.T) {
 	for _, tc := range []struct {
@@ -241,8 +240,8 @@ func makeTestPods(t *testing.T, testServer string, metricName string, port strin
 				Conditions: []corev1.PodCondition{podCondition},
 			},
 		}
-    
-		if podDeletionTimestamp.IsZero(){
+
+		if podDeletionTimestamp.IsZero() {
 			testPod.ObjectMeta.DeletionTimestamp = nil
 		} else {
 			testPod.ObjectMeta.DeletionTimestamp = &v1.Time{Time: podDeletionTimestamp}
