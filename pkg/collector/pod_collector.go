@@ -101,7 +101,7 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 		if isPodReady {
 			if pod.DeletionTimestamp != nil {
 				skippedPodsCount++
-				c.logger.Warnf("Skipping metrics collection for pod %s/%s because it is seems to be scheduled for termination (DeletionTimestamp: %s)", pod.Namespace, pod.Name, pod.DeletionTimestamp)
+				c.logger.Debugf("Skipping metrics collection for pod %s/%s because it is being terminated (DeletionTimestamp: %s)", pod.Namespace, pod.Name, pod.DeletionTimestamp)
 			} else if podReadyAge < c.minPodReadyAge {
 				skippedPodsCount++
 				c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's ready age is %s and min-pod-ready-age is set to %s", pod.Namespace, pod.Name, podReadyAge, c.minPodReadyAge)
@@ -110,7 +110,7 @@ func (c *PodCollector) GetMetrics() ([]CollectedMetric, error) {
 			}
 		} else {
 			skippedPodsCount++
-			c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's status is not Ready.", pod.Namespace, pod.Name)
+			c.logger.Debugf("Skipping metrics collection for pod %s/%s because it's status is not Ready.", pod.Namespace, pod.Name)
 		}
 	}
 
