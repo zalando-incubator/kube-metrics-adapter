@@ -4,7 +4,7 @@ replicas: 1
 
 registry:
   image: registry.opensource.zalan.do/teapot/kube-metrics-adapter
-  imageTag: v0.1.9
+  imageTag: v0.1.10
   imagePullPolicy: IfNotPresent
 
 service:

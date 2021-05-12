@@ -1,6 +1,6 @@
 apiVersion: v2
 name: kube-metrics-adapter
-version: 0.1.9
+version: 0.1.10
 description: kube-metrics-adapter helm chart
 home: https://github.com/zalando-incubator/kube-metrics-adapter
 maintainers:
