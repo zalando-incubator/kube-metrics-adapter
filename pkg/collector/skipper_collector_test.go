@@ -332,7 +332,7 @@ func TestSkipperCollector(t *testing.T) {
 			err := makeIngress(client, tc.namespace, tc.ingressName, tc.backend, tc.hostnames, tc.backendWeights)
 			require.NoError(t, err)
 			plugin := makePlugin(tc.metric)
-			hpa := makeHPA(tc.namespace, tc.ingressName, tc.backend)
+			hpa := makeIngressHPA(tc.namespace, tc.ingressName, tc.backend)
 			config := makeConfig(tc.ingressName, tc.namespace, tc.backend, tc.fakedAverage)
 			_, err = newDeployment(client, tc.namespace, tc.backend, tc.replicas, tc.readyReplicas)
 			require.NoError(t, err)
@@ -387,7 +387,7 @@ func makeIngress(client kubernetes.Interface, namespace, ingressName, backend st
 	return err
 }
 
-func makeHPA(namespace, ingressName, backend string) *autoscalingv2.HorizontalPodAutoscaler {
+func makeIngressHPA(namespace, ingressName, backend string) *autoscalingv2.HorizontalPodAutoscaler {
 	return &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
