@@ -33,7 +33,6 @@ import (
 // FakeClusterScalingSchedules implements ClusterScalingScheduleInterface
 type FakeClusterScalingSchedules struct {
 	Fake *FakeZalandoV1
-	ns   string
 }
 
 var clusterscalingschedulesResource = schema.GroupVersionResource{Group: "zalando.org", Version: "v1", Resource: "clusterscalingschedules"}
@@ -43,8 +42,7 @@ var clusterscalingschedulesKind = schema.GroupVersionKind{Group: "zalando.org", 
 // Get takes name of the clusterScalingSchedule, and returns the corresponding clusterScalingSchedule object, and an error if there is any.
 func (c *FakeClusterScalingSchedules) Get(ctx context.Context, name string, options v1.GetOptions) (result *zalandoorgv1.ClusterScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(clusterscalingschedulesResource, c.ns, name), &zalandoorgv1.ClusterScalingSchedule{})
-
+		Invokes(testing.NewRootGetAction(clusterscalingschedulesResource, name), &zalandoorgv1.ClusterScalingSchedule{})
 	if obj == nil {
 		return nil, err
 	}
@@ -54,8 +52,7 @@ func (c *FakeClusterScalingSchedules) Get(ctx context.Context, name string, opti
 // List takes label and field selectors, and returns the list of ClusterScalingSchedules that match those selectors.
 func (c *FakeClusterScalingSchedules) List(ctx context.Context, opts v1.ListOptions) (result *zalandoorgv1.ClusterScalingScheduleList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(clusterscalingschedulesResource, clusterscalingschedulesKind, c.ns, opts), &zalandoorgv1.ClusterScalingScheduleList{})
-
+		Invokes(testing.NewRootListAction(clusterscalingschedulesResource, clusterscalingschedulesKind, opts), &zalandoorgv1.ClusterScalingScheduleList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -76,15 +73,13 @@ func (c *FakeClusterScalingSchedules) List(ctx context.Context, opts v1.ListOpti
 // Watch returns a watch.Interface that watches the requested clusterScalingSchedules.
 func (c *FakeClusterScalingSchedules) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(clusterscalingschedulesResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(clusterscalingschedulesResource, opts))
 }
 
 // Create takes the representation of a clusterScalingSchedule and creates it.  Returns the server's representation of the clusterScalingSchedule, and an error, if there is any.
 func (c *FakeClusterScalingSchedules) Create(ctx context.Context, clusterScalingSchedule *zalandoorgv1.ClusterScalingSchedule, opts v1.CreateOptions) (result *zalandoorgv1.ClusterScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(clusterscalingschedulesResource, c.ns, clusterScalingSchedule), &zalandoorgv1.ClusterScalingSchedule{})
-
+		Invokes(testing.NewRootCreateAction(clusterscalingschedulesResource, clusterScalingSchedule), &zalandoorgv1.ClusterScalingSchedule{})
 	if obj == nil {
 		return nil, err
 	}
@@ -94,8 +89,7 @@ func (c *FakeClusterScalingSchedules) Create(ctx context.Context, clusterScaling
 // Update takes the representation of a clusterScalingSchedule and updates it. Returns the server's representation of the clusterScalingSchedule, and an error, if there is any.
 func (c *FakeClusterScalingSchedules) Update(ctx context.Context, clusterScalingSchedule *zalandoorgv1.ClusterScalingSchedule, opts v1.UpdateOptions) (result *zalandoorgv1.ClusterScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(clusterscalingschedulesResource, c.ns, clusterScalingSchedule), &zalandoorgv1.ClusterScalingSchedule{})
-
+		Invokes(testing.NewRootUpdateAction(clusterscalingschedulesResource, clusterScalingSchedule), &zalandoorgv1.ClusterScalingSchedule{})
 	if obj == nil {
 		return nil, err
 	}
@@ -105,14 +99,13 @@ func (c *FakeClusterScalingSchedules) Update(ctx context.Context, clusterScaling
 // Delete takes name of the clusterScalingSchedule and deletes it. Returns an error if one occurs.
 func (c *FakeClusterScalingSchedules) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(clusterscalingschedulesResource, c.ns, name), &zalandoorgv1.ClusterScalingSchedule{})
-
+		Invokes(testing.NewRootDeleteAction(clusterscalingschedulesResource, name), &zalandoorgv1.ClusterScalingSchedule{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeClusterScalingSchedules) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(clusterscalingschedulesResource, c.ns, listOpts)
+	action := testing.NewRootDeleteCollectionAction(clusterscalingschedulesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &zalandoorgv1.ClusterScalingScheduleList{})
 	return err
@@ -121,8 +114,7 @@ func (c *FakeClusterScalingSchedules) DeleteCollection(ctx context.Context, opts
 // Patch applies the patch and returns the patched clusterScalingSchedule.
 func (c *FakeClusterScalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *zalandoorgv1.ClusterScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(clusterscalingschedulesResource, c.ns, name, pt, data, subresources...), &zalandoorgv1.ClusterScalingSchedule{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(clusterscalingschedulesResource, name, pt, data, subresources...), &zalandoorgv1.ClusterScalingSchedule{})
 	if obj == nil {
 		return nil, err
 	}

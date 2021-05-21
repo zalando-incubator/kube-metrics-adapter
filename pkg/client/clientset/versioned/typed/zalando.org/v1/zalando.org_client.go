@@ -35,8 +35,8 @@ type ZalandoV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *ZalandoV1Client) ClusterScalingSchedules(namespace string) ClusterScalingScheduleInterface {
-	return newClusterScalingSchedules(c, namespace)
+func (c *ZalandoV1Client) ClusterScalingSchedules() ClusterScalingScheduleInterface {
+	return newClusterScalingSchedules(c)
 }
 
 func (c *ZalandoV1Client) ScalingSchedules(namespace string) ScalingScheduleInterface {
