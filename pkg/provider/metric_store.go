@@ -63,7 +63,8 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 	s.Lock()
 	defer s.Unlock()
 
-	// TODO: handle this mapping nicer
+	// TODO: handle this mapping nicer. This information should be
+	// registered as the metrics are.
 	var groupResource schema.GroupResource
 	switch value.DescribedObject.Kind {
 	case "Pod":
@@ -71,7 +72,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 			Resource: "pods",
 		}
 	case "Ingress":
-		// group can be either `extentions` or `networking.k8s.io`
+		// group can be either `extensions` or `networking.k8s.io`
 		group := "extensions"
 		gv, err := schema.ParseGroupVersion(value.DescribedObject.APIVersion)
 		if err == nil {
@@ -79,6 +80,26 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 		}
 		groupResource = schema.GroupResource{
 			Resource: "ingresses",
+			Group:    group,
+		}
+	case "ScalingSchedule":
+		group := "zalando.org"
+		gv, err := schema.ParseGroupVersion(value.DescribedObject.APIVersion)
+		if err == nil {
+			group = gv.Group
+		}
+		groupResource = schema.GroupResource{
+			Resource: "scalingschedules",
+			Group:    group,
+		}
+	case "ClusterScalingSchedule":
+		group := "zalando.org"
+		gv, err := schema.ParseGroupVersion(value.DescribedObject.APIVersion)
+		if err == nil {
+			group = gv.Group
+		}
+		groupResource = schema.GroupResource{
+			Resource: "clusterscalingschedules",
 			Group:    group,
 		}
 	}

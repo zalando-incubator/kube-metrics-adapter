@@ -671,3 +671,121 @@ metric-config.<metricType>.<metricName>.<collectorType>/interval: "30s"
 
 The default is `60s` but can be reduced to let the adapter collect metrics more
 often.
+
+## ScalingSchedule Collectors
+
+The `ScalingSchedule` and `ClusterScalingSchedule` collectors allow
+collecting time-based metrics from the respective CRD objects specified
+in the HPA.
+
+### Supported metrics
+
+| Metric | Description | Type | K8s Versions |
+| ---------- | -------------- | ------- | -- |
+| ObjectName | The metric is calculated and stored for each `ScalingSchedule` and `ClusterScalingSchedule` referenced in the HPAs | `ScalingSchedule` and `ClusterScalingSchedule` | `>=1.16` |
+
+### Example
+
+This is an example of using the ScalingSchedule collectors to collect
+metrics from a deployed kind of the CRD. First, the schedule object:
+
+```yaml
+apiVersion: zalando.org/v1
+kind: ClusterScalingSchedule
+metadata:
+  name: "scheduling-event"
+spec:
+  schedules:
+  - type: OneTime
+    date: "2021-10-02T08:08:08+02:00"
+    durationMinutes: 30
+    value: 100
+  - type: Repeating
+    durationMinutes: 10
+    value: 120
+    period:
+      startTime: "15:45"
+      timezone: "Europe/Berlin"
+      days:
+      - Mon
+      - Wed
+      - Fri
+```
+
+This resource defines a scheduling event named `scheduling-event` with
+two schedules of the kind `ClusterScalingSchedule`.
+
+`ClusterScalingSchedule` objects aren't namespaced, what means it can be
+referenced by any HPA in any namespace in the cluster. `ScalingSchedule`
+have the exact same fields and behavior, but can be referenced just by
+HPAs in the same namespace. The schedules can have the type `Repeating`
+or `OneTime`.
+
+This example configuration will generate the following result: at
+`2021-10-02T08:08:08+02:00` for 30 minutes a metric with the value of
+100 will be returned. Every Monday, Wednesday and Friday, starting at 15
+hours and 45 minutes (Berlin time), a metric with the value of 120 will
+be returned for 10 minutes. It's not the case of this example, but if multiple
+schedules collide in time, the biggest value is returned.
+
+Check the CRDs definitions
+([ScalingSchedule](./docs/scaling_schedules_crd.yaml),
+[ClusterScalingSchedule](./docs/cluster_scaling_schedules_crd.yaml)) for
+a better understanding of the possible fields and their behavior.
+
+An HPA can reference the deployed `ClusterScalingSchedule` object as
+this example:
+
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: "myapp-hpa"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+  - type: Object
+    object:
+      describedObject:
+        apiVersion: zalando.org/v1
+        kind: ClusterScalingSchedule
+        name: "scheduling-event"
+      metric:
+        name: "scheduling-event"
+      target:
+        type: AverageValue
+        averageValue: "10"
+```
+
+The name of the metric is equal to the name of the referenced object.
+The `target.averageValue` in this example is set to 10. This value will
+be used by the HPA controller to define the desired number of pods,
+based on the metric obtained (check the [HPA algorithm
+details](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#algorithm-details)
+for more context). This HPA configuration explicitly says that each pod
+of this application supports 10 units of the `ClusterScalingSchedule`
+metric. Multiple applications can share the same
+`ClusterScalingSchedule` or `ScalingSchedule` event and have a different
+number of pods based on its `target.averageValue` configuration.
+
+In our specific example at `2021-10-02T08:08:08+02:00` as the metric has
+the value 100, this application will scale to 10 pods (100/10). Every
+Monday, Wednesday and Friday, starting at 15 hours and 45 minutes
+(Berlin time) the application will scale to 12 pods (120/10). Both
+scaling up will last at least the configured duration times of the
+schedules. After that, regular HPA scale down behavior applies.
+
+Note that these number of pods are just considering these custom
+metrics, the normal HPA behavior still applies, such as: in case of
+multiple metrics the biggest number of pods is the utilized one, HPA max
+and min replica configuration, autoscaling policies, etc.
+
+These collectors are disabled by default, you have to start the server
+with the `--scaling-schedule` flag to enable it. Remember to deploy the CRDs
+`ScalingSchedule` and `ClusterScalingSchedule` and allow the service
+account used by the server to read, watch and list them.

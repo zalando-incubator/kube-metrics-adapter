@@ -182,6 +182,9 @@ spec:
             {{- if .Values.zmon.tokenName }}
             - --zmon-token-name={{ .Values.zmon.tokenName }}
             {{- end}}
+            {{- if .Values.scalingSchedule.enabled }}
+            - --scaling-schedule
+            {{- end}}
           resources:
             limits:
               cpu: {{ .Values.resources.limits.cpu }}

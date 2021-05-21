@@ -147,6 +147,120 @@ func TestInternalMetricStorage(t *testing.T) {
 			},
 		},
 		{
+			test: "insert/list/get a ScalingSchedule metric",
+			insert: collector.CollectedMetric{
+				Type: autoscalingv2.MetricSourceType("Object"),
+				Custom: custom_metrics.MetricValue{
+					Metric: newMetricIdentifier("scalingschedulename"),
+					Value:  *resource.NewQuantity(10, ""),
+					DescribedObject: custom_metrics.ObjectReference{
+						Name:       "metricObject",
+						Namespace:  "default",
+						Kind:       "ScalingSchedule",
+						APIVersion: "zalando.org/v1",
+					},
+				},
+			},
+			expectedFound: true,
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{
+						Group:    "zalando.org",
+						Resource: "scalingschedules",
+					},
+					Namespaced: true,
+					Metric:     "scalingschedulename",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject", Namespace: "default"},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "zalando.org",
+						Resource: "scalingschedules",
+					},
+					Namespaced: true,
+					Metric:     "scalingschedulename",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "default",
+				selector:  labels.Everything(),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "zalando.org",
+						Resource: "scalingschedules",
+					},
+					Namespaced: true,
+					Metric:     "scalingschedulename",
+				},
+			},
+		},
+		{
+			test: "insert/list/get a ClusterScalingSchedule metric",
+			insert: collector.CollectedMetric{
+				Type: autoscalingv2.MetricSourceType("Object"),
+				Custom: custom_metrics.MetricValue{
+					Metric: newMetricIdentifier("clusterscalingschedulename"),
+					Value:  *resource.NewQuantity(10, ""),
+					DescribedObject: custom_metrics.ObjectReference{
+						Name:       "metricObject",
+						Namespace:  "default", // The HPA namespace
+						Kind:       "ClusterScalingSchedule",
+						APIVersion: "zalando.org/v1",
+					},
+				},
+			},
+			expectedFound: true,
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{
+						Group:    "zalando.org",
+						Resource: "clusterscalingschedules",
+					},
+					Namespaced: true,
+					Metric:     "clusterscalingschedulename",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject", Namespace: "default"},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "zalando.org",
+						Resource: "clusterscalingschedules",
+					},
+					Namespaced: true,
+					Metric:     "clusterscalingschedulename",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "default",
+				selector:  labels.Everything(),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "zalando.org",
+						Resource: "clusterscalingschedules",
+					},
+					Namespaced: true,
+					Metric:     "clusterscalingschedulename",
+				},
+			},
+		},
+		{
 			test: "insert/list/get a non-namespaced resource metric",
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),

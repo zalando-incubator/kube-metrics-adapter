@@ -28,6 +28,7 @@ spec:
         - --prometheus-server=http://prometheus.kube-system.svc.cluster.local
         - --skipper-ingress-metrics
         - --aws-external-metrics
+        - --scaling-schedule
         env:
         - name: AWS_REGION
           value: eu-central-1
