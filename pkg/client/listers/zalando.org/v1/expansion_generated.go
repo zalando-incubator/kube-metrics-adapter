@@ -22,10 +22,6 @@ package v1
 // ClusterScalingScheduleLister.
 type ClusterScalingScheduleListerExpansion interface{}
 
-// ClusterScalingScheduleNamespaceListerExpansion allows custom methods to be added to
-// ClusterScalingScheduleNamespaceLister.
-type ClusterScalingScheduleNamespaceListerExpansion interface{}
-
 // ScalingScheduleListerExpansion allows custom methods to be added to
 // ScalingScheduleLister.
 type ScalingScheduleListerExpansion interface{}

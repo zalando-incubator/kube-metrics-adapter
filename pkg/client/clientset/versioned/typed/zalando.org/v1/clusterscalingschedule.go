@@ -33,7 +33,7 @@ import (
 // ClusterScalingSchedulesGetter has a method to return a ClusterScalingScheduleInterface.
 // A group's client should implement this interface.
 type ClusterScalingSchedulesGetter interface {
-	ClusterScalingSchedules(namespace string) ClusterScalingScheduleInterface
+	ClusterScalingSchedules() ClusterScalingScheduleInterface
 }
 
 // ClusterScalingScheduleInterface has methods to work with ClusterScalingSchedule resources.
@@ -52,14 +52,12 @@ type ClusterScalingScheduleInterface interface {
 // clusterScalingSchedules implements ClusterScalingScheduleInterface
 type clusterScalingSchedules struct {
 	client rest.Interface
-	ns     string
 }
 
 // newClusterScalingSchedules returns a ClusterScalingSchedules
-func newClusterScalingSchedules(c *ZalandoV1Client, namespace string) *clusterScalingSchedules {
+func newClusterScalingSchedules(c *ZalandoV1Client) *clusterScalingSchedules {
 	return &clusterScalingSchedules{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -67,7 +65,6 @@ func newClusterScalingSchedules(c *ZalandoV1Client, namespace string) *clusterSc
 func (c *clusterScalingSchedules) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ClusterScalingSchedule, err error) {
 	result = &v1.ClusterScalingSchedule{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -84,7 +81,6 @@ func (c *clusterScalingSchedules) List(ctx context.Context, opts metav1.ListOpti
 	}
 	result = &v1.ClusterScalingScheduleList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -101,7 +97,6 @@ func (c *clusterScalingSchedules) Watch(ctx context.Context, opts metav1.ListOpt
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -112,7 +107,6 @@ func (c *clusterScalingSchedules) Watch(ctx context.Context, opts metav1.ListOpt
 func (c *clusterScalingSchedules) Create(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.CreateOptions) (result *v1.ClusterScalingSchedule, err error) {
 	result = &v1.ClusterScalingSchedule{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(clusterScalingSchedule).
@@ -125,7 +119,6 @@ func (c *clusterScalingSchedules) Create(ctx context.Context, clusterScalingSche
 func (c *clusterScalingSchedules) Update(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (result *v1.ClusterScalingSchedule, err error) {
 	result = &v1.ClusterScalingSchedule{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		Name(clusterScalingSchedule.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -138,7 +131,6 @@ func (c *clusterScalingSchedules) Update(ctx context.Context, clusterScalingSche
 // Delete takes name of the clusterScalingSchedule and deletes it. Returns an error if one occurs.
 func (c *clusterScalingSchedules) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		Name(name).
 		Body(&opts).
@@ -153,7 +145,6 @@ func (c *clusterScalingSchedules) DeleteCollection(ctx context.Context, opts met
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -166,7 +157,6 @@ func (c *clusterScalingSchedules) DeleteCollection(ctx context.Context, opts met
 func (c *clusterScalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterScalingSchedule, err error) {
 	result = &v1.ClusterScalingSchedule{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("clusterscalingschedules").
 		Name(name).
 		SubResource(subresources...).

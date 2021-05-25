@@ -43,7 +43,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // ClusterScalingSchedules returns a ClusterScalingScheduleInformer.
 func (v *version) ClusterScalingSchedules() ClusterScalingScheduleInformer {
-	return &clusterScalingScheduleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &clusterScalingScheduleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // ScalingSchedules returns a ScalingScheduleInformer.

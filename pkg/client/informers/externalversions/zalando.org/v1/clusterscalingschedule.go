@@ -42,33 +42,32 @@ type ClusterScalingScheduleInformer interface {
 type clusterScalingScheduleInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
-	namespace        string
 }
 
 // NewClusterScalingScheduleInformer constructs a new informer for ClusterScalingSchedule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewClusterScalingScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredClusterScalingScheduleInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewClusterScalingScheduleInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredClusterScalingScheduleInformer(client, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredClusterScalingScheduleInformer constructs a new informer for ClusterScalingSchedule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredClusterScalingScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredClusterScalingScheduleInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ZalandoV1().ClusterScalingSchedules(namespace).List(context.TODO(), options)
+				return client.ZalandoV1().ClusterScalingSchedules().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ZalandoV1().ClusterScalingSchedules(namespace).Watch(context.TODO(), options)
+				return client.ZalandoV1().ClusterScalingSchedules().Watch(context.TODO(), options)
 			},
 		},
 		&zalandoorgv1.ClusterScalingSchedule{},
@@ -78,7 +77,7 @@ func NewFilteredClusterScalingScheduleInformer(client versioned.Interface, names
 }
 
 func (f *clusterScalingScheduleInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredClusterScalingScheduleInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredClusterScalingScheduleInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *clusterScalingScheduleInformer) Informer() cache.SharedIndexInformer {

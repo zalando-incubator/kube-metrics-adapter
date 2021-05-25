@@ -28,8 +28,8 @@ type FakeZalandoV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeZalandoV1) ClusterScalingSchedules(namespace string) v1.ClusterScalingScheduleInterface {
-	return &FakeClusterScalingSchedules{c, namespace}
+func (c *FakeZalandoV1) ClusterScalingSchedules() v1.ClusterScalingScheduleInterface {
+	return &FakeClusterScalingSchedules{c}
 }
 
 func (c *FakeZalandoV1) ScalingSchedules(namespace string) v1.ScalingScheduleInterface {

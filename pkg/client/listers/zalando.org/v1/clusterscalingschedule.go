@@ -31,8 +31,9 @@ type ClusterScalingScheduleLister interface {
 	// List lists all ClusterScalingSchedules in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ClusterScalingSchedule, err error)
-	// ClusterScalingSchedules returns an object that can list and get ClusterScalingSchedules.
-	ClusterScalingSchedules(namespace string) ClusterScalingScheduleNamespaceLister
+	// Get retrieves the ClusterScalingSchedule from the index for a given name.
+	// Objects returned here must be treated as read-only.
+	Get(name string) (*v1.ClusterScalingSchedule, error)
 	ClusterScalingScheduleListerExpansion
 }
 
@@ -54,41 +55,9 @@ func (s *clusterScalingScheduleLister) List(selector labels.Selector) (ret []*v1
 	return ret, err
 }
 
-// ClusterScalingSchedules returns an object that can list and get ClusterScalingSchedules.
-func (s *clusterScalingScheduleLister) ClusterScalingSchedules(namespace string) ClusterScalingScheduleNamespaceLister {
-	return clusterScalingScheduleNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// ClusterScalingScheduleNamespaceLister helps list and get ClusterScalingSchedules.
-// All objects returned here must be treated as read-only.
-type ClusterScalingScheduleNamespaceLister interface {
-	// List lists all ClusterScalingSchedules in the indexer for a given namespace.
-	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.ClusterScalingSchedule, err error)
-	// Get retrieves the ClusterScalingSchedule from the indexer for a given namespace and name.
-	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1.ClusterScalingSchedule, error)
-	ClusterScalingScheduleNamespaceListerExpansion
-}
-
-// clusterScalingScheduleNamespaceLister implements the ClusterScalingScheduleNamespaceLister
-// interface.
-type clusterScalingScheduleNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all ClusterScalingSchedules in the indexer for a given namespace.
-func (s clusterScalingScheduleNamespaceLister) List(selector labels.Selector) (ret []*v1.ClusterScalingSchedule, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.ClusterScalingSchedule))
-	})
-	return ret, err
-}
-
-// Get retrieves the ClusterScalingSchedule from the indexer for a given namespace and name.
-func (s clusterScalingScheduleNamespaceLister) Get(name string) (*v1.ClusterScalingSchedule, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the ClusterScalingSchedule from the index for a given name.
+func (s *clusterScalingScheduleLister) Get(name string) (*v1.ClusterScalingSchedule, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}
