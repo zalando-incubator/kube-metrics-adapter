@@ -98,7 +98,7 @@ const (
 	WednesdaySchedule ScheduleDay = "Wed"
 	ThursdaySchedule  ScheduleDay = "Thu"
 	FridaySchedule    ScheduleDay = "Fri"
-	StaturdaySchedule ScheduleDay = "Sat"
+	SaturdaySchedule  ScheduleDay = "Sat"
 )
 
 // ScheduleDate is a RFC3339 representation of the date for a Schedule
