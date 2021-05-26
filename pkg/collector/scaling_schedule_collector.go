@@ -29,7 +29,7 @@ var days = map[v1.ScheduleDay]time.Weekday{
 	v1.WednesdaySchedule: time.Wednesday,
 	v1.ThursdaySchedule:  time.Thursday,
 	v1.FridaySchedule:    time.Friday,
-	v1.StaturdaySchedule: time.Saturday,
+	v1.SaturdaySchedule:  time.Saturday,
 }
 
 var (
