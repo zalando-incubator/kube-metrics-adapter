@@ -18,7 +18,6 @@ const (
 	HTTPMetricNameLegacy      = "http"
 	HTTPEndpointAnnotationKey = "endpoint"
 	HTTPJsonPathAnnotationKey = "json-key"
-	identifierLabel           = "identifier"
 )
 
 type HTTPCollectorPlugin struct{}
@@ -52,9 +51,6 @@ func (p *HTTPCollectorPlugin) NewCollector(hpa *v2beta2.HorizontalPodAutoscaler,
 	collector.metricType = config.Type
 	if config.Metric.Selector == nil || config.Metric.Selector.MatchLabels == nil {
 		return nil, fmt.Errorf("no label selector specified for metric: %s", config.Metric.Name)
-	}
-	if _, ok := config.Metric.Selector.MatchLabels[identifierLabel]; !ok {
-		return nil, fmt.Errorf("%s is not specified as a label for metric %s", identifierLabel, config.Metric.Name)
 	}
 	collector.metric = config.Metric
 	var aggFunc httpmetrics.AggregatorFunc
