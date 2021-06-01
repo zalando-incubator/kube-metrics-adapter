@@ -650,9 +650,8 @@ spec:
         type: AverageValue
 ```
 
-The HTTP collector similar to the Pod Metrics collector. The metric name should always be `http`.
-This value is also used in the annotations to configure the metrics adapter to query the required
-target. The following configuration values are supported:
+The HTTP collector similar to the Pod Metrics collector. The following
+configuration values are supported:
 
 - `json-key` to specify the JSON path of the metric to be queried
 - `endpoint` the fully formed path to query for the metric. In the above example a Kubernetes _Service_

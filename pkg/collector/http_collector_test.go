@@ -85,7 +85,7 @@ func makeTestHTTPCollectorConfig(endpoint, aggregator string) *MetricConfig {
 			Metric: v2beta2.MetricIdentifier{
 				Name: "test-metric",
 				Selector: &v1.LabelSelector{
-					MatchLabels: map[string]string{identifierLabel: "test-metric"},
+					MatchLabels: map[string]string{"type": HTTPJSONPathType},
 				},
 			},
 		},
