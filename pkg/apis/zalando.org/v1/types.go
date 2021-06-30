@@ -50,11 +50,11 @@ type Schedule struct {
 	Type ScheduleType `json:"type"`
 	// Defines the details of a Repeating schedule.
 	// +optional
-	Period SchedulePeriod `json:"period"`
+	Period *SchedulePeriod `json:"period,omitempty"`
 	// Defines the starting date of a OneTime schedule. It has to
 	// be a RFC3339 formated date.
 	// +optional
-	Date ScheduleDate `json:"date"`
+	Date *ScheduleDate `json:"date,omitempty"`
 	// The duration in minutes that the configured value will be
 	// returned for the defined schedule.
 	DurationMinutes int `json:"durationMinutes"`
