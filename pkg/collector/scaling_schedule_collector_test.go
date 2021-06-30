@@ -670,23 +670,25 @@ func getSchedules(schedules []schedule) (result []v1.Schedule) {
 	for _, schedule := range schedules {
 		switch schedule.kind {
 		case string(v1.OneTimeSchedule):
+			date := v1.ScheduleDate(schedule.date)
 			result = append(result,
 				v1.Schedule{
 					Type:            v1.OneTimeSchedule,
-					Date:            v1.ScheduleDate(schedule.date),
+					Date:            &date,
 					DurationMinutes: schedule.duration,
 					Value:           schedule.value,
 				},
 			)
 		case string(v1.RepeatingSchedule):
+			period := v1.SchedulePeriod{
+				StartTime: schedule.startTime,
+				Days:      schedule.days,
+				Timezone:  schedule.timezone,
+			}
 			result = append(result,
 				v1.Schedule{
-					Type: v1.RepeatingSchedule,
-					Period: v1.SchedulePeriod{
-						StartTime: schedule.startTime,
-						Days:      schedule.days,
-						Timezone:  schedule.timezone,
-					},
+					Type:            v1.RepeatingSchedule,
+					Period:          &period,
 					DurationMinutes: schedule.duration,
 					Value:           schedule.value,
 				},

@@ -276,7 +276,7 @@ func calculateMetrics(schedules []v1.Schedule, now time.Time, objectReference cu
 				}
 			}
 		case v1.OneTimeSchedule:
-			scheduledTime, err := time.Parse(time.RFC3339, string(schedule.Date))
+			scheduledTime, err := time.Parse(time.RFC3339, string(*schedule.Date))
 			if err != nil {
 				return nil, ErrInvalidScheduleDate
 			}
