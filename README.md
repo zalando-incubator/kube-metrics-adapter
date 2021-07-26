@@ -587,8 +587,8 @@ For instance if you define the entity filter
 then you might want to get an average over the metrics for those three
 entities. This would be possible by using the `avg` aggregator. The default
 aggregator is `last` which returns only the latest metric point from the
-query. The supported aggregation functions are `avg`, `dev`, `count`,
-`first`, `last`, `max`, `min`, `sum`, `diff`. See the [KariosDB docs](https://kairosdb.github.io/docs/build/html/restapi/Aggregators.html) for
+query. The supported aggregation functions are `avg`, `count`,
+`last`, `max`, `min`, `sum`, `diff`. See the [KariosDB docs](https://kairosdb.github.io/docs/build/html/restapi/Aggregators.html) for
 details.
 
 The `duration` defines the duration used for the timeseries query. E.g. if you
