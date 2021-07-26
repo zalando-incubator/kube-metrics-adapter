@@ -15,9 +15,7 @@ var (
 	// https://kairosdb.github.io/docs/build/html/restapi/Aggregators.html
 	validAggregators = map[string]struct{}{
 		"avg":   struct{}{},
-		"dev":   struct{}{},
 		"count": struct{}{},
-		"first": struct{}{},
 		"last":  struct{}{},
 		"max":   struct{}{},
 		"min":   struct{}{},
@@ -112,17 +110,10 @@ func (c *Client) Query(checkID int, key string, tags map[string]string, aggregat
 		StartRelative: durationToSampling(duration),
 		Metrics: []metric{
 			{
-				Name:  fmt.Sprintf("zmon.check.%d", checkID),
-				Limit: 10000, // maximum limit of ZMON
-				Tags:  tagsSlice,
-				GroupBy: []tagGroup{
-					{
-						Name: "tag",
-						Tags: []string{
-							"key",
-						},
-					},
-				},
+				Name:        fmt.Sprintf("zmon.check.%d", checkID),
+				Limit:       10000, // maximum limit of ZMON
+				Tags:        tagsSlice,
+				GroupBy:     []tagGroup{},
 				Aggregators: make([]aggregator, 0, len(aggregators)),
 			},
 		},
@@ -142,6 +133,10 @@ func (c *Client) Query(checkID int, key string, tags map[string]string, aggregat
 	// add key to query if defined
 	if key != "" {
 		query.Metrics[0].Tags["key"] = []string{key}
+		query.Metrics[0].GroupBy = append(query.Metrics[0].GroupBy, tagGroup{
+			Name: "tag",
+			Tags: []string{"key"},
+		})
 	}
 
 	body, err := json.Marshal(&query)
@@ -158,6 +153,7 @@ func (c *Client) Query(checkID int, key string, tags map[string]string, aggregat
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-Attribution", fmt.Sprintf("kube-metrics-adapter/%d", checkID))
 
 	resp, err := c.http.Do(req)
 	if err != nil {
