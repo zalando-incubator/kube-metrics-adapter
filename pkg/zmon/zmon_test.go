@@ -1,6 +1,7 @@
 package zmon
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -130,6 +131,37 @@ func TestQuery(tt *testing.T) {
 		tt.Run(ti.msg, func(t *testing.T) {
 			ts := httptest.NewServer(http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
+					if ti.status == http.StatusOK {
+						q := metricQuery{}
+						decoder := json.NewDecoder(r.Body)
+						err := decoder.Decode(&q)
+						assert.NoError(t, err)
+
+						numberOfMetrics := len(q.Metrics)
+						assert.Equal(t, 1, numberOfMetrics, "expected 1 metrics, got %d", numberOfMetrics)
+						metric := q.Metrics[0]
+						if ti.key != "" {
+							numberOfTags := len(metric.Tags)
+							assert.Equal(t, 1, numberOfTags, "expected 1 metric, got %d", numberOfTags)
+							tag := metric.Tags["key"][0]
+							assert.Equal(t, ti.key, tag, "expected key '%s' as tag, got '%s'", ti.key, tag)
+
+							numberOfTagGroups := len(metric.GroupBy)
+							assert.Equal(t, 1, numberOfTagGroups, "expected 1 GroupBy tag, got %d", numberOfTagGroups)
+							tagGroups := metric.GroupBy[0]
+
+							numberOfTagGroupTags := len(tagGroups.Tags)
+							assert.Equal(t, 1, numberOfTagGroupTags, "expected 1 GroupBy tag, got %d", numberOfTagGroupTags)
+
+							expectedGroupByTag := "key"
+							groupByTag := tagGroups.Tags[0]
+							assert.Equal(t, expectedGroupByTag, groupByTag, "expected GroupBy tag '%s', got '%s'", expectedGroupByTag, groupByTag)
+						} else {
+							_, ok := metric.Tags["key"]
+							assert.Equal(t, false, ok)
+							assert.Equal(t, 0, len(metric.GroupBy))
+						}
+					}
 					w.WriteHeader(ti.status)
 					_, err := w.Write([]byte(ti.body))
 					assert.NoError(t, err)
