@@ -30,6 +30,7 @@ import (
 	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	rg "github.com/szuecs/routegroup-client/client/clientset/versioned"
 	"github.com/zalando-incubator/cluster-lifecycle-manager/pkg/credentials-loader/platformiam"
 	generatedopenapi "github.com/zalando-incubator/kube-metrics-adapter/pkg/api/generated/openapi"
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
@@ -113,6 +114,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"path to the credentials dir where tokens are stored")
 	flags.BoolVar(&o.SkipperIngressMetrics, "skipper-ingress-metrics", o.SkipperIngressMetrics, ""+
 		"whether to enable skipper ingress metrics")
+	flags.BoolVar(&o.SkipperRouteGroupMetrics, "skipper-routegroup-metrics", o.SkipperRouteGroupMetrics, ""+
+		"whether to enable skipper routegroup metrics")
 	flags.StringArrayVar(&o.SkipperBackendWeightAnnotation, "skipper-backends-annotation", o.SkipperBackendWeightAnnotation, ""+
 		"the annotation to get backend weights so that the returned metric can be weighted")
 	flags.BoolVar(&o.AWSExternalMetrics, "aws-external-metrics", o.AWSExternalMetrics, ""+
@@ -170,6 +173,11 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		return fmt.Errorf("failed to initialize new client: %v", err)
 	}
 
+	rgClient, err := rg.NewForConfig(clientConfig)
+	if err != nil {
+		return fmt.Errorf("failed to initialize RouteGroup client: %v", err)
+	}
+
 	collectorFactory := collector.NewCollectorFactory()
 
 	if o.PrometheusServer != "" {
@@ -186,15 +194,24 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		collectorFactory.RegisterExternalCollector([]string{collector.PrometheusMetricType, collector.PrometheusMetricNameLegacy}, promPlugin)
 
 		// skipper collector can only be enabled if prometheus is.
-		if o.SkipperIngressMetrics {
-			skipperPlugin, err := collector.NewSkipperCollectorPlugin(client, promPlugin, o.SkipperBackendWeightAnnotation)
+		if o.SkipperIngressMetrics || o.SkipperRouteGroupMetrics {
+			skipperPlugin, err := collector.NewSkipperCollectorPlugin(client, rgClient, promPlugin, o.SkipperBackendWeightAnnotation)
 			if err != nil {
 				return fmt.Errorf("failed to initialize skipper collector plugin: %v", err)
 			}
 
-			err = collectorFactory.RegisterObjectCollector("Ingress", "", skipperPlugin)
-			if err != nil {
-				return fmt.Errorf("failed to register skipper collector plugin: %v", err)
+			if o.SkipperIngressMetrics {
+				err = collectorFactory.RegisterObjectCollector("Ingress", "", skipperPlugin)
+				if err != nil {
+					return fmt.Errorf("failed to register skipper Ingress collector plugin: %v", err)
+				}
+			}
+
+			if o.SkipperRouteGroupMetrics {
+				err = collectorFactory.RegisterObjectCollector("RouteGroup", "", skipperPlugin)
+				if err != nil {
+					return fmt.Errorf("failed to register skipper RouteGroup collector plugin: %v", err)
+				}
 			}
 		}
 	}
@@ -390,6 +407,9 @@ type AdapterServerOptions struct {
 	// SkipperIngressMetrics switches on support for skipper ingress based
 	// metric collection.
 	SkipperIngressMetrics bool
+	// SkipperRouteGroupMetrics switches on support for skipper routegroup
+	// based metric collection.
+	SkipperRouteGroupMetrics bool
 	// AWSExternalMetrics switches on support for getting external metrics
 	// from AWS.
 	AWSExternalMetrics bool

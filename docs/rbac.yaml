@@ -64,10 +64,21 @@ rules:
   - statefulsets
   verbs:
   - get
+# only relevant if running with the flag:
+# --skipper-ingress-metrics
 - apiGroups:
   - extensions
+  - networking.k8s.io
   resources:
   - ingresses
+  verbs:
+  - get
+# only relevant if running with the flag:
+# --skipper-routegroup-metrics
+- apiGroups:
+  - zalando.org
+  resources:
+  - routegroups
   verbs:
   - get
 - apiGroups:

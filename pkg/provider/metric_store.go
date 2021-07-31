@@ -82,6 +82,16 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 			Resource: "ingresses",
 			Group:    group,
 		}
+	case "RouteGroup":
+		group := "zalando.org"
+		gv, err := schema.ParseGroupVersion(value.DescribedObject.APIVersion)
+		if err == nil {
+			group = gv.Group
+		}
+		groupResource = schema.GroupResource{
+			Resource: "routegroups",
+			Group:    group,
+		}
 	case "ScalingSchedule":
 		group := "zalando.org"
 		gv, err := schema.ParseGroupVersion(value.DescribedObject.APIVersion)
