@@ -351,6 +351,9 @@ spec:
         name: myapp
       metric:
         name: requests-per-second
+        selector:
+          matchLabels:
+            backend: backend1 # optional backend
       target:
         averageValue: "10"
         type: AverageValue
@@ -382,6 +385,9 @@ spec:
         name: myapp
       metric:
         name: requests-per-second
+        selector:
+          matchLabels:
+            backend: backend1 # optional backend
       target:
         averageValue: "10"
         type: AverageValue
@@ -389,15 +395,13 @@ spec:
 
 ### Metric weighting based on backend
 
-Skipper supports sending traffic to different backend based on annotations
-present on the `Ingress` object, or weights on the RouteGroup backends. When
-the metric name is specified without a backend as `requests-per-second` then
-the number of replicas will be calculated based on the full traffic served by
-that ingress/routegroup.  If however only the traffic being routed to a
-specific backend should be used then the backend name can be specified as a
-metric name like `requests-per-second,backend1` which would return the
-requests-per-second being sent to the `backend1`. The ingress annotation where
-the backend weights can be obtained can be specified through the flag
+Skipper supports sending traffic to different backends based on annotations
+present on the `Ingress` object, or weights on the RouteGroup backends. By
+default the number of replicas will be calculated based on the full traffic
+served by that ingress/routegroup.  If however only the traffic being routed to
+a specific backend should be used then the backend name can be specified via
+the `backend` label under `matchLabels` for the metric.  The ingress annotation
+where the backend weights can be obtained can be specified through the flag
 `--skipper-backends-annotation`.
 
 ## InfluxDB collector

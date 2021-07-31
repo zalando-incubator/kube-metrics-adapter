@@ -247,9 +247,15 @@ func ParseHPAMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) ([]*MetricConfi
 		}
 
 		if metric.Type == autoscalingv2.ExternalMetricSourceType &&
-			metric.External.Metric.Selector != nil &&
-			metric.External.Metric.Selector.MatchLabels != nil {
+			metric.External.Metric.Selector != nil {
 			for k, v := range metric.External.Metric.Selector.MatchLabels {
+				config.Config[k] = v
+			}
+		}
+
+		if metric.Type == autoscalingv2.ObjectMetricSourceType &&
+			metric.Object.Metric.Selector != nil {
+			for k, v := range metric.Object.Metric.Selector.MatchLabels {
 				config.Config[k] = v
 			}
 		}

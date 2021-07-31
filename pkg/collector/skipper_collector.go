@@ -51,11 +51,13 @@ func NewSkipperCollectorPlugin(client kubernetes.Interface, rgClient rginterface
 // NewCollector initializes a new skipper collector from the specified HPA.
 func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	if strings.HasPrefix(config.Metric.Name, rpsMetricName) {
-		backend := ""
-		if len(config.Metric.Name) > len(rpsMetricName) {
-			metricNameParts := strings.Split(config.Metric.Name, rpsMetricBackendSeparator)
-			if len(metricNameParts) == 2 {
-				backend = metricNameParts[1]
+		backend, ok := config.Config["backend"]
+		if !ok {
+			if len(config.Metric.Name) > len(rpsMetricName) {
+				metricNameParts := strings.Split(config.Metric.Name, rpsMetricBackendSeparator)
+				if len(metricNameParts) == 2 {
+					backend = metricNameParts[1]
+				}
 			}
 		}
 		return NewSkipperCollector(c.client, c.rgClient, c.plugin, hpa, config, interval, c.backendAnnotations, backend)
