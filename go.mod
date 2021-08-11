@@ -2,7 +2,7 @@ module github.com/zalando-incubator/kube-metrics-adapter
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
-	github.com/aws/aws-sdk-go v1.39.2
+	github.com/aws/aws-sdk-go v1.40.12
 	github.com/go-openapi/spec v0.20.3
 	github.com/influxdata/influxdb-client-go v0.2.0
 	github.com/influxdata/line-protocol v0.0.0-20201012155213-5f565037cbc9 // indirect
@@ -18,15 +18,15 @@ require (
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.20.5
-	k8s.io/apimachinery v0.20.5
-	k8s.io/apiserver v0.20.5
-	k8s.io/client-go v0.20.5
-	k8s.io/code-generator v0.20.5
-	k8s.io/component-base v0.20.5
+	k8s.io/api v0.20.9
+	k8s.io/apimachinery v0.20.9
+	k8s.io/apiserver v0.20.9
+	k8s.io/client-go v0.20.9
+	k8s.io/code-generator v0.20.9
+	k8s.io/component-base v0.20.9
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
-	k8s.io/metrics v0.20.5
+	k8s.io/metrics v0.20.9
 	sigs.k8s.io/controller-tools v0.5.0
 )
 
