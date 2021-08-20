@@ -106,7 +106,7 @@ func getAnnotationWeight(backendWeights string, backend string) (float64, error)
 	return 0, nil
 }
 
-func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) (float64, error) {
+func getIngressWeight(ingressAnnotations map[string]string, backendAnnotations []string, backend string) (float64, error) {
 	maxWeight := 0.0
 	annotationsPresent := false
 
@@ -163,7 +163,7 @@ func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) 
 			return nil, err
 		}
 
-		backendWeight, err = getWeights(ingress.Annotations, c.backendAnnotations, c.backend)
+		backendWeight, err = getIngressWeight(ingress.Annotations, c.backendAnnotations, c.backend)
 		if err != nil {
 			return nil, err
 		}
