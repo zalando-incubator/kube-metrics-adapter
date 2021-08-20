@@ -53,6 +53,8 @@ func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAu
 	if strings.HasPrefix(config.Metric.Name, rpsMetricName) {
 		backend, ok := config.Config["backend"]
 		if !ok {
+			// TODO: remove the deprecated way of specifying
+			// optional backend at a later point in time.
 			if len(config.Metric.Name) > len(rpsMetricName) {
 				metricNameParts := strings.Split(config.Metric.Name, rpsMetricBackendSeparator)
 				if len(metricNameParts) == 2 {
