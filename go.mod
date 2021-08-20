@@ -14,6 +14,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spyzhov/ajson v0.4.2
 	github.com/stretchr/testify v1.7.0
+	github.com/szuecs/routegroup-client v0.18.3
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20180921141935-824b77fb1f84
 	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392 // indirect

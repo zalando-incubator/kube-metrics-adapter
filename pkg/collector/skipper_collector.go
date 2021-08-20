@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	rgv1 "github.com/szuecs/routegroup-client/apis/zalando.org/v1"
+	rginterface "github.com/szuecs/routegroup-client/client/clientset/versioned"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,14 +33,16 @@ var (
 // collectors for getting skipper ingress metrics.
 type SkipperCollectorPlugin struct {
 	client             kubernetes.Interface
+	rgClient           rginterface.Interface
 	plugin             CollectorPlugin
 	backendAnnotations []string
 }
 
 // NewSkipperCollectorPlugin initializes a new SkipperCollectorPlugin.
-func NewSkipperCollectorPlugin(client kubernetes.Interface, prometheusPlugin *PrometheusCollectorPlugin, backendAnnotations []string) (*SkipperCollectorPlugin, error) {
+func NewSkipperCollectorPlugin(client kubernetes.Interface, rgClient rginterface.Interface, prometheusPlugin *PrometheusCollectorPlugin, backendAnnotations []string) (*SkipperCollectorPlugin, error) {
 	return &SkipperCollectorPlugin{
 		client:             client,
+		rgClient:           rgClient,
 		plugin:             prometheusPlugin,
 		backendAnnotations: backendAnnotations,
 	}, nil
@@ -54,7 +58,7 @@ func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAu
 				backend = metricNameParts[1]
 			}
 		}
-		return NewSkipperCollector(c.client, c.plugin, hpa, config, interval, c.backendAnnotations, backend)
+		return NewSkipperCollector(c.client, c.rgClient, c.plugin, hpa, config, interval, c.backendAnnotations, backend)
 	}
 	return nil, fmt.Errorf("metric '%s' not supported", config.Metric.Name)
 }
@@ -63,6 +67,7 @@ func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAu
 // It depends on the prometheus collector for getting the metrics.
 type SkipperCollector struct {
 	client             kubernetes.Interface
+	rgClient           rginterface.Interface
 	metric             autoscalingv2.MetricIdentifier
 	objectReference    custom_metrics.ObjectReference
 	hpa                *autoscalingv2.HorizontalPodAutoscaler
@@ -74,9 +79,10 @@ type SkipperCollector struct {
 }
 
 // NewSkipperCollector initializes a new SkipperCollector.
-func NewSkipperCollector(client kubernetes.Interface, plugin CollectorPlugin, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration, backendAnnotations []string, backend string) (*SkipperCollector, error) {
+func NewSkipperCollector(client kubernetes.Interface, rgClient rginterface.Interface, plugin CollectorPlugin, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration, backendAnnotations []string, backend string) (*SkipperCollector, error) {
 	return &SkipperCollector{
 		client:             client,
+		rgClient:           rgClient,
 		objectReference:    config.ObjectReference,
 		hpa:                hpa,
 		metric:             config.Metric,
@@ -100,7 +106,7 @@ func getAnnotationWeight(backendWeights string, backend string) (float64, error)
 	return 0, nil
 }
 
-func getWeights(ingressAnnotations map[string]string, backendAnnotations []string, backend string) (float64, error) {
+func getIngressWeight(ingressAnnotations map[string]string, backendAnnotations []string, backend string) (float64, error) {
 	maxWeight := 0.0
 	annotationsPresent := false
 
@@ -128,26 +134,65 @@ func getWeights(ingressAnnotations map[string]string, backendAnnotations []strin
 	return 0.0, errBackendNameMissing
 }
 
-// getCollector returns a collector for getting the metrics.
-func (c *SkipperCollector) getCollector() (Collector, error) {
-	ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(context.TODO(), c.objectReference.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
+func getRouteGroupWeight(backends []rgv1.RouteGroupBackendReference, backendName string) (float64, error) {
+	if len(backends) <= 1 {
+		return 1.0, nil
 	}
 
-	backendWeight, err := getWeights(ingress.Annotations, c.backendAnnotations, c.backend)
-	if err != nil {
-		return nil, err
+	if backendName == "" {
+		return 0.0, errBackendNameMissing
 	}
+
+	for _, backend := range backends {
+		if backend.BackendName == backendName {
+			return float64(backend.Weight) / 100.0, nil
+		}
+	}
+
+	return 0.0, nil
+}
+
+// getCollector returns a collector for getting the metrics.
+func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) {
+	var escapedHostnames []string
+	var backendWeight float64
+	switch c.objectReference.Kind {
+	case "Ingress":
+		ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(ctx, c.objectReference.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		backendWeight, err = getIngressWeight(ingress.Annotations, c.backendAnnotations, c.backend)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, rule := range ingress.Spec.Rules {
+			escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.Replace(rule.Host, ".", "_", -1)))
+		}
+	case "RouteGroup":
+		routegroup, err := c.rgClient.ZalandoV1().RouteGroups(c.objectReference.Namespace).Get(ctx, c.objectReference.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		backendWeight, err = getRouteGroupWeight(routegroup.Spec.DefaultBackends, c.backend)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, host := range routegroup.Spec.Hosts {
+			escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.Replace(host, ".", "_", -1)))
+		}
+	default:
+		return nil, fmt.Errorf("unknown skipper resource kind %s for resource %s/%s", c.objectReference.Kind, c.objectReference.Namespace, c.objectReference.Name)
+	}
+
 	config := c.config
 
-	var escapedHostnames []string
-	for _, rule := range ingress.Spec.Rules {
-		escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.Replace(rule.Host, ".", "_", -1)))
-	}
-
 	if len(escapedHostnames) == 0 {
-		return nil, fmt.Errorf("no hosts defined on ingress %s/%s, unable to create collector", c.objectReference.Namespace, c.objectReference.Name)
+		return nil, fmt.Errorf("no hosts defined on %s %s/%s, unable to create collector", c.objectReference.Kind, c.objectReference.Namespace, c.objectReference.Name)
 	}
 
 	config.Config = map[string]string{
@@ -165,7 +210,7 @@ func (c *SkipperCollector) getCollector() (Collector, error) {
 
 // GetMetrics gets skipper metrics from prometheus.
 func (c *SkipperCollector) GetMetrics() ([]CollectedMetric, error) {
-	collector, err := c.getCollector()
+	collector, err := c.getCollector(context.TODO())
 	if err != nil {
 		return nil, err
 	}

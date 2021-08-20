@@ -306,19 +306,26 @@ for this object. But to satisfy the schema we specify a dummy pod called `dummy-
 ## Skipper collector
 
 The skipper collector is a simple wrapper around the Prometheus collector to
-make it easy to define an HPA for scaling based on ingress metrics when
+make it easy to define an HPA for scaling based on [Ingress][ingress] or
+[RouteGroup][routegroup] metrics when
 [skipper](https://github.com/zalando/skipper) is used as the ingress
 implementation in your cluster. It assumes you are collecting Prometheus
 metrics from skipper and it provides the correct Prometheus queries out of the
 box so users don't have to define those manually.
 
+[ingress]: https://kubernetes.io/docs/concepts/services-networking/ingress/
+[routegroup]: https://opensource.zalando.com/skipper/kubernetes/routegroups/
+
 ### Supported metrics
 
 | Metric | Description | Type | Kind | K8s Versions |
 | ----------- | -------------- | ------ | ---- | ---- |
-| `requests-per-second` | Scale based on requests per second for a certain ingress. | Object | `Ingress` | `>=1.14` |
+| `requests-per-second` | Scale based on requests per second for a certain ingress or routegroup. | Object | `Ingress`, `RouteGroup` | `>=1.14` |
 
 ### Example
+
+
+#### Ingress
 
 This is an example of an HPA that will scale based on `requests-per-second` for
 an ingress called `myapp`.
@@ -339,8 +346,39 @@ spec:
   - type: Object
     object:
       describedObject:
-        apiVersion: extensions/v1beta1
+        apiVersion: networking.k8s.io/v1
         kind: Ingress
+        name: myapp
+      metric:
+        name: requests-per-second
+      target:
+        averageValue: "10"
+        type: AverageValue
+```
+
+#### RouteGroup
+
+This is an example of an HPA that will scale based on `requests-per-second` for
+a routegroup called `myapp`.
+
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Object
+    object:
+      describedObject:
+        apiVersion: zalando.org/v1
+        kind: RouteGroup
         name: myapp
       metric:
         name: requests-per-second
@@ -352,14 +390,15 @@ spec:
 ### Metric weighting based on backend
 
 Skipper supports sending traffic to different backend based on annotations
-present on the `Ingress` object. When the metric name is specified without a
-backend as `requests-per-second` then the number of replicas will be calculated
-based on the full traffic served by that ingress.  If however only the traffic
-being routed to a specific backend should be used then the backend name can be
-specified as a metric name like `requests-per-second,backend1` which would
-return the requests-per-second being sent to the `backend1`. The ingress
-annotation where the backend weights can be obtained can be specified through
-the flag `--skipper-backends-annotation`.
+present on the `Ingress` object, or weights on the RouteGroup backends. When
+the metric name is specified without a backend as `requests-per-second` then
+the number of replicas will be calculated based on the full traffic served by
+that ingress/routegroup.  If however only the traffic being routed to a
+specific backend should be used then the backend name can be specified as a
+metric name like `requests-per-second,backend1` which would return the
+requests-per-second being sent to the `backend1`. The ingress annotation where
+the backend weights can be obtained can be specified through the flag
+`--skipper-backends-annotation`.
 
 ## InfluxDB collector
 
