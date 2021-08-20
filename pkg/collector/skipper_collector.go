@@ -139,17 +139,17 @@ func getRouteGroupWeight(backends []rgv1.RouteGroupBackendReference, backendName
 		return 1.0, nil
 	}
 
+	if backendName == "" {
+		return 0.0, errBackendNameMissing
+	}
+
 	for _, backend := range backends {
 		if backend.BackendName == backendName {
 			return float64(backend.Weight) / 100.0, nil
 		}
 	}
 
-	if backendName != "" {
-		return 0.0, nil
-	}
-
-	return 0.0, errBackendNameMissing
+	return 0.0, nil
 }
 
 // getCollector returns a collector for getting the metrics.
