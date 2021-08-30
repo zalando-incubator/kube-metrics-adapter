@@ -31,16 +31,30 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 		err          error
 	}{
 		{
-			name:         "basic single value",
+			name:         "basic single value on object attribute",
 			jsonResponse: []byte(`{"value":3}`),
 			jsonPath:     "$.value",
 			result:       3,
 			aggregator:   Average,
 		},
 		{
-			name:         "basic average",
+			name:         "basic average on object attribute",
 			jsonResponse: []byte(`{"value":[3,4,5]}`),
 			jsonPath:     "$.value",
+			result:       4,
+			aggregator:   Average,
+		},
+		{
+			name:         "basic average on simple array",
+			jsonResponse: []byte(`[3,4,5]`),
+			jsonPath:     "$",
+			result:       4,
+			aggregator:   Average,
+		},
+		{
+			name:         "basic average on nested array",
+			jsonResponse: []byte(`[[3, 1235467890], [4, 1234567891], [5, 1234567892]]`),
+			jsonPath:     "$[:][0]",
 			result:       4,
 			aggregator:   Average,
 		},
@@ -52,7 +66,7 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 			aggregator:   Average,
 		},
 		{
-			name:         "json path not resulting in array or number should lead to error",
+			name:         "json path that does not resolve to data should lead to error",
 			jsonResponse: []byte(`{"metric.value":5}`),
 			jsonPath:     "$['invalid.metric.values']",
 			err:          errors.New("unexpected json: expected single numeric or array value"),
