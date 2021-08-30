@@ -4,7 +4,7 @@ replicas: 1
 
 registry:
   image: registry.opensource.zalan.do/teapot/kube-metrics-adapter
-  imageTag: v0.1.10
+  imageTag: v0.1.12
   imagePullPolicy: IfNotPresent
 
 service:
@@ -24,6 +24,9 @@ skipperBackendsAnnotation:
 skipperIngressMetrics:
 token:
 vmodule:
+priorityClassName:
+automountServiceAccountToken:
+nodeSelector:
 
 authentication:
   kubeConfig:

@@ -17,6 +17,16 @@ spec:
         application: kube-metrics-adapter
         version: {{ .Values.registry.imageTag }}
     spec:
+      {{- if .Values.automountServiceAccountToken }}
+      automountServiceAccountToken: true
+      {{- end }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
       serviceAccountName: kube-metrics-adapter
       containers:
         - name: kube-metrics-adapter
