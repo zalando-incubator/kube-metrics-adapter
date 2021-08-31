@@ -46,6 +46,7 @@ aws:
   region:
 
 influxDB:
+  enabled:
   address:
   organization:
   token:
@@ -64,6 +65,7 @@ log:
   skipLogHeaders:
 
 prometheus:
+  enabled: true
   server: http://prometheus.kube-system.svc.cluster.local
   metricsAddress:
 

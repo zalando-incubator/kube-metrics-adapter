@@ -92,6 +92,9 @@ spec:
             {{- if .Values.http2MaxStreamsPerConnection }}
             - --http2-max-streams-per-connection={{ .Values.http2MaxStreamsPerConnection }}
             {{- end}}
+            {{- if .Values.influxDB.enabled }}
+            - --influxdb-enabled
+            {{- end}}
             {{- if .Values.influxDB.address }}
             - --influxdb-address={{ .Values.influxDB.address }}
             {{- end}}
@@ -127,6 +130,9 @@ spec:
             {{- end}}
             {{- if .Values.profiling }}
             - --profiling={{ .Values.profiling }}
+            {{- end}}
+            {{- if .Values.prometheus.enabled }}
+            - --prometheus-enabled
             {{- end}}
             {{- if .Values.prometheus.server }}
             - --prometheus-server={{ .Values.prometheus.server }}
