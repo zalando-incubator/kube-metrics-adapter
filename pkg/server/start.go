@@ -96,8 +96,12 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"whether to enable Custom Metrics API")
 	flags.BoolVar(&o.EnableExternalMetricsAPI, "enable-external-metrics-api", o.EnableExternalMetricsAPI, ""+
 		"whether to enable External Metrics API")
+	flags.BoolVar(&o.PrometheusEnabled, "prometheus-enabled", o.PrometheusEnabled, ""+
+		"whether to enable the prometheus plugin (if enabled, other options must be provided or specified on a per-hpa basis to configure)")
 	flags.StringVar(&o.PrometheusServer, "prometheus-server", o.PrometheusServer, ""+
 		"url of prometheus server to query")
+	flags.BoolVar(&o.InfluxDBEnabled, "influxdb-enabled", o.InfluxDBEnabled, ""+
+		"whether to enable the influxdb plugin (if enabled, other options must be provided or specified on a per-hpa basis to configure)")
 	flags.StringVar(&o.InfluxDBAddress, "influxdb-address", o.InfluxDBAddress, ""+
 		"address of InfluxDB 2.x server to query (e.g. http://localhost:9999)")
 	flags.StringVar(&o.InfluxDBToken, "influxdb-token", o.InfluxDBToken, ""+
@@ -180,7 +184,12 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 
 	collectorFactory := collector.NewCollectorFactory()
 
-	if o.PrometheusServer != "" {
+	if o.PrometheusServer != "" && o.PrometheusEnabled {
+		klog.Warningln("Prometheus server is configured, but not enabled. For backwards compatibility, the plugin will be enabled. Please update your configuration to pass --prometheus-enabled.")
+		o.PrometheusEnabled = true
+	}
+
+	if o.PrometheusEnabled {
 		promPlugin, err := collector.NewPrometheusCollectorPlugin(client, o.PrometheusServer)
 		if err != nil {
 			return fmt.Errorf("failed to initialize prometheus collector plugin: %v", err)
@@ -216,7 +225,12 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		}
 	}
 
-	if o.InfluxDBAddress != "" {
+	if o.InfluxDBAddress != "" && o.InfluxDBEnabled {
+		klog.Warningln("InfluxDB address is configured, but not enabled. For backwards compatibility, the plugin will be enabled. Please update your configuration to pass --influxdb-enabled.")
+		o.InfluxDBEnabled = true
+	}
+
+	if o.InfluxDBEnabled {
 		influxdbPlugin, err := collector.NewInfluxDBCollectorPlugin(client, o.InfluxDBAddress, o.InfluxDBToken, o.InfluxDBOrg)
 		if err != nil {
 			return fmt.Errorf("failed to initialize InfluxDB collector plugin: %v", err)
@@ -385,10 +399,13 @@ type AdapterServerOptions struct {
 	EnableCustomMetricsAPI bool
 	// EnableExternalMetricsAPI switches on sample apiserver for External Metrics API
 	EnableExternalMetricsAPI bool
-	// PrometheusServer enables prometheus queries to the specified
-	// server
+	// PrometheusEnabled enables the prometheus plugin
+	PrometheusEnabled bool
+	// PrometheusServer configures the default prometheus server
 	PrometheusServer string
-	// InfluxDBAddress enables Flux queries to the specified InfluxDB instance
+	// InfluxDBEnabled enables the influxdb plugin
+	InfluxDBEnabled bool
+	// InfluxDBAddress configures the default InfluxDB instance
 	InfluxDBAddress string
 	// InfluxDBToken is the token used for querying InfluxDB
 	InfluxDBToken string
