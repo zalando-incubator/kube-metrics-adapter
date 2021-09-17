@@ -119,11 +119,11 @@ type ScalingScheduleList struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ScalingScheduleList is a list of cluster scoped scaling schedules.
+// ClusterScalingScheduleList is a list of cluster scoped scaling schedules.
 // +k8s:deepcopy-gen=true
 type ClusterScalingScheduleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items []ScalingSchedule `json:"items"`
+	Items []ClusterScalingSchedule `json:"items"`
 }
