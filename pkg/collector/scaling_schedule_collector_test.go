@@ -12,7 +12,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const hHMMFormat = "15:04"
+const (
+	hHMMFormat                   = "15:04"
+	defaultScalingWindowDuration = 1 * time.Minute
+)
 
 type schedule struct {
 	kind      string
@@ -21,7 +24,7 @@ type schedule struct {
 	days      []v1.ScheduleDay
 	timezone  string
 	duration  int
-	value     int
+	value     int64
 }
 
 func TestScalingScheduleCollector(t *testing.T) {
@@ -37,11 +40,14 @@ func TestScalingScheduleCollector(t *testing.T) {
 		return uTCNow
 	}
 
+	tenMinutes := int64(10)
+
 	for _, tc := range []struct {
-		msg           string
-		schedules     []schedule
-		expectedValue int
-		err           error
+		msg                          string
+		schedules                    []schedule
+		scalingWindowDurationMinutes *int64
+		expectedValue                int64
+		err                          error
 	}{
 		{
 			msg: "Return the right value for one time config",
@@ -80,7 +86,45 @@ func TestScalingScheduleCollector(t *testing.T) {
 			expectedValue: 100,
 		},
 		{
-			msg: "Return the default value (0) for one time config - 30 seconds after",
+			msg: "Return the scaled value (67) for one time config - 20 seconds before starting",
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(time.Second * 20).Format(time.RFC3339),
+					kind:     "OneTime",
+					duration: 45,
+					value:    100,
+				},
+			},
+			expectedValue: 67,
+		},
+		{
+			msg: "Return the scaled value (67) for one time config - 20 seconds after",
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(-time.Minute * 45).Add(-time.Second * 20).Format(time.RFC3339),
+					kind:     "OneTime",
+					duration: 45,
+					value:    100,
+				},
+			},
+			expectedValue: 67,
+		},
+		{
+			msg:                          "Return the scaled value (95) for one time config with a custom scaling window - 30 seconds before starting",
+			scalingWindowDurationMinutes: &tenMinutes,
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(time.Second * 30).Format(time.RFC3339),
+					kind:     "OneTime",
+					duration: 45,
+					value:    100,
+				},
+			},
+			expectedValue: 95,
+		},
+		{
+			msg:                          "Return the scaled value (95) for one time config with a custom scaling window - 30 seconds after",
+			scalingWindowDurationMinutes: &tenMinutes,
 			schedules: []schedule{
 				{
 					date:     nowTime.Add(-time.Minute * 45).Add(-time.Second * 30).Format(time.RFC3339),
@@ -89,7 +133,7 @@ func TestScalingScheduleCollector(t *testing.T) {
 					value:    100,
 				},
 			},
-			expectedValue: 0,
+			expectedValue: 95,
 		},
 		{
 			msg: "Return the default value (0) for one time config not started yet (20 minutes before)",
@@ -428,16 +472,16 @@ func TestScalingScheduleCollector(t *testing.T) {
 			namespace := "default"
 
 			schedules := getSchedules(tc.schedules)
-			store := newMockStore(scalingScheduleName, namespace, schedules)
-			plugin, err := NewScalingScheduleCollectorPlugin(store, now)
+			store := newMockStore(scalingScheduleName, namespace, tc.scalingWindowDurationMinutes, schedules)
+			plugin, err := NewScalingScheduleCollectorPlugin(store, now, defaultScalingWindowDuration)
 			require.NoError(t, err)
 
-			clusterStore := newClusterMockStore(scalingScheduleName, schedules)
-			clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, now)
+			clusterStore := newClusterMockStore(scalingScheduleName, tc.scalingWindowDurationMinutes, schedules)
+			clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, now, defaultScalingWindowDuration)
 			require.NoError(t, err)
 
-			clusterStoreFirstRun := newClusterMockStoreFirstRun(scalingScheduleName, schedules)
-			clusterPluginFirstRun, err := NewClusterScalingScheduleCollectorPlugin(clusterStoreFirstRun, now)
+			clusterStoreFirstRun := newClusterMockStoreFirstRun(scalingScheduleName, tc.scalingWindowDurationMinutes, schedules)
+			clusterPluginFirstRun, err := NewClusterScalingScheduleCollectorPlugin(clusterStoreFirstRun, now, defaultScalingWindowDuration)
 			require.NoError(t, err)
 
 			hpa := makeScalingScheduleHPA(namespace, scalingScheduleName)
@@ -505,14 +549,14 @@ func TestScalingScheduleObjectNotPresentReturnsError(t *testing.T) {
 		make(map[string]interface{}),
 		getByKeyFn,
 	}
-	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now)
+	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration)
 	require.NoError(t, err)
 
 	clusterStore := mockStore{
 		make(map[string]interface{}),
 		getByKeyFn,
 	}
-	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, time.Now)
+	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, time.Now, defaultScalingWindowDuration)
 	require.NoError(t, err)
 
 	hpa := makeScalingScheduleHPA("namespace", "scalingScheduleName")
@@ -567,10 +611,10 @@ func TestReturnsErrorWhenStoreDoes(t *testing.T) {
 		},
 	}
 
-	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now)
+	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration)
 	require.NoError(t, err)
 
-	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(store, time.Now)
+	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration)
 	require.NoError(t, err)
 
 	hpa := makeScalingScheduleHPA("namespace", "scalingScheduleName")
@@ -615,7 +659,7 @@ func getByKeyFn(d map[string]interface{}, key string) (item interface{}, exists 
 	return item, exists, nil
 }
 
-func newMockStore(name, namespace string, schedules []v1.Schedule) mockStore {
+func newMockStore(name, namespace string, scalingWindowDurationMinutes *int64, schedules []v1.Schedule) mockStore {
 	return mockStore{
 		map[string]interface{}{
 			fmt.Sprintf("%s/%s", namespace, name): &v1.ScalingSchedule{
@@ -623,7 +667,8 @@ func newMockStore(name, namespace string, schedules []v1.Schedule) mockStore {
 					Name: name,
 				},
 				Spec: v1.ScalingScheduleSpec{
-					Schedules: schedules,
+					ScalingWindowDurationMinutes: scalingWindowDurationMinutes,
+					Schedules:                    schedules,
 				},
 			},
 		},
@@ -631,7 +676,7 @@ func newMockStore(name, namespace string, schedules []v1.Schedule) mockStore {
 	}
 }
 
-func newClusterMockStore(name string, schedules []v1.Schedule) mockStore {
+func newClusterMockStore(name string, scalingWindowDurationMinutes *int64, schedules []v1.Schedule) mockStore {
 	return mockStore{
 		map[string]interface{}{
 			name: &v1.ClusterScalingSchedule{
@@ -639,7 +684,8 @@ func newClusterMockStore(name string, schedules []v1.Schedule) mockStore {
 					Name: name,
 				},
 				Spec: v1.ScalingScheduleSpec{
-					Schedules: schedules,
+					ScalingWindowDurationMinutes: scalingWindowDurationMinutes,
+					Schedules:                    schedules,
 				},
 			},
 		},
@@ -650,7 +696,7 @@ func newClusterMockStore(name string, schedules []v1.Schedule) mockStore {
 // The cache.Store returns the v1.ClusterScalingSchedule items as
 // v1.ScalingSchedule when it first lists it. When it's update it
 // asserts it correctly to the v1.ClusterScalingSchedule type.
-func newClusterMockStoreFirstRun(name string, schedules []v1.Schedule) mockStore {
+func newClusterMockStoreFirstRun(name string, scalingWindowDurationMinutes *int64, schedules []v1.Schedule) mockStore {
 	return mockStore{
 		map[string]interface{}{
 			name: &v1.ScalingSchedule{
@@ -658,7 +704,8 @@ func newClusterMockStoreFirstRun(name string, schedules []v1.Schedule) mockStore
 					Name: name,
 				},
 				Spec: v1.ScalingScheduleSpec{
-					Schedules: schedules,
+					ScalingWindowDurationMinutes: scalingWindowDurationMinutes,
+					Schedules:                    schedules,
 				},
 			},
 		},
