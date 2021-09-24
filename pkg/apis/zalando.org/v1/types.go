@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,6 +39,10 @@ type ClusterScalingSchedule struct {
 // ScalingScheduleSpec is the spec part of the ScalingSchedule.
 // +k8s:deepcopy-gen=true
 type ScalingScheduleSpec struct {
+	// Fade the scheduled values in and out over this many minutes. If unset, the default per-cluster value will be used.
+	// +optional
+	ScalingWindowDurationMinutes *int64 `json:"scalingWindowDurationMinutes,omitempty"`
+
 	// Schedules is the list of schedules for this ScalingSchedule
 	// resource. All the schedules defined here will result on the value
 	// to the same metric. New metrics require a new ScalingSchedule
@@ -59,7 +65,11 @@ type Schedule struct {
 	// returned for the defined schedule.
 	DurationMinutes int `json:"durationMinutes"`
 	// The metric value that will be returned for the defined schedule.
-	Value int `json:"value"`
+	Value int64 `json:"value"`
+}
+
+func (in Schedule) Duration() time.Duration {
+	return time.Duration(in.DurationMinutes) * time.Minute
 }
 
 // Defines if the schedule is a OneTime schedule or
