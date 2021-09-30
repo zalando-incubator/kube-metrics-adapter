@@ -334,7 +334,14 @@ func scaledValue(timestamp time.Time, startTime time.Time, scalingWindowDuration
 	if scalingWindowDuration == 0 {
 		return 0
 	}
-	return int64(math.Ceil(math.Abs(float64(timestamp.Sub(startTime))) / float64(scalingWindowDuration) * float64(value)))
+	// The HPA has a rule to do not scale up or down if the change in
+	// the metric is less than 10% of the current value. We will use 10
+	// buckets of time using the floor of each. This value might be
+	// flexible one day, but for now it's fixed.
+	const steps float64 = 10
+
+	requiredPercentage := math.Abs(float64(timestamp.Sub(startTime))) / float64(scalingWindowDuration)
+	return int64(math.Floor(requiredPercentage*steps) * (float64(value) / steps))
 }
 
 func between(timestamp, start, end time.Time) bool {
