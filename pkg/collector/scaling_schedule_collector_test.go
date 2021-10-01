@@ -86,7 +86,7 @@ func TestScalingScheduleCollector(t *testing.T) {
 			expectedValue: 100,
 		},
 		{
-			msg: "Return the scaled value (67) for one time config - 20 seconds before starting",
+			msg: "Return the scaled value (60) for one time config - 20 seconds before starting",
 			schedules: []schedule{
 				{
 					date:     nowTime.Add(time.Second * 20).Format(time.RFC3339),
@@ -95,10 +95,10 @@ func TestScalingScheduleCollector(t *testing.T) {
 					value:    100,
 				},
 			},
-			expectedValue: 67,
+			expectedValue: 60,
 		},
 		{
-			msg: "Return the scaled value (67) for one time config - 20 seconds after",
+			msg: "Return the scaled value (60) for one time config - 20 seconds after",
 			schedules: []schedule{
 				{
 					date:     nowTime.Add(-time.Minute * 45).Add(-time.Second * 20).Format(time.RFC3339),
@@ -107,10 +107,10 @@ func TestScalingScheduleCollector(t *testing.T) {
 					value:    100,
 				},
 			},
-			expectedValue: 67,
+			expectedValue: 60,
 		},
 		{
-			msg:                          "Return the scaled value (95) for one time config with a custom scaling window - 30 seconds before starting",
+			msg:                          "Return the scaled value (90) for one time config with a custom scaling window - 30 seconds before starting",
 			scalingWindowDurationMinutes: &tenMinutes,
 			schedules: []schedule{
 				{
@@ -120,10 +120,10 @@ func TestScalingScheduleCollector(t *testing.T) {
 					value:    100,
 				},
 			},
-			expectedValue: 95,
+			expectedValue: 90,
 		},
 		{
-			msg:                          "Return the scaled value (95) for one time config with a custom scaling window - 30 seconds after",
+			msg:                          "Return the scaled value (90) for one time config with a custom scaling window - 30 seconds after",
 			scalingWindowDurationMinutes: &tenMinutes,
 			schedules: []schedule{
 				{
@@ -133,7 +133,7 @@ func TestScalingScheduleCollector(t *testing.T) {
 					value:    100,
 				},
 			},
-			expectedValue: 95,
+			expectedValue: 90,
 		},
 		{
 			msg: "Return the default value (0) for one time config not started yet (20 minutes before)",
