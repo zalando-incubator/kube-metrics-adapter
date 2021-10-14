@@ -52,6 +52,13 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 			aggregator:   Average,
 		},
 		{
+			name:         "glob array query",
+			jsonResponse: []byte(`{"worker_status":[{"last_status":{"backlog":3}},{"last_status":{"backlog":7}}]}`),
+			jsonPath:     "$.worker_status.[*].last_status.backlog",
+			result:       5,
+			aggregator:   Average,
+		},
+		{
 			name:         "json path not resulting in array or number should lead to error",
 			jsonResponse: []byte(`{"metric.value":5}`),
 			jsonPath:     "$['invalid.metric.values']",
