@@ -128,7 +128,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.DurationVar(&o.GCInterval, "garbage-collector-interval", 10*time.Minute, "Interval to clean up metrics that are stored in in-memory cache.")
 	flags.BoolVar(&o.ScalingScheduleMetrics, "scaling-schedule", o.ScalingScheduleMetrics, ""+
 		"whether to enable time-based ScalingSchedule metrics")
-	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default scale-up/scale-down window duration for scheduled metrics")
+	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
+	flags.IntVar(&o.RampSteps, "scaling-schedule-ramp-steps", 10, "Number of steps used to rampup and rampdown ScalingSchedules. It's used to guarantee won't avoid reaching the max scaling due to the 10% minimum change rule.")
 	return cmd
 }
 
@@ -294,7 +295,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		)
 		go reflector.Run(ctx.Done())
 
-		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow)
+		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ClusterScalingScheduleCollector plugin: %v", err)
 		}
@@ -303,7 +304,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to register ClusterScalingSchedule object collector plugin: %v", err)
 		}
 
-		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow)
+		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ScalingScheduleCollector plugin: %v", err)
 		}
@@ -429,6 +430,8 @@ type AdapterServerOptions struct {
 	GCInterval time.Duration
 	// Time-based scaling based on the CRDs ScheduleScaling and ClusterScheduleScaling.
 	ScalingScheduleMetrics bool
-	// Default scale-up/scale-down window duration for scheduled metrics
+	// Default ramp-up/ramp-down window duration for scheduled metrics
 	DefaultScheduledScalingWindow time.Duration
+	// Number of steps utilized during the rampup and rampdown for scheduled metrics
+	RampSteps int
 }
