@@ -72,8 +72,23 @@ func (g *JSONPathMetricsGetter) GetMetric(metricsURL url.URL) (float64, error) {
 		return 0, err
 	}
 
-	if len(nodes) != 1 {
+	if len(nodes) == 0 {
 		return 0, fmt.Errorf("unexpected json: expected single numeric or array value")
+	}
+
+	if len(nodes) > 1 {
+		if g.aggregator == nil {
+			return 0, fmt.Errorf("no aggregator function has been specified")
+		}
+		values := make([]float64, 0, len(nodes))
+		for _, node := range nodes {
+			v, err := node.GetNumeric()
+			if err != nil {
+				return 0, fmt.Errorf("unexpected json: did not find numeric or array value '%s': %w", nodes, err)
+			}
+			values = append(values, v)
+		}
+		return g.aggregator(values...), nil
 	}
 
 	node := nodes[0]
