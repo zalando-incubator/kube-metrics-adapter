@@ -15,6 +15,7 @@ import (
 const (
 	hHMMFormat                   = "15:04"
 	defaultScalingWindowDuration = 1 * time.Minute
+	defaultRampSteps             = 10
 )
 
 type schedule struct {
@@ -48,6 +49,7 @@ func TestScalingScheduleCollector(t *testing.T) {
 		scalingWindowDurationMinutes *int64
 		expectedValue                int64
 		err                          error
+		rampSteps                    int
 	}{
 		{
 			msg: "Return the right value for one time config",
@@ -108,6 +110,31 @@ func TestScalingScheduleCollector(t *testing.T) {
 				},
 			},
 			expectedValue: 60,
+		},
+		{
+			msg: "10 steps (default) return 90% of the metric, even 1 second before",
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(time.Second * 1).Format(time.RFC3339),
+					kind:     "OneTime",
+					duration: 45,
+					value:    100,
+				},
+			},
+			expectedValue: 90,
+		},
+		{
+			msg: "5 steps return 80% of the metric, even 1 second before",
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(time.Second * 1).Format(time.RFC3339),
+					kind:     "OneTime",
+					duration: 45,
+					value:    100,
+				},
+			},
+			expectedValue: 80,
+			rampSteps:     5,
 		},
 		{
 			msg:                          "Return the scaled value (90) for one time config with a custom scaling window - 30 seconds before starting",
@@ -471,17 +498,22 @@ func TestScalingScheduleCollector(t *testing.T) {
 			scalingScheduleName := "my_scaling_schedule"
 			namespace := "default"
 
+			rampSteps := tc.rampSteps
+			if rampSteps == 0 {
+				rampSteps = defaultRampSteps
+			}
+
 			schedules := getSchedules(tc.schedules)
 			store := newMockStore(scalingScheduleName, namespace, tc.scalingWindowDurationMinutes, schedules)
-			plugin, err := NewScalingScheduleCollectorPlugin(store, now, defaultScalingWindowDuration)
+			plugin, err := NewScalingScheduleCollectorPlugin(store, now, defaultScalingWindowDuration, rampSteps)
 			require.NoError(t, err)
 
 			clusterStore := newClusterMockStore(scalingScheduleName, tc.scalingWindowDurationMinutes, schedules)
-			clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, now, defaultScalingWindowDuration)
+			clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, now, defaultScalingWindowDuration, rampSteps)
 			require.NoError(t, err)
 
 			clusterStoreFirstRun := newClusterMockStoreFirstRun(scalingScheduleName, tc.scalingWindowDurationMinutes, schedules)
-			clusterPluginFirstRun, err := NewClusterScalingScheduleCollectorPlugin(clusterStoreFirstRun, now, defaultScalingWindowDuration)
+			clusterPluginFirstRun, err := NewClusterScalingScheduleCollectorPlugin(clusterStoreFirstRun, now, defaultScalingWindowDuration, rampSteps)
 			require.NoError(t, err)
 
 			hpa := makeScalingScheduleHPA(namespace, scalingScheduleName)
@@ -549,14 +581,14 @@ func TestScalingScheduleObjectNotPresentReturnsError(t *testing.T) {
 		make(map[string]interface{}),
 		getByKeyFn,
 	}
-	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration)
+	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration, defaultRampSteps)
 	require.NoError(t, err)
 
 	clusterStore := mockStore{
 		make(map[string]interface{}),
 		getByKeyFn,
 	}
-	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, time.Now, defaultScalingWindowDuration)
+	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(clusterStore, time.Now, defaultScalingWindowDuration, defaultRampSteps)
 	require.NoError(t, err)
 
 	hpa := makeScalingScheduleHPA("namespace", "scalingScheduleName")
@@ -611,10 +643,10 @@ func TestReturnsErrorWhenStoreDoes(t *testing.T) {
 		},
 	}
 
-	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration)
+	plugin, err := NewScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration, defaultRampSteps)
 	require.NoError(t, err)
 
-	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration)
+	clusterPlugin, err := NewClusterScalingScheduleCollectorPlugin(store, time.Now, defaultScalingWindowDuration, defaultRampSteps)
 	require.NoError(t, err)
 
 	hpa := makeScalingScheduleHPA("namespace", "scalingScheduleName")
