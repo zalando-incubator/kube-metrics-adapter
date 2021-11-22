@@ -269,7 +269,7 @@ func (p *HPAProvider) collectMetrics(ctx context.Context) {
 
 // GetMetricByName gets a single metric by name.
 func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
-	metric := p.metricStore.GetMetricsByName(name, info)
+	metric := p.metricStore.GetMetricsByName(name, info, metricSelector)
 	if metric == nil {
 		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name.Name)
 	}

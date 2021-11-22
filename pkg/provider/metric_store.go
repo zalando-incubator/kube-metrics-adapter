@@ -32,7 +32,7 @@ type externalMetricsStoredMetric struct {
 // MetricStore is a simple in-memory Metrics Store for HPA metrics.
 type MetricStore struct {
 	// metricName -> referencedResource -> objectNamespace -> objectName -> metric
-	customMetricsStore map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric
+	customMetricsStore map[string]map[schema.GroupResource]map[string]map[string]map[string]customMetricsStoredMetric
 	// namespace -> metricName -> labels -> metric
 	externalMetricsStore map[string]map[string]map[string]externalMetricsStoredMetric
 	metricsTTLCalculator func() time.Time
@@ -42,7 +42,7 @@ type MetricStore struct {
 // NewMetricStore initializes an empty Metrics Store.
 func NewMetricStore(ttlCalculator func() time.Time) *MetricStore {
 	return &MetricStore{
-		customMetricsStore:   make(map[string]map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric, 0),
+		customMetricsStore:   make(map[string]map[schema.GroupResource]map[string]map[string]map[string]customMetricsStoredMetric, 0),
 		externalMetricsStore: make(map[string]map[string]map[string]externalMetricsStoredMetric, 0),
 		metricsTTLCalculator: ttlCalculator,
 	}
@@ -119,12 +119,20 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 		TTL:   s.metricsTTLCalculator(), // TODO: make TTL configurable
 	}
 
+	selector := value.Metric.Selector
+	labelsKey := ""
+	if selector != nil {
+		labelsKey = hashLabelMap(selector.MatchLabels)
+	}
+
 	metrics, ok := s.customMetricsStore[value.Metric.Name]
 	if !ok {
-		s.customMetricsStore[value.Metric.Name] = map[schema.GroupResource]map[string]map[string]customMetricsStoredMetric{
+		s.customMetricsStore[value.Metric.Name] = map[schema.GroupResource]map[string]map[string]map[string]customMetricsStoredMetric{
 			groupResource: {
-				value.DescribedObject.Namespace: map[string]customMetricsStoredMetric{
-					value.DescribedObject.Name: metric,
+				value.DescribedObject.Namespace: map[string]map[string]customMetricsStoredMetric{
+					value.DescribedObject.Name: map[string]customMetricsStoredMetric{
+						labelsKey: metric,
+					},
 				},
 			},
 		}
@@ -133,23 +141,35 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 
 	group, ok := metrics[groupResource]
 	if !ok {
-		metrics[groupResource] = map[string]map[string]customMetricsStoredMetric{
+		metrics[groupResource] = map[string]map[string]map[string]customMetricsStoredMetric{
 			value.DescribedObject.Namespace: {
-				value.DescribedObject.Name: metric,
+				value.DescribedObject.Name: map[string]customMetricsStoredMetric{
+					labelsKey: metric,
+				},
 			},
 		}
 		return
 	}
 
+	// TODO: what if an empty namespace?
 	namespace, ok := group[value.DescribedObject.Namespace]
 	if !ok {
-		group[value.DescribedObject.Namespace] = map[string]customMetricsStoredMetric{
-			value.DescribedObject.Name: metric,
+		group[value.DescribedObject.Namespace] = map[string]map[string]customMetricsStoredMetric{
+			value.DescribedObject.Name: map[string]customMetricsStoredMetric{
+				labelsKey: metric,
+			},
 		}
 		return
 	}
 
-	namespace[value.DescribedObject.Name] = metric
+	object, ok := namespace[value.DescribedObject.Name]
+	if !ok {
+		namespace[value.DescribedObject.Name] = map[string]customMetricsStoredMetric{
+			labelsKey: metric,
+		}
+	}
+
+	object[labelsKey] = metric
 }
 
 // insertExternalMetric inserts an external metric into the store.
@@ -192,6 +212,24 @@ func hashLabelMap(labels map[string]string) string {
 	return strings.Join(strLabels, ",")
 }
 
+func parseHashLabelMap(s string) labels.Set {
+	labels := map[string]string{}
+
+	if s == "" {
+		return labels
+	}
+
+	keyValues := strings.Split(s, ",")
+
+	for _, keyValue := range keyValues {
+		splittedKeyValue := strings.Split(keyValue, "=")
+		key, value := splittedKeyValue[0], splittedKeyValue[1]
+		labels[key] = value
+	}
+
+	return labels
+}
+
 // GetMetricsBySelector gets metric from the customMetricsStore using a label selector to
 // find metrics for matching resources.
 func (s *MetricStore) GetMetricsBySelector(namespace string, selector labels.Selector, info provider.CustomMetricInfo) *custom_metrics.MetricValueList {
@@ -212,16 +250,20 @@ func (s *MetricStore) GetMetricsBySelector(namespace string, selector labels.Sel
 
 	if !info.Namespaced {
 		for _, metricMap := range group {
-			for _, metric := range metricMap {
-				if selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
-					matchedMetrics = append(matchedMetrics, metric.Value)
+			for _, metricObject := range metricMap {
+				for _, metric := range metricObject {
+					if selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
+						matchedMetrics = append(matchedMetrics, metric.Value)
+					}
 				}
 			}
 		}
 	} else if metricMap, ok := group[namespace]; ok {
-		for _, metric := range metricMap {
-			if metric.Value.Metric.Selector != nil && selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
-				matchedMetrics = append(matchedMetrics, metric.Value)
+		for _, metricObject := range metricMap {
+			for _, metric := range metricObject {
+				if metric.Value.Metric.Selector != nil && selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
+					matchedMetrics = append(matchedMetrics, metric.Value)
+				}
 			}
 		}
 	}
@@ -230,7 +272,7 @@ func (s *MetricStore) GetMetricsBySelector(namespace string, selector labels.Sel
 }
 
 // GetMetricsByName looks up metrics in the customMetricsStore by resource name.
-func (s *MetricStore) GetMetricsByName(name types.NamespacedName, info provider.CustomMetricInfo) *custom_metrics.MetricValue {
+func (s *MetricStore) GetMetricsByName(name types.NamespacedName, info provider.CustomMetricInfo, selector labels.Selector) *custom_metrics.MetricValue {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -247,13 +289,21 @@ func (s *MetricStore) GetMetricsByName(name types.NamespacedName, info provider.
 	if !info.Namespaced {
 		// TODO: rethink no namespace queries
 		for _, metricMap := range group {
-			if metric, ok := metricMap[name.Name]; ok {
-				return &metric.Value
+			if metricObject, ok := metricMap[name.Name]; ok {
+				for metric, value := range metricObject {
+					if selector.Matches(parseHashLabelMap(metric)) {
+						return &value.Value
+					}
+				}
 			}
 		}
 	} else if metricMap, ok := group[name.Namespace]; ok {
-		if metric, ok := metricMap[name.Name]; ok {
-			return &metric.Value
+		if metricObject, ok := metricMap[name.Name]; ok {
+			for metric, value := range metricObject {
+				if selector.Matches(parseHashLabelMap(metric)) {
+					return &value.Value
+				}
+			}
 		}
 	}
 
@@ -331,13 +381,18 @@ func (s *MetricStore) RemoveExpired() {
 	// cleanup custom metrics
 	for metricName, groups := range s.customMetricsStore {
 		for group, namespaces := range groups {
-			for namespace, resources := range namespaces {
-				for resource, metric := range resources {
-					if metric.TTL.Before(time.Now().UTC()) {
-						delete(resources, resource)
+			for namespace, objects := range namespaces {
+				for object, resources := range objects {
+					for resource, metric := range resources {
+						if metric.TTL.Before(time.Now().UTC()) {
+							delete(resources, resource)
+						}
+					}
+					if len(resources) == 0 {
+						delete(objects, object)
 					}
 				}
-				if len(resources) == 0 {
+				if len(objects) == 0 {
 					delete(namespaces, namespace)
 				}
 			}
