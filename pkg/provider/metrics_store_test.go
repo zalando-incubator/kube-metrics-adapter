@@ -498,10 +498,10 @@ func TestInternalMetricStorage(t *testing.T) {
 			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info, tc.byLabel.selector)
 			if tc.expectedFound {
 				require.Equal(t, tc.insert.Custom, *metric)
-				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Equal(t, tc.insert.Custom, metrics.Items[0])
 			} else {
-				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Len(t, metrics.Items, 0)
 			}
 		})
@@ -672,7 +672,7 @@ func TestMultipleMetricValues(t *testing.T) {
 				require.Equal(t, insert.Custom, *metric)
 
 				// Get the metric by label
-				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Equal(t, insert.Custom, metrics.Items[0])
 			}
 
@@ -800,7 +800,7 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info, tc.byLabel.selector)
 			require.Nil(t, metric)
 
-			metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+			metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 			require.Equal(t, &custom_metrics.MetricValueList{}, metrics)
 
 		})
@@ -990,7 +990,7 @@ func TestExternalMetricStorage(t *testing.T) {
 			require.Equal(t, tc.list, metricInfos[0])
 
 			// Get the metric by name
-			metrics, err := metricsStore.GetExternalMetric(tc.get.namespace, tc.get.selector, tc.get.info)
+			metrics, err := metricsStore.GetExternalMetric(objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
 			require.NoError(t, err)
 			require.Equal(t, tc.insert.External, metrics.Items[0])
 
@@ -1158,7 +1158,7 @@ func TestMultipleExternalMetricStorage(t *testing.T) {
 			}
 
 			// Get the metric by name
-			metrics, err := metricsStore.GetExternalMetric(tc.get.namespace, tc.get.selector, tc.get.info)
+			metrics, err := metricsStore.GetExternalMetric(objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
 			require.NoError(t, err)
 			require.Len(t, metrics.Items, 1)
 			require.Contains(t, metrics.Items, tc.insert[tc.expectedIdx].External)
