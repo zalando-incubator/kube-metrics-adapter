@@ -67,7 +67,6 @@ rules:
 # only relevant if running with the flag:
 # --skipper-ingress-metrics
 - apiGroups:
-  - extensions
   - networking.k8s.io
   resources:
   - ingresses

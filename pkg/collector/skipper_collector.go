@@ -162,7 +162,7 @@ func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) 
 	var backendWeight float64
 	switch c.objectReference.Kind {
 	case "Ingress":
-		ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(ctx, c.objectReference.Name, metav1.GetOptions{})
+		ingress, err := c.client.NetworkingV1().Ingresses(c.objectReference.Namespace).Get(ctx, c.objectReference.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
