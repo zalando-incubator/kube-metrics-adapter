@@ -894,6 +894,69 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 				},
 			},
 		},
+		// Regression test covering https://github.com/zalando-incubator/kube-metrics-adapter/issues/379
+		{
+			test: "test multiple metrics with label added to metric name",
+			insert: []collector.CollectedMetric{
+				{
+					Type: autoscalingv2.MetricSourceType("Object"),
+					Custom: custom_metrics.MetricValue{
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
+						Value:  *resource.NewQuantity(0, ""),
+						DescribedObject: custom_metrics.ObjectReference{
+							Name:       "metricObject",
+							Namespace:  "default",
+							Kind:       "Deployment",
+							APIVersion: "apps/v1",
+						},
+					},
+				},
+				{
+					Type: autoscalingv2.MetricSourceType("Object"),
+					Custom: custom_metrics.MetricValue{
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
+						Value:  *resource.NewQuantity(1, ""),
+						DescribedObject: custom_metrics.ObjectReference{
+							Name:       "metricObject-000",
+							Namespace:  "default",
+							Kind:       "Deployment",
+							APIVersion: "apps/v1",
+						},
+					},
+				},
+			},
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject-000", Namespace: "default"},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "default",
+				selector:  labels.Everything(),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+		},
 	}
 
 	for _, tc := range multiValueTests {

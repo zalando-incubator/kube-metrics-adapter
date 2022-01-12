@@ -185,6 +185,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 		object2label[object] = labelsHashToCustomMetricStore{
 			labelsKey: customMetric,
 		}
+		return
 	}
 
 	labels2metric[labelsKey] = customMetric
