@@ -99,7 +99,7 @@ func (c *FakeClusterScalingSchedules) Update(ctx context.Context, clusterScaling
 // Delete takes name of the clusterScalingSchedule and deletes it. Returns an error if one occurs.
 func (c *FakeClusterScalingSchedules) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterscalingschedulesResource, name), &zalandoorgv1.ClusterScalingSchedule{})
+		Invokes(testing.NewRootDeleteActionWithOptions(clusterscalingschedulesResource, name, opts), &zalandoorgv1.ClusterScalingSchedule{})
 	return err
 }
 

@@ -105,7 +105,7 @@ func (c *FakeScalingSchedules) Update(ctx context.Context, scalingSchedule *zala
 // Delete takes name of the scalingSchedule and deletes it. Returns an error if one occurs.
 func (c *FakeScalingSchedules) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(scalingschedulesResource, c.ns, name), &zalandoorgv1.ScalingSchedule{})
+		Invokes(testing.NewDeleteActionWithOptions(scalingschedulesResource, c.ns, name, opts), &zalandoorgv1.ScalingSchedule{})
 
 	return err
 }
