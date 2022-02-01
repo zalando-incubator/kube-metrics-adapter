@@ -11,7 +11,9 @@ import (
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	_, err := w.Write([]byte(fmt.Sprintf(`{"queue": {"length": %d}}`, size)))
-	log.Fatalf("failed to write: %v", err)
+	if err != nil {
+		log.Fatalf("failed to write: %v", err)
+	}
 }
 
 var (
