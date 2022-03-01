@@ -1,7 +1,7 @@
 module github.com/zalando-incubator/kube-metrics-adapter
 
 require (
-	github.com/aws/aws-sdk-go v1.42.52
+	github.com/aws/aws-sdk-go v1.43.8
 	github.com/influxdata/influxdb-client-go v0.2.0
 	github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20201216091021-1b9fa998bbaa
 	github.com/prometheus/client_golang v1.12.1
