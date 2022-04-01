@@ -13,8 +13,8 @@ require (
 	github.com/szuecs/routegroup-client v0.21.0
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20220201095549-bbdeecaa4fc1
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
-	k8s.io/api v0.23.0
-	k8s.io/apimachinery v0.23.0
+	k8s.io/api v0.23.5
+	k8s.io/apimachinery v0.23.5
 	k8s.io/apiserver v0.23.0
 	k8s.io/client-go v0.23.0
 	k8s.io/code-generator v0.23.0
