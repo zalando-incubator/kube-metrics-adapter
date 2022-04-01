@@ -9,7 +9,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0
 	github.com/spyzhov/ajson v0.7.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/szuecs/routegroup-client v0.21.0
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20220201095549-bbdeecaa4fc1
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
