@@ -7,7 +7,7 @@ require (
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.3.0
+	github.com/spf13/cobra v1.4.0
 	github.com/spyzhov/ajson v0.7.1
 	github.com/stretchr/testify v1.7.0
 	github.com/szuecs/routegroup-client v0.21.0
