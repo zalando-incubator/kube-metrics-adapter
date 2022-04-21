@@ -95,3 +95,14 @@ resources:
 
 scalingSchedule:
   enabled: false
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+tolerations: []
+
+affinity: {}
+
+priorityClassName: ""
+
+podAnnotations: {}
