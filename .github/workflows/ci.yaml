@@ -1,5 +1,11 @@
 name: ci
-on: [push, pull_request]
+on: 
+  push:
+    branches-ignore:
+      - 'gh-pages'
+  pull_request:
+    branches-ignore:
+      - 'gh-pages'
 env:
   GO111MODULE: on
 jobs:
