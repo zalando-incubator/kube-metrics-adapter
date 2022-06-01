@@ -1,7 +1,5 @@
 name: ci
 on: [push, pull_request]
-env:
-  GO111MODULE: on
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -11,12 +9,10 @@ jobs:
       with:
         go-version: '^1.18'
     - run: go version
-    - run: go get github.com/mattn/goveralls
+    - run: go install github.com/mattn/goveralls@latest
+    - run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_RELEASE}
       env:
-        GO111MODULE: off
-    - run: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_RELEASE}
-      env:
-        GOLANGCI_RELEASE: v1.45.2
+        GOLANGCI_RELEASE: v1.46.2
     - run: make build.docker
     - run: make test
     - run: make check
