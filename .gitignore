@@ -1,5 +1,0 @@
-build/
-apiserver.local.config/
-.idea/
-profile.cov
-vendor/
