@@ -320,7 +320,7 @@ func TestInternalMetricStorage(t *testing.T) {
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
 						Kind:       "Ingress",
-						APIVersion: "extensions/v1beta1",
+						APIVersion: "networking.k8s.io/v1",
 					},
 				},
 			},
@@ -328,7 +328,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -342,7 +342,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				name: types.NamespacedName{Name: "metricObject", Namespace: ""},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -358,7 +358,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				selector:  labels.SelectorFromSet(labels.Set{"select_key": "select_value"}),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -376,7 +376,7 @@ func TestInternalMetricStorage(t *testing.T) {
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
 						Kind:       "Ingress",
-						APIVersion: "extensions/v1beta1",
+						APIVersion: "networking.k8s.io/v1",
 					},
 				},
 			},
@@ -384,7 +384,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -398,7 +398,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				name: types.NamespacedName{Name: "metricObject", Namespace: ""},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -414,7 +414,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				selector:  labels.Everything(),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -433,7 +433,7 @@ func TestInternalMetricStorage(t *testing.T) {
 						Name:       "metricObject",
 						Namespace:  "right",
 						Kind:       "Ingress",
-						APIVersion: "extensions/v1beta1",
+						APIVersion: "networking.k8s.io/v1",
 					},
 				},
 			},
@@ -441,7 +441,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: true,
@@ -455,7 +455,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				name: types.NamespacedName{Name: "metricObject", Namespace: "wrong"},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: true,
@@ -471,7 +471,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				selector:  labels.Everything(),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: true,
@@ -535,7 +535,7 @@ func TestMultipleMetricValues(t *testing.T) {
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
 							Kind:       "Ingress",
-							APIVersion: "extensions/v1beta1",
+							APIVersion: "networking.k8s.io/v1",
 						},
 					},
 				},
@@ -547,7 +547,7 @@ func TestMultipleMetricValues(t *testing.T) {
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
 							Kind:       "Ingress",
-							APIVersion: "extensions/v1beta1",
+							APIVersion: "networking.k8s.io/v1",
 						},
 					},
 				},
@@ -555,7 +555,7 @@ func TestMultipleMetricValues(t *testing.T) {
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -569,7 +569,7 @@ func TestMultipleMetricValues(t *testing.T) {
 				name: types.NamespacedName{Name: "metricObject", Namespace: ""},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -585,7 +585,7 @@ func TestMultipleMetricValues(t *testing.T) {
 				selector:  labels.Everything(),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -831,7 +831,7 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 							Name:       "metricObject",
 							Namespace:  "default",
 							Kind:       "Ingress",
-							APIVersion: "extensions/vbeta1",
+							APIVersion: "networking.k8s.io/v1",
 						},
 					},
 				},

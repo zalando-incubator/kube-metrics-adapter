@@ -14,7 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/networking/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -547,29 +547,31 @@ func makeIngress(client kubernetes.Interface, namespace, resourceName, backend s
 		}
 		annotations[anno] = string(sWeights)
 	}
-	ingress := &v1beta1.Ingress{
+	ingress := &netv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        resourceName,
 			Annotations: annotations,
 		},
-		Spec: v1beta1.IngressSpec{
-			Backend: &v1beta1.IngressBackend{
-				ServiceName: backend,
+		Spec: netv1.IngressSpec{
+			DefaultBackend: &netv1.IngressBackend{
+				Service: &netv1.IngressServiceBackend{
+					Name: backend,
+				},
 			},
 			TLS: nil,
 		},
-		Status: v1beta1.IngressStatus{
+		Status: netv1.IngressStatus{
 			LoadBalancer: corev1.LoadBalancerStatus{
 				Ingress: nil,
 			},
 		},
 	}
 	for _, hostname := range hostnames {
-		ingress.Spec.Rules = append(ingress.Spec.Rules, v1beta1.IngressRule{
+		ingress.Spec.Rules = append(ingress.Spec.Rules, netv1.IngressRule{
 			Host: hostname,
 		})
 	}
-	_, err := client.NetworkingV1beta1().Ingresses(namespace).Create(context.TODO(), ingress, metav1.CreateOptions{})
+	_, err := client.NetworkingV1().Ingresses(namespace).Create(context.TODO(), ingress, metav1.CreateOptions{})
 	return err
 }
 

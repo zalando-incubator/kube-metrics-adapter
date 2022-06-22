@@ -320,7 +320,7 @@ box so users don't have to define those manually.
 
 | Metric | Description | Type | Kind | K8s Versions |
 | ----------- | -------------- | ------ | ---- | ---- |
-| `requests-per-second` | Scale based on requests per second for a certain ingress or routegroup. | Object | `Ingress`, `RouteGroup` | `>=1.14` |
+| `requests-per-second` | Scale based on requests per second for a certain ingress or routegroup. | Object | `Ingress`, `RouteGroup` | `>=1.19` |
 
 ### Example
 
