@@ -30,3 +30,17 @@ pipeline:
       IMAGE=$IMAGE VERSION=$VERSION make build.docker
       git diff --stat --exit-code
       IMAGE=$IMAGE VERSION=$VERSION make build.push
+  - desc: Build and push image to Zalando's registry
+    cmd: |
+      if [[ $CDP_TARGET_BRANCH == master && ! $CDP_PULL_REQUEST_NUMBER ]]; then
+        IMAGE=container-registry-test.zalando.net/teapot/kube-metrics-adapter
+        VERSION=$(git describe --tags --always)
+      else
+        IMAGE=container-registry-test.zalando.net/teapot/kube-metrics-adapter-test
+        VERSION=$CDP_BUILD_VERSION
+      fi
+      make build.linux.amd64 build.linux.arm64
+
+      docker buildx create --config /etc/cdp-buildkitd.toml --driver-opt network=host --bootstrap --use
+      docker buildx build --rm --build-arg BASE_IMAGE=container-registry.zalando.net/library/alpine-3.13:latest -t "${IMAGE}:${VERSION}" --platform linux/amd64,linux/arm64 --push .
+      cdp-promote-image "${IMAGE}:${VERSION}"
