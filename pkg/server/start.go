@@ -26,8 +26,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/apiserver"
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	rg "github.com/szuecs/routegroup-client/client/clientset/versioned"
@@ -48,6 +46,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/apiserver"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/cmd/server"
 )
 
 const (

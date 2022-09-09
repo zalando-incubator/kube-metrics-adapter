@@ -16,16 +16,14 @@ import (
 const (
 	// ZMONMetricType defines the metric type for metrics based on ZMON
 	// checks.
-	ZMONMetricType             = "zmon"
-	ZMONCheckMetricLegacy      = "zmon-check"
-	zmonCheckIDLabelKey        = "check-id"
-	zmonKeyLabelKey            = "key"
-	zmonDurationLabelKey       = "duration"
-	zmonAggregatorsLabelKey    = "aggregators"
-	zmonTagPrefixLabelKey      = "tag-"
-	defaultQueryDuration       = 10 * time.Minute
-	zmonKeyAnnotationKey       = "metric-config.external.zmon-check.zmon/key"
-	zmonTagPrefixAnnotationKey = "metric-config.external.zmon-check.zmon/tag-"
+	ZMONMetricType          = "zmon"
+	ZMONCheckMetricLegacy   = "zmon-check"
+	zmonCheckIDLabelKey     = "check-id"
+	zmonKeyLabelKey         = "key"
+	zmonDurationLabelKey    = "duration"
+	zmonAggregatorsLabelKey = "aggregators"
+	zmonTagPrefixLabelKey   = "tag-"
+	defaultQueryDuration    = 10 * time.Minute
 )
 
 // ZMONCollectorPlugin defines a plugin for creating collectors that can get

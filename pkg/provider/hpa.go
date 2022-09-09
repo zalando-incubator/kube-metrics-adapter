@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
@@ -20,6 +19,7 @@ import (
 	kube_record "k8s.io/client-go/tools/record"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
@@ -268,8 +268,8 @@ func (p *HPAProvider) collectMetrics(ctx context.Context) {
 }
 
 // GetMetricByName gets a single metric by name.
-func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
-	metric := p.metricStore.GetMetricsByName(name, info, metricSelector)
+func (p *HPAProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
+	metric := p.metricStore.GetMetricsByName(ctx, name, info, metricSelector)
 	if metric == nil {
 		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name.Name)
 	}
@@ -278,8 +278,8 @@ func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.C
 
 // GetMetricBySelector returns metrics for namespaced resources by
 // label selector.
-func (p *HPAProvider) GetMetricBySelector(namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	return p.metricStore.GetMetricsBySelector(objectNamespace(namespace), selector, info), nil
+func (p *HPAProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
+	return p.metricStore.GetMetricsBySelector(ctx, objectNamespace(namespace), selector, info), nil
 }
 
 // ListAllMetrics list all available metrics from the provicer.
@@ -287,8 +287,8 @@ func (p *HPAProvider) ListAllMetrics() []provider.CustomMetricInfo {
 	return p.metricStore.ListAllMetrics()
 }
 
-func (p *HPAProvider) GetExternalMetric(namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
-	return p.metricStore.GetExternalMetric(objectNamespace(namespace), metricSelector, info)
+func (p *HPAProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+	return p.metricStore.GetExternalMetric(ctx, objectNamespace(namespace), metricSelector, info)
 }
 
 func (p *HPAProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
