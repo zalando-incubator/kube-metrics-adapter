@@ -14,7 +14,6 @@ import (
 
 type zmonMock struct {
 	dataPoints []zmon.DataPoint
-	entities   []zmon.Entity
 }
 
 func (m zmonMock) Query(checkID int, key string, tags map[string]string, aggregators []string, duration time.Duration) ([]zmon.DataPoint, error) {

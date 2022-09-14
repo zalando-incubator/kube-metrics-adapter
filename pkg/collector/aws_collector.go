@@ -39,7 +39,6 @@ func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutosc
 type AWSSQSCollector struct {
 	sqs        sqsiface.SQSAPI
 	interval   time.Duration
-	region     string
 	queueURL   string
 	queueName  string
 	namespace  string

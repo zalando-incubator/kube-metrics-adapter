@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
+	"golang.org/x/net/context"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 )
 
 func newMetricIdentifier(metricName string, selector metav1.LabelSelector) custom_metrics.MetricIdentifier {
@@ -495,13 +496,13 @@ func TestInternalMetricStorage(t *testing.T) {
 			require.Equal(t, tc.list, metricInfos)
 
 			// Get the metric by name
-			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info, tc.byLabel.selector)
+			metric := metricsStore.GetMetricsByName(context.Background(), tc.byName.name, tc.byName.info, tc.byLabel.selector)
 			if tc.expectedFound {
 				require.Equal(t, tc.insert.Custom, *metric)
-				metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Equal(t, tc.insert.Custom, metrics.Items[0])
 			} else {
-				metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Len(t, metrics.Items, 0)
 			}
 		})
@@ -668,11 +669,11 @@ func TestMultipleMetricValues(t *testing.T) {
 				metricsStore.Insert(insert)
 
 				// Get the metric by name
-				metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info, tc.byLabel.selector)
+				metric := metricsStore.GetMetricsByName(context.Background(), tc.byName.name, tc.byName.info, tc.byLabel.selector)
 				require.Equal(t, insert.Custom, *metric)
 
 				// Get the metric by label
-				metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Equal(t, insert.Custom, metrics.Items[0])
 			}
 
@@ -797,10 +798,10 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 			require.Equal(t, tc.list, metricInfos)
 
 			// Get the metric by name
-			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info, tc.byLabel.selector)
+			metric := metricsStore.GetMetricsByName(context.Background(), tc.byName.name, tc.byName.info, tc.byLabel.selector)
 			require.Nil(t, metric)
 
-			metrics := metricsStore.GetMetricsBySelector(objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
+			metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 			require.Equal(t, &custom_metrics.MetricValueList{}, metrics)
 
 		})
@@ -1053,7 +1054,7 @@ func TestExternalMetricStorage(t *testing.T) {
 			require.Equal(t, tc.list, metricInfos[0])
 
 			// Get the metric by name
-			metrics, err := metricsStore.GetExternalMetric(objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
+			metrics, err := metricsStore.GetExternalMetric(context.Background(), objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
 			require.NoError(t, err)
 			require.Equal(t, tc.insert.External, metrics.Items[0])
 
@@ -1221,7 +1222,7 @@ func TestMultipleExternalMetricStorage(t *testing.T) {
 			}
 
 			// Get the metric by name
-			metrics, err := metricsStore.GetExternalMetric(objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
+			metrics, err := metricsStore.GetExternalMetric(context.Background(), objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
 			require.NoError(t, err)
 			require.Len(t, metrics.Items, 1)
 			require.Contains(t, metrics.Items, tc.insert[tc.expectedIdx].External)

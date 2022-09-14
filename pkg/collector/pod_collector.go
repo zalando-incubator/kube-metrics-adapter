@@ -3,7 +3,6 @@ package collector
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -42,7 +41,6 @@ type PodCollector struct {
 	minPodReadyAge   time.Duration
 	interval         time.Duration
 	logger           *log.Entry
-	httpClient       *http.Client
 }
 
 func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PodCollector, error) {

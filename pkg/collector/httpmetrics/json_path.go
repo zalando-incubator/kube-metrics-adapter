@@ -2,7 +2,7 @@ package httpmetrics
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -130,7 +130,7 @@ func (g *JSONPathMetricsGetter) fetchMetrics(metricsURL url.URL) ([]byte, error)
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

@@ -1,19 +1,15 @@
 run:
-linters-settings:
-  golint:
-      min-confidence: 0.9
+  concurrency: 4
 
 linters:
   disable-all: true
   enable:
-    - staticcheck
-    - ineffassign
-    - golint
-    - goimports
-    - errcheck
-issues:
-  exclude-rules:
-    # Exclude some staticcheck messages
-    - linters:
-        - staticcheck
-      text: "SA9003:"
+  - deadcode
+  - errcheck
+  - gosimple
+  - govet
+  - ineffassign
+  - staticcheck
+  - typecheck
+  - unused
+  - varcheck

@@ -1,13 +1,13 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/labels"
@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 )
 
 // customMetricsStoredMetric is a wrapper around custom_metrics.MetricValue with a metricsTTL used
@@ -252,7 +253,7 @@ func parseHashLabelMap(s labelsHash) labels.Set {
 
 // GetMetricsBySelector gets metric from the customMetricsStore using a label selector to
 // find metrics for matching resources.
-func (s *MetricStore) GetMetricsBySelector(namespace objectNamespace, selector labels.Selector, info provider.CustomMetricInfo) *custom_metrics.MetricValueList {
+func (s *MetricStore) GetMetricsBySelector(_ context.Context, namespace objectNamespace, selector labels.Selector, info provider.CustomMetricInfo) *custom_metrics.MetricValueList {
 	matchedMetrics := make([]custom_metrics.MetricValue, 0)
 
 	s.RLock()
@@ -292,7 +293,7 @@ func (s *MetricStore) GetMetricsBySelector(namespace objectNamespace, selector l
 }
 
 // GetMetricsByName looks up metrics in the customMetricsStore by resource name.
-func (s *MetricStore) GetMetricsByName(object types.NamespacedName, info provider.CustomMetricInfo, selector labels.Selector) *custom_metrics.MetricValue {
+func (s *MetricStore) GetMetricsByName(_ context.Context, object types.NamespacedName, info provider.CustomMetricInfo, selector labels.Selector) *custom_metrics.MetricValue {
 	name := objectName(object.Name)
 	namespace := objectNamespace(object.Namespace)
 
@@ -360,7 +361,7 @@ func (s *MetricStore) ListAllMetrics() []provider.CustomMetricInfo {
 
 // GetExternalMetric gets external metric from the store by metric name and
 // selector.
-func (s *MetricStore) GetExternalMetric(namespace objectNamespace, selector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+func (s *MetricStore) GetExternalMetric(_ context.Context, namespace objectNamespace, selector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
 	matchedMetrics := make([]external_metrics.ExternalMetricValue, 0)
 
 	s.RLock()
