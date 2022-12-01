@@ -3,7 +3,7 @@ module github.com/zalando-incubator/kube-metrics-adapter
 require (
 	github.com/aws/aws-sdk-go v1.44.94
 	github.com/influxdata/influxdb-client-go v0.2.0
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.37.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
@@ -11,6 +11,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/szuecs/routegroup-client v0.21.1
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20220201095549-bbdeecaa4fc1
+	golang.org/x/net v0.0.0-20220907135653-1e95f45603a7
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
 	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.0
@@ -68,7 +69,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/spf13/afero v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -92,7 +93,6 @@ require (
 	go.uber.org/zap v1.19.0 // indirect
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220907135653-1e95f45603a7 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
 	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
