@@ -259,6 +259,7 @@ func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Dur
 	}
 
 	value := int64(0)
+	var scheduledEndTime time.Time
 	for _, schedule := range spec.Schedules {
 		switch schedule.Type {
 		case v1.RepeatingSchedule:
@@ -292,7 +293,32 @@ func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Dur
 						parsedStartTime.Nanosecond(),
 						location,
 					)
-					value = maxInt64(value, valueForEntry(now, scheduledTime, schedule.Duration(), scalingWindowDuration, rampSteps, schedule.Value))
+
+					// first check if an end time is provided
+					if schedule.Period.EndTime != "" {
+						parsedEndTime, err := time.Parse(hourColonMinuteLayout, schedule.Period.EndTime)
+						if err != nil {
+							return nil, ErrInvalidScheduleDate
+						}
+						scheduledEndTime = time.Date(
+							// v1.SchedulePeriod.StartTime can't define the
+							// year, month or day, so we compute it as the
+							// current date in the configured location.
+							nowInLocation.Year(),
+							nowInLocation.Month(),
+							nowInLocation.Day(),
+							// Hours and minute are configured in the
+							// v1.SchedulePeriod.StartTime.
+							parsedEndTime.Hour(),
+							parsedEndTime.Minute(),
+							parsedEndTime.Second(),
+							parsedEndTime.Nanosecond(),
+							location,
+						)
+
+					}
+
+					value = maxInt64(value, valueForEntry(now, scheduledTime, schedule.Duration(), scheduledEndTime, scalingWindowDuration, rampSteps, schedule.Value))
 					break
 				}
 			}
@@ -302,7 +328,17 @@ func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Dur
 				return nil, ErrInvalidScheduleDate
 			}
 
-			value = maxInt64(value, valueForEntry(now, scheduledTime, schedule.Duration(), scalingWindowDuration, rampSteps, schedule.Value))
+			// If no end time was provided, set it to equal the start time
+			if (string(*schedule.EndDate)) == "" {
+				scheduledEndTime = scheduledTime
+			} else {
+				scheduledEndTime, err = time.Parse(time.RFC3339, string(*schedule.EndDate))
+				if err != nil {
+					return nil, ErrInvalidScheduleDate
+				}
+			}
+
+			value = maxInt64(value, valueForEntry(now, scheduledTime, schedule.Duration(), scheduledEndTime, scalingWindowDuration, rampSteps, schedule.Value))
 		}
 	}
 
@@ -320,9 +356,21 @@ func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Dur
 	}, nil
 }
 
-func valueForEntry(timestamp time.Time, startTime time.Time, entryDuration time.Duration, scalingWindowDuration time.Duration, rampSteps int, value int64) int64 {
+func valueForEntry(timestamp time.Time, startTime time.Time, entryDuration time.Duration, scheduledEndTime time.Time, scalingWindowDuration time.Duration, rampSteps int, value int64) int64 {
 	scaleUpStart := startTime.Add(-scalingWindowDuration)
-	endTime := startTime.Add(entryDuration)
+	var endTime time.Time
+
+	// Use either the defined end time/date or the start time/date + the
+	// duration, whichever is longer.
+	fmt.Println("-----")
+	fmt.Printf("starttime: %v\n", startTime)
+	fmt.Printf("end time: %v\n", scheduledEndTime)
+	if startTime.Add(entryDuration).Before(scheduledEndTime) {
+		endTime = scheduledEndTime
+	} else {
+		endTime = startTime.Add(entryDuration)
+	}
+
 	scaleUpEnd := endTime.Add(scalingWindowDuration)
 
 	if between(timestamp, startTime, endTime) {

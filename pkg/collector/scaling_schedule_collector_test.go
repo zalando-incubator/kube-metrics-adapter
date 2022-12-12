@@ -21,6 +21,7 @@ const (
 type schedule struct {
 	kind      string
 	date      string
+	endDate   string
 	startTime string
 	days      []v1.ScheduleDay
 	timezone  string
@@ -70,6 +71,19 @@ func TestScalingScheduleCollector(t *testing.T) {
 					date:     nowTime.Add(-time.Minute * 10).Format(time.RFC3339),
 					kind:     "OneTime",
 					duration: 15,
+					value:    100,
+				},
+			},
+			expectedValue: 100,
+		},
+		{
+			msg: "Return 100 - utilise end date instead of start date + duration for one time config",
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(-2 * time.Hour).Format(time.RFC3339),
+					kind:     "OneTime",
+					duration: 60,
+					endDate:  nowTime.Add(1 * time.Hour).Format(time.RFC3339),
 					value:    100,
 				},
 			},
@@ -745,15 +759,18 @@ func newClusterMockStoreFirstRun(name string, scalingWindowDurationMinutes *int6
 	}
 }
 
+// comment DEBUG
 func getSchedules(schedules []schedule) (result []v1.Schedule) {
 	for _, schedule := range schedules {
 		switch schedule.kind {
 		case string(v1.OneTimeSchedule):
 			date := v1.ScheduleDate(schedule.date)
+			endDate := v1.ScheduleDate(schedule.endDate)
 			result = append(result,
 				v1.Schedule{
 					Type:            v1.OneTimeSchedule,
 					Date:            &date,
+					EndDate:         &endDate,
 					DurationMinutes: schedule.duration,
 					Value:           schedule.value,
 				},

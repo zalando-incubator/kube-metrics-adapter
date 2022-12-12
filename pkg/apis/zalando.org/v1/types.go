@@ -61,6 +61,10 @@ type Schedule struct {
 	// be a RFC3339 formated date.
 	// +optional
 	Date *ScheduleDate `json:"date,omitempty"`
+	// Defines the ending date of a OneTime schedule. It must be
+	// a RFC3339 formated date.
+	// +optional
+	EndDate *ScheduleDate `json:"endDate,omitempty"`
 	// The duration in minutes that the configured value will be
 	// returned for the defined schedule.
 	DurationMinutes int `json:"durationMinutes"`
@@ -90,6 +94,9 @@ type SchedulePeriod struct {
 	// The startTime has the format HH:MM
 	// +kubebuilder:validation:Pattern="(([0-1][0-9])|([2][0-3])):([0-5][0-9])"
 	StartTime string `json:"startTime"`
+	// The endTime has the format HH:MM
+	// +kubebuilder:validation:Pattern="(([0-1][0-9])|([2][0-3])):([0-5][0-9])"
+	EndTime string `json:"endTime"`
 	// The days that this schedule will be active.
 	Days []ScheduleDay `json:"days"`
 	// The location name corresponding to a file in the IANA
