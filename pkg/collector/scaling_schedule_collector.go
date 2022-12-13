@@ -294,8 +294,10 @@ func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Dur
 						location,
 					)
 
-					// first check if an end time is provided
-					if schedule.Period.EndTime != "" {
+					// If no end time was provided, set it to equal the start time
+					if schedule.Period.EndTime == "" {
+						scheduledEndTime = scheduledTime
+					} else {
 						parsedEndTime, err := time.Parse(hourColonMinuteLayout, schedule.Period.EndTime)
 						if err != nil {
 							return nil, ErrInvalidScheduleDate
@@ -362,9 +364,6 @@ func valueForEntry(timestamp time.Time, startTime time.Time, entryDuration time.
 
 	// Use either the defined end time/date or the start time/date + the
 	// duration, whichever is longer.
-	fmt.Println("-----")
-	fmt.Printf("starttime: %v\n", startTime)
-	fmt.Printf("end time: %v\n", scheduledEndTime)
 	if startTime.Add(entryDuration).Before(scheduledEndTime) {
 		endTime = scheduledEndTime
 	} else {

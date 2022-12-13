@@ -65,8 +65,9 @@ type Schedule struct {
 	// a RFC3339 formated date.
 	// +optional
 	EndDate *ScheduleDate `json:"endDate,omitempty"`
-	// The duration in minutes that the configured value will be
+	// The duration in minutes (default 0) that the configured value will be
 	// returned for the defined schedule.
+	// +optional
 	DurationMinutes int `json:"durationMinutes"`
 	// The metric value that will be returned for the defined schedule.
 	Value int64 `json:"value"`
@@ -96,6 +97,7 @@ type SchedulePeriod struct {
 	StartTime string `json:"startTime"`
 	// The endTime has the format HH:MM
 	// +kubebuilder:validation:Pattern="(([0-1][0-9])|([2][0-3])):([0-5][0-9])"
+	// +optional
 	EndTime string `json:"endTime"`
 	// The days that this schedule will be active.
 	Days []ScheduleDay `json:"days"`

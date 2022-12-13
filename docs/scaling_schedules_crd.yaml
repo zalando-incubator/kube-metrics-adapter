@@ -55,8 +55,8 @@ spec:
                       format: date-time
                       type: string
                     durationMinutes:
-                      description: The duration in minutes that the configured value
-                        will be returned for the defined schedule.
+                      description: The duration in minutes (default 0) that the configured
+                        value will be returned for the defined schedule.
                       type: integer
                     endDate:
                       description: Defines the ending date of a OneTime schedule.
@@ -95,7 +95,6 @@ spec:
                           type: string
                       required:
                       - days
-                      - endTime
                       - startTime
                       - timezone
                       type: object
@@ -113,7 +112,6 @@ spec:
                       format: int64
                       type: integer
                   required:
-                  - durationMinutes
                   - type
                   - value
                   type: object

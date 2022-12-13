@@ -23,6 +23,7 @@ type schedule struct {
 	date      string
 	endDate   string
 	startTime string
+	endTime   string
 	days      []v1.ScheduleDay
 	timezone  string
 	duration  int
@@ -77,7 +78,7 @@ func TestScalingScheduleCollector(t *testing.T) {
 			expectedValue: 100,
 		},
 		{
-			msg: "Return 100 - utilise end date instead of start date + duration for one time config",
+			msg: "Return the right value - utilise end date instead of start date + duration for one time config",
 			schedules: []schedule{
 				{
 					date:     nowTime.Add(-2 * time.Hour).Format(time.RFC3339),
@@ -88,6 +89,42 @@ func TestScalingScheduleCollector(t *testing.T) {
 				},
 			},
 			expectedValue: 100,
+		},
+		{
+			msg: "Return the right value - utilise start date + duration instead of end date for one time config",
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(-2 * time.Hour).Format(time.RFC3339),
+					kind:     "OneTime",
+					duration: 150,
+					endDate:  nowTime.Add(-1 * time.Hour).Format(time.RFC3339),
+					value:    100,
+				},
+			},
+			expectedValue: 100,
+		},
+		{
+			msg: "Return the right value - use end date with no duration set for one time config",
+			schedules: []schedule{
+				{
+					date:    nowTime.Add(-2 * time.Hour).Format(time.RFC3339),
+					kind:    "OneTime",
+					endDate: nowTime.Add(1 * time.Hour).Format(time.RFC3339),
+					value:   100,
+				},
+			},
+			expectedValue: 100,
+		},
+		{
+			msg: "Return the right value (0) for one time config no duration or end date set",
+			schedules: []schedule{
+				{
+					date:  nowTime.Add(time.Minute * 1).Format(time.RFC3339),
+					kind:  "OneTime",
+					value: 100,
+				},
+			},
+			expectedValue: 0,
 		},
 		{
 			msg: "Return the right value for one time config - 30 seconds before ending",
@@ -264,6 +301,35 @@ func TestScalingScheduleCollector(t *testing.T) {
 					duration:  15,
 					value:     100,
 					startTime: nowTime.Format(hHMMFormat),
+					days:      []v1.ScheduleDay{nowWeekday},
+				},
+			},
+			expectedValue: 100,
+		},
+		{
+			msg: "Return the right value - utilise end date instead of start time + duration for repeating schedule",
+			schedules: []schedule{
+				{
+					kind:      "Repeating",
+					duration:  60,
+					value:     100,
+					startTime: nowTime.Add(-2 * time.Hour).Format(hHMMFormat),
+					// nowTime + 59m = 23:59.
+					endTime: nowTime.Add(59 * time.Minute).Format(hHMMFormat),
+					days:    []v1.ScheduleDay{nowWeekday},
+				},
+			},
+			expectedValue: 100,
+		},
+		{
+			msg: "Return the right value - utilise start time + duration instead of end time for repeating schedule",
+			schedules: []schedule{
+				{
+					kind:      "Repeating",
+					duration:  150,
+					value:     100,
+					startTime: nowTime.Add(-2 * time.Hour).Format(hHMMFormat),
+					endTime:   nowTime.Add(-1 * time.Hour).Format(hHMMFormat),
 					days:      []v1.ScheduleDay{nowWeekday},
 				},
 			},
@@ -759,7 +825,6 @@ func newClusterMockStoreFirstRun(name string, scalingWindowDurationMinutes *int6
 	}
 }
 
-// comment DEBUG
 func getSchedules(schedules []schedule) (result []v1.Schedule) {
 	for _, schedule := range schedules {
 		switch schedule.kind {
@@ -778,6 +843,7 @@ func getSchedules(schedules []schedule) (result []v1.Schedule) {
 		case string(v1.RepeatingSchedule):
 			period := v1.SchedulePeriod{
 				StartTime: schedule.startTime,
+				EndTime:   schedule.endTime,
 				Days:      schedule.days,
 				Timezone:  schedule.timezone,
 			}
