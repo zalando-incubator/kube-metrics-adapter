@@ -186,6 +186,11 @@ func (in *Schedule) DeepCopyInto(out *Schedule) {
 		*out = new(ScheduleDate)
 		**out = **in
 	}
+	if in.EndDate != nil {
+		in, out := &in.EndDate, &out.EndDate
+		*out = new(ScheduleDate)
+		**out = **in
+	}
 	return
 }
 
