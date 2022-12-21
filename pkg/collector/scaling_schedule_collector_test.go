@@ -250,6 +250,19 @@ func TestScalingScheduleCollector(t *testing.T) {
 			err: ErrInvalidScheduleDate,
 		},
 		{
+			msg: "Return error for one time config end date not in RFC3339 format",
+			schedules: []schedule{
+				{
+					date:     nowTime.Add(-time.Minute * 20).Format(time.RFC3339),
+					endDate:  nowTime.Add(1 * time.Hour).Format(time.RFC822),
+					kind:     "OneTime",
+					duration: 15,
+					value:    100,
+				},
+			},
+			err: ErrInvalidScheduleDate,
+		},
+		{
 			msg: "Return the right value for two one time config",
 			schedules: []schedule{
 				{
