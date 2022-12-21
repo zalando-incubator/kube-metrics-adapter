@@ -331,7 +331,7 @@ func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Dur
 			}
 
 			// If no end time was provided, set it to equal the start time
-			if (string(*schedule.EndDate)) == "" {
+			if schedule.EndDate == nil || *schedule.EndDate == "" {
 				scheduledEndTime = scheduledTime
 			} else {
 				scheduledEndTime, err = time.Parse(time.RFC3339, string(*schedule.EndDate))
