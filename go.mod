@@ -11,8 +11,8 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/szuecs/routegroup-client v0.21.1
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20220201095549-bbdeecaa4fc1
-	golang.org/x/net v0.4.0
-	golang.org/x/oauth2 v0.3.0
+	golang.org/x/net v0.5.0
+	golang.org/x/oauth2 v0.4.0
 	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.0
 	k8s.io/apiserver v0.23.0
@@ -94,9 +94,9 @@ require (
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
