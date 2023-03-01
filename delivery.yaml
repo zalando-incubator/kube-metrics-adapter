@@ -42,5 +42,5 @@ pipeline:
       make build.linux.amd64 build.linux.arm64
 
       docker buildx create --config /etc/cdp-buildkitd.toml --driver-opt network=host --bootstrap --use
-      docker buildx build --rm --build-arg BASE_IMAGE=container-registry.zalando.net/library/alpine-3.13:latest -t "${IMAGE}:${VERSION}" --platform linux/amd64,linux/arm64 --push .
+      docker buildx build --rm --build-arg BASE_IMAGE=container-registry.zalando.net/library/alpine-3:latest -t "${IMAGE}:${VERSION}" --platform linux/amd64,linux/arm64 --push .
       cdp-promote-image "${IMAGE}:${VERSION}"
