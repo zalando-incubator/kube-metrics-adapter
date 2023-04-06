@@ -102,6 +102,18 @@ func (c *FakeScalingSchedules) Update(ctx context.Context, scalingSchedule *zala
 	return obj.(*zalandoorgv1.ScalingSchedule), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeScalingSchedules) UpdateStatus(ctx context.Context, scalingSchedule *zalandoorgv1.ScalingSchedule, opts v1.UpdateOptions) (*zalandoorgv1.ScalingSchedule, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(scalingschedulesResource, "status", c.ns, scalingSchedule), &zalandoorgv1.ScalingSchedule{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*zalandoorgv1.ScalingSchedule), err
+}
+
 // Delete takes name of the scalingSchedule and deletes it. Returns an error if one occurs.
 func (c *FakeScalingSchedules) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.

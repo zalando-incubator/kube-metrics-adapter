@@ -34,6 +34,7 @@ import (
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/controller/scheduledscaling"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
 	"golang.org/x/oauth2"
@@ -313,6 +314,13 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		if err != nil {
 			return fmt.Errorf("failed to register ScalingSchedule object collector plugin: %v", err)
 		}
+
+		// setup ScheduledScaling controller to continously update
+		// status of ScalingSchedule and ClusterScalingSchedule
+		// resources.
+		scheduledScalingController := scheduledscaling.NewController(scalingScheduleClient.ZalandoV1(), scalingSchedulesStore, clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone)
+
+		go scheduledScalingController.Run(ctx)
 	}
 
 	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory, o.DisregardIncompatibleHPAs, o.MetricsTTL, o.GCInterval)

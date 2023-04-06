@@ -15,7 +15,12 @@ spec:
     singular: clusterscalingschedule
   scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - description: Whether one or more schedules are currently active.
+      jsonPath: .status.active
+      name: Active
+      type: boolean
+    name: v1
     schema:
       openAPIV3Schema:
         description: ClusterScalingSchedule describes a cluster scoped time based
@@ -119,11 +124,22 @@ spec:
             required:
             - schedules
             type: object
+          status:
+            description: ScalingScheduleStatus is the status section of the ScalingSchedule.
+            properties:
+              active:
+                default: false
+                description: Active is true if at least one of the schedules defined
+                  in the scaling schedule is currently active.
+                type: boolean
+            type: object
         required:
         - spec
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""
