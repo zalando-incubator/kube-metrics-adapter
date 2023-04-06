@@ -130,6 +130,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"whether to enable time-based ScalingSchedule metrics")
 	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
 	flags.IntVar(&o.RampSteps, "scaling-schedule-ramp-steps", 10, "Number of steps used to rampup and rampdown ScalingSchedules. It's used to guarantee won't avoid reaching the max scaling due to the 10% minimum change rule.")
+	flags.StringVar(&o.DefaultTimeZone, "scaling-schedule-default-time-zone", "Europe/Berlin", "Default time zone to use for ScalingSchedules.")
 	return cmd
 }
 
@@ -295,7 +296,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		)
 		go reflector.Run(ctx.Done())
 
-		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.RampSteps)
+		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ClusterScalingScheduleCollector plugin: %v", err)
 		}
@@ -304,7 +305,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to register ClusterScalingSchedule object collector plugin: %v", err)
 		}
 
-		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.RampSteps)
+		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ScalingScheduleCollector plugin: %v", err)
 		}
@@ -434,4 +435,6 @@ type AdapterServerOptions struct {
 	DefaultScheduledScalingWindow time.Duration
 	// Number of steps utilized during the rampup and rampdown for scheduled metrics
 	RampSteps int
+	// Default time zone to use for ScalingSchedules.
+	DefaultTimeZone string
 }
