@@ -34,6 +34,7 @@ import (
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/controller/scheduledscaling"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
 	"golang.org/x/oauth2"
@@ -130,6 +131,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"whether to enable time-based ScalingSchedule metrics")
 	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
 	flags.IntVar(&o.RampSteps, "scaling-schedule-ramp-steps", 10, "Number of steps used to rampup and rampdown ScalingSchedules. It's used to guarantee won't avoid reaching the max scaling due to the 10% minimum change rule.")
+	flags.StringVar(&o.DefaultTimeZone, "scaling-schedule-default-time-zone", "Europe/Berlin", "Default time zone to use for ScalingSchedules.")
 	return cmd
 }
 
@@ -295,7 +297,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		)
 		go reflector.Run(ctx.Done())
 
-		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.RampSteps)
+		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ClusterScalingScheduleCollector plugin: %v", err)
 		}
@@ -304,7 +306,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to register ClusterScalingSchedule object collector plugin: %v", err)
 		}
 
-		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.RampSteps)
+		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ScalingScheduleCollector plugin: %v", err)
 		}
@@ -312,6 +314,13 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		if err != nil {
 			return fmt.Errorf("failed to register ScalingSchedule object collector plugin: %v", err)
 		}
+
+		// setup ScheduledScaling controller to continously update
+		// status of ScalingSchedule and ClusterScalingSchedule
+		// resources.
+		scheduledScalingController := scheduledscaling.NewController(scalingScheduleClient.ZalandoV1(), scalingSchedulesStore, clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone)
+
+		go scheduledScalingController.Run(ctx)
 	}
 
 	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory, o.DisregardIncompatibleHPAs, o.MetricsTTL, o.GCInterval)
@@ -434,4 +443,6 @@ type AdapterServerOptions struct {
 	DefaultScheduledScalingWindow time.Duration
 	// Number of steps utilized during the rampup and rampdown for scheduled metrics
 	RampSteps int
+	// Default time zone to use for ScalingSchedules.
+	DefaultTimeZone string
 }

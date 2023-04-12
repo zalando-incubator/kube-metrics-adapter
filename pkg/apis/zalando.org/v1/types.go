@@ -13,11 +13,16 @@ import (
 // ScalingSchedule describes a namespaced time based metric to be used
 // in autoscaling operations.
 // +k8s:deepcopy-gen=true
+// +kubebuilder:resource:categories=all
+// +kubebuilder:printcolumn:name="Active",type=boolean,JSONPath=`.status.active`,description="Whether one or more schedules are currently active."
+// +kubebuilder:subresource:status
 type ScalingSchedule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ScalingScheduleSpec `json:"spec"`
+	// +optional
+	Status ScalingScheduleStatus `json:"status"`
 }
 
 // +genclient
@@ -28,12 +33,17 @@ type ScalingSchedule struct {
 // ClusterScalingSchedule describes a cluster scoped time based metric
 // to be used in autoscaling operations.
 // +k8s:deepcopy-gen=true
+// +kubebuilder:resource:categories=all
+// +kubebuilder:printcolumn:name="Active",type=boolean,JSONPath=`.status.active`,description="Whether one or more schedules are currently active."
+// +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 type ClusterScalingSchedule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ScalingScheduleSpec `json:"spec"`
+	// +optional
+	Status ScalingScheduleStatus `json:"status"`
 }
 
 // ScalingScheduleSpec is the spec part of the ScalingSchedule.
@@ -124,6 +134,16 @@ const (
 // of the OneTime type.
 // +kubebuilder:validation:Format="date-time"
 type ScheduleDate string
+
+// ScalingScheduleStatus is the status section of the ScalingSchedule.
+// +k8s:deepcopy-gen=true
+type ScalingScheduleStatus struct {
+	// Active is true if at least one of the schedules defined in the
+	// scaling schedule is currently active.
+	// +kubebuilder:default:=false
+	// +optional
+	Active bool `json:"active"`
+}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
