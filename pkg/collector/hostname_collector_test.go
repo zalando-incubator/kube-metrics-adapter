@@ -1,0 +1,261 @@
+package collector
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/metrics/pkg/apis/external_metrics"
+)
+
+func TestHostnameCollectorPluginConstructor(tt *testing.T) {
+	for _, testcase := range []struct {
+		msg     string
+		name    string
+		isValid bool
+	}{
+		{"No metric name", "", false},
+		{"Valid metric name", "a_valid_metric_name", true},
+	} {
+		tt.Run(testcase.msg, func(t *testing.T) {
+
+			fakePlugin := &FakeCollectorPlugin{}
+			plugin, err := NewHostnameCollectorPlugin(fakePlugin, testcase.name)
+
+			if testcase.isValid {
+				require.NoError(t, err)
+				require.NotNil(t, plugin)
+				require.Equal(t, testcase.name, plugin.metricName)
+				require.Equal(t, fakePlugin, plugin.promPlugin)
+			} else {
+				require.NotNil(t, err)
+				require.Nil(t, plugin)
+			}
+		})
+	}
+}
+
+func TestHostnamePluginNewCollector(tt *testing.T) {
+	fakePlugin := &FakeCollectorPlugin{}
+
+	plugin := &HostnameCollectorPlugin{
+		metricName: "a_valid_one",
+		promPlugin: fakePlugin,
+	}
+	interval := time.Duration(42)
+	expectedQuery := `scalar(sum(rate(a_valid_one{host=~"foo.bar.baz"}[1m])))`
+
+	for _, testcase := range []struct {
+		msg        string
+		config     *MetricConfig
+		shouldWork bool
+	}{
+		{"No hostname config", &MetricConfig{Config: make(map[string]string)}, false},
+		{"Nil metric config", nil, false},
+		{"Valid hostname no prom query config", &MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz"}}, true},
+		{"Valid hostname with prom query config", &MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz", "query": "some_other_query"}}, true},
+	} {
+		tt.Run(testcase.msg, func(t *testing.T) {
+			c, err := plugin.NewCollector(
+				&autoscalingv2.HorizontalPodAutoscaler{},
+				testcase.config,
+				interval,
+			)
+
+			if testcase.shouldWork {
+				require.NotNil(t, c)
+				require.Nil(t, err)
+				require.Equal(t, fakePlugin.config["query"], expectedQuery)
+			} else {
+				require.Nil(t, c)
+				require.NotNil(t, err)
+			}
+		})
+	}
+}
+
+func TestHostnameCollectorGetMetrics(tt *testing.T) {
+	genericErr := fmt.Errorf("This is an error")
+	expectedMetric := *resource.NewQuantity(int64(42), resource.DecimalSI)
+
+	for _, testcase := range []struct {
+		msg        string
+		stub       func() ([]CollectedMetric, error)
+		shouldWork bool
+	}{
+		{
+			"Internal collector error",
+			func() ([]CollectedMetric, error) {
+				return nil, genericErr
+			},
+			false,
+		},
+		{
+			"Invalid metric collection from internal collector",
+			func() ([]CollectedMetric, error) {
+				return []CollectedMetric{
+					{External: external_metrics.ExternalMetricValue{Value: *resource.NewQuantity(int64(24), resource.DecimalSI)}},
+					{External: external_metrics.ExternalMetricValue{Value: *resource.NewQuantity(int64(42), resource.DecimalSI)}},
+				}, nil
+			},
+			false,
+		},
+		{
+			"Internal collector return single metric",
+			func() ([]CollectedMetric, error) {
+				return []CollectedMetric{
+					{External: external_metrics.ExternalMetricValue{Value: *resource.NewQuantity(int64(42), resource.DecimalSI)}},
+				}, nil
+			},
+			true,
+		},
+	} {
+		tt.Run(testcase.msg, func(t *testing.T) {
+			fake := makeCollectorWithStub(testcase.stub)
+			c := &HostnameCollector{promCollector: fake}
+			m, err := c.GetMetrics()
+
+			if testcase.shouldWork {
+				require.Nil(t, err)
+				require.NotNil(t, m)
+				require.Len(t, m, 1)
+				require.Equal(t, m[0].External.Value, expectedMetric)
+			} else {
+				require.NotNil(t, err)
+				require.Nil(t, m)
+			}
+		})
+	}
+}
+
+func TestHostnameCollectorInterval(t *testing.T) {
+	interval := time.Duration(42)
+	fakePlugin := &FakeCollectorPlugin{}
+	plugin := &HostnameCollectorPlugin{
+		metricName: "a_valid_one",
+		promPlugin: fakePlugin,
+	}
+	c, err := plugin.NewCollector(
+		&autoscalingv2.HorizontalPodAutoscaler{},
+		&MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz"}},
+		interval,
+	)
+
+	require.NotNil(t, c)
+	require.Nil(t, err)
+	require.Equal(t, interval, c.Interval())
+}
+
+func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
+	expectedQuery := `scalar(sum(rate(a_metric{host=~"just.testing.com"}[1m])))`
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"metric-config.external.foo.hostname-rps/hostname": "just.testing.com",
+			},
+		},
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			Metrics: []autoscalingv2.MetricSpec{
+				{
+					Type: autoscalingv2.ExternalMetricSourceType,
+					External: &autoscalingv2.ExternalMetricSource{
+						Metric: autoscalingv2.MetricIdentifier{
+							Name: "foo",
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"type": "hostname-rps"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	factory := NewCollectorFactory()
+	fakePlugin := makePlugin(42)
+	hostnamePlugin, err := NewHostnameCollectorPlugin(fakePlugin, "a_metric")
+	require.NoError(t, err)
+	factory.RegisterExternalCollector([]string{HostnameMetricType}, hostnamePlugin)
+	conf, err := ParseHPAMetrics(hpa)
+	require.NoError(t, err)
+	require.Len(t, conf, 1)
+
+	c, err := factory.NewCollector(hpa, conf[0], 0)
+
+	require.NoError(t, err)
+	_, ok := c.(*HostnameCollector)
+	require.True(t, ok)
+	require.Equal(t, fakePlugin.config["query"], expectedQuery)
+
+}
+
+func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
+	hostnameQuery := `scalar(sum(rate(a_metric{host=~"just.testing.com"}[1m])))`
+	promQuery := "sum(rate(rps[1m]))"
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"metric-config.external.foo.hostname-rps/hostname": "just.testing.com",
+				"metric-config.external.bar.prometheus/query":      promQuery,
+			},
+		},
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			Metrics: []autoscalingv2.MetricSpec{
+				{
+					Type: autoscalingv2.ExternalMetricSourceType,
+					External: &autoscalingv2.ExternalMetricSource{
+						Metric: autoscalingv2.MetricIdentifier{
+							Name: "foo",
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"type": "hostname-rps"},
+							},
+						},
+					},
+				},
+				{
+					Type: autoscalingv2.ExternalMetricSourceType,
+					External: &autoscalingv2.ExternalMetricSource{
+						Metric: autoscalingv2.MetricIdentifier{
+							Name: "bar",
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"type": "prometheus"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	factory := NewCollectorFactory()
+	promPlugin, err := NewPrometheusCollectorPlugin(nil, "http://prometheus")
+	require.NoError(t, err)
+	factory.RegisterExternalCollector([]string{PrometheusMetricType, PrometheusMetricNameLegacy}, promPlugin)
+	hostnamePlugin, err := NewHostnameCollectorPlugin(promPlugin, "a_metric")
+	require.NoError(t, err)
+	factory.RegisterExternalCollector([]string{HostnameMetricType}, hostnamePlugin)
+
+	conf, err := ParseHPAMetrics(hpa)
+	require.NoError(t, err)
+	require.Len(t, conf, 2)
+
+	collectors := make(map[string]Collector)
+	collectors["hostname"], err = factory.NewCollector(hpa, conf[0], 0)
+	require.NoError(t, err)
+	collectors["prom"], err = factory.NewCollector(hpa, conf[1], 0)
+	require.NoError(t, err)
+
+	prom, ok := collectors["prom"].(*PrometheusCollector)
+	require.True(t, ok)
+	hostname, ok := collectors["hostname"].(*HostnameCollector)
+	require.True(t, ok)
+	hostnameProm, ok := hostname.promCollector.(*PrometheusCollector)
+	require.True(t, ok)
+
+	require.Equal(t, prom.query, promQuery)
+	require.Equal(t, hostnameProm.query, hostnameQuery)
+}
