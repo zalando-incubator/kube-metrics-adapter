@@ -17,7 +17,7 @@ Here's an example of a `HorizontalPodAutoscaler` resource configured to get
 `requests-per-second` metrics from each pod of the deployment `myapp`.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -54,10 +54,9 @@ policy](https://kubernetes.io/docs/setup/release/version-skew-policy/) offered
 for Kubernetes, this project aims to support the latest three minor releases of
 Kubernetes.
 
-The default supported API is `autoscaling/v2beta2` (available since `v1.12`).
+The default supported API is `autoscaling/v2` (available since `v1.23`).
 This API MUST be available in the cluster which is the default. However for
-GKE, this requires GKE v1.15.7 according to this [GKE
-Issue](https://issuetracker.google.com/issues/135624588).
+GKE, this requires GKE v1.23+.
 
 ## Building
 
@@ -99,7 +98,7 @@ This is an example of using the pod collector to collect metrics from a json
 metrics endpoint of each pod matched by the HPA.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -219,7 +218,7 @@ with the result of the query.
 This allows having multiple prometheus queries associated with a single HPA.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -331,7 +330,7 @@ This is an example of an HPA that will scale based on `requests-per-second` for
 an ingress called `myapp`.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -365,7 +364,7 @@ This is an example of an HPA that will scale based on `requests-per-second` for
 a routegroup called `myapp`.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -426,7 +425,7 @@ the query name which will be associated with the result of the query.  This
 allows having multiple flux queries associated with a single HPA.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -514,7 +513,7 @@ This is an example of an HPA that will scale based on the length of an SQS
 queue.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -566,7 +565,7 @@ This is an example of an HPA that will scale based on the specified value
 exposed by a ZMON check with id `1234`.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -663,7 +662,7 @@ This is an example of using the HTTP collector to collect metrics from a json
 metrics endpoint specified in the annotations.
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
@@ -830,7 +829,7 @@ An HPA can reference the deployed `ClusterScalingSchedule` object as
 this example:
 
 ```yaml
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: "myapp-hpa"

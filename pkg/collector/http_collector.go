@@ -7,7 +7,7 @@ import (
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector/httpmetrics"
 
-	v2 "k8s.io/api/autoscaling/v2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -26,7 +26,7 @@ func NewHTTPCollectorPlugin() (*HTTPCollectorPlugin, error) {
 	return &HTTPCollectorPlugin{}, nil
 }
 
-func (p *HTTPCollectorPlugin) NewCollector(hpa *v2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (p *HTTPCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	collector := &HTTPCollector{
 		namespace: hpa.Namespace,
 	}
@@ -73,9 +73,9 @@ type HTTPCollector struct {
 	endpoint      *url.URL
 	interval      time.Duration
 	namespace     string
-	metricType    v2.MetricSourceType
+	metricType    autoscalingv2.MetricSourceType
 	metricsGetter *httpmetrics.JSONPathMetricsGetter
-	metric        v2.MetricIdentifier
+	metric        autoscalingv2.MetricIdentifier
 }
 
 func (c *HTTPCollector) GetMetrics() ([]CollectedMetric, error) {
