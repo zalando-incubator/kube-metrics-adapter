@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"k8s.io/api/autoscaling/v2beta2"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -81,8 +80,8 @@ func TestHTTPCollector(t *testing.T) {
 func makeTestHTTPCollectorConfig(endpoint, aggregator string) *MetricConfig {
 	config := &MetricConfig{
 		MetricTypeName: MetricTypeName{
-			Type: v2beta2.ExternalMetricSourceType,
-			Metric: v2beta2.MetricIdentifier{
+			Type: autoscalingv2.ExternalMetricSourceType,
+			Metric: autoscalingv2.MetricIdentifier{
 				Name: "test-metric",
 				Selector: &v1.LabelSelector{
 					MatchLabels: map[string]string{"type": HTTPJSONPathType},

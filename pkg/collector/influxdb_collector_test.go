@@ -5,8 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/autoscaling/v2beta2"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -20,8 +19,8 @@ func TestInfluxDBCollector_New(t *testing.T) {
 	t.Run("simple", func(t *testing.T) {
 		m := &MetricConfig{
 			MetricTypeName: MetricTypeName{
-				Type: v2beta2.ExternalMetricSourceType,
-				Metric: v2beta2.MetricIdentifier{
+				Type: autoscalingv2.ExternalMetricSourceType,
+				Metric: autoscalingv2.MetricIdentifier{
 					Name: "flux-query",
 					// This is actually useless, because the selector should be flattened in Config when parsing.
 					Selector: &v1.LabelSelector{
@@ -59,8 +58,8 @@ func TestInfluxDBCollector_New(t *testing.T) {
 	t.Run("override params", func(t *testing.T) {
 		m := &MetricConfig{
 			MetricTypeName: MetricTypeName{
-				Type: v2beta2.ExternalMetricSourceType,
-				Metric: v2beta2.MetricIdentifier{
+				Type: autoscalingv2.ExternalMetricSourceType,
+				Metric: autoscalingv2.MetricIdentifier{
 					Name: "flux-query",
 					Selector: &v1.LabelSelector{
 						MatchLabels: map[string]string{
@@ -107,15 +106,15 @@ func TestInfluxDBCollector_New(t *testing.T) {
 		{
 			name: "object metric",
 			mTypeName: MetricTypeName{
-				Type: v2beta2.ObjectMetricSourceType,
+				Type: autoscalingv2.ObjectMetricSourceType,
 			},
 			errorStartsWith: "InfluxDB does not support object",
 		},
 		{
 			name: "no selector",
 			mTypeName: MetricTypeName{
-				Type: v2beta2.ExternalMetricSourceType,
-				Metric: v2beta2.MetricIdentifier{
+				Type: autoscalingv2.ExternalMetricSourceType,
+				Metric: autoscalingv2.MetricIdentifier{
 					Name: "flux-query",
 				},
 			},
@@ -130,8 +129,8 @@ func TestInfluxDBCollector_New(t *testing.T) {
 		{
 			name: "referencing non-existing query",
 			mTypeName: MetricTypeName{
-				Type: v2beta2.ExternalMetricSourceType,
-				Metric: v2beta2.MetricIdentifier{
+				Type: autoscalingv2.ExternalMetricSourceType,
+				Metric: autoscalingv2.MetricIdentifier{
 					Name: "flux-query",
 				},
 			},
