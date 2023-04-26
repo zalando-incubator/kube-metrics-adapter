@@ -55,8 +55,7 @@ for Kubernetes, this project aims to support the latest three minor releases of
 Kubernetes.
 
 The default supported API is `autoscaling/v2` (available since `v1.23`).
-This API MUST be available in the cluster which is the default. However for
-GKE, this requires GKE v1.23+.
+This API MUST be available in the cluster which is the default.
 
 ## Building
 
