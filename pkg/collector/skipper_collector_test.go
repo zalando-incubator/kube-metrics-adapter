@@ -658,38 +658,3 @@ func makeConfig(resourceName, namespace, kind, backend string, fakedAverage bool
 	}
 	return config
 }
-
-type FakeCollectorPlugin struct {
-	metrics []CollectedMetric
-	config  map[string]string
-}
-
-type FakeCollector struct {
-	metrics []CollectedMetric
-}
-
-func (c *FakeCollector) GetMetrics() ([]CollectedMetric, error) {
-	return c.metrics, nil
-}
-
-func (FakeCollector) Interval() time.Duration {
-	return time.Minute
-}
-
-func (p *FakeCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	if p.config != nil {
-		return nil, fmt.Errorf("config already assigned once: %v", p.config)
-	}
-	p.config = config.Config
-	return &FakeCollector{metrics: p.metrics}, nil
-}
-
-func makePlugin(metric int) *FakeCollectorPlugin {
-	return &FakeCollectorPlugin{
-		metrics: []CollectedMetric{
-			{
-				Custom: custom_metrics.MetricValue{Value: *resource.NewQuantity(int64(metric), resource.DecimalSI)},
-			},
-		},
-	}
-}
