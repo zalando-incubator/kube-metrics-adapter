@@ -402,6 +402,51 @@ the `backend` label under `matchLabels` for the metric.  The ingress annotation
 where the backend weights can be obtained can be specified through the flag
 `--skipper-backends-annotation`.
 
+## Hostname RPS collector
+
+The Hostname collector, like Skipper collector, is a simple wrapper around the Prometheus collector to
+make it easy to define an HPA for scaling based on the RPS measured for a given hostname. When
+[skipper](https://github.com/zalando/skipper) is used as the ingress
+implementation in your cluster everything should work automatically, in case another reverse proxy is used as ingress, like [Nginx](https://github.com/kubernetes/ingress-nginx) for example, its necessary to configure which prometheus metric should be used through `--hostname-rps-metric-name <metric-name>` flag. Assuming `skipper-ingress` is being used or the appropriate metric name is passed using the flag mentioned previously this collector provides the correct Prometheus queries out of the
+box so users don't have to define those manually.
+
+### Supported metrics
+
+| Metric | Description | Type | Kind | K8s Versions |
+| ------------ | -------------- | ------- | -- | -- |
+| `hostname-rps` | Scale based on requests per second for a certain hostname. | External | | `>=1.12` |
+
+### Example: External Metric
+
+This is an example of an HPA that will scale based on `hostname-rps` for the RPS measured in the hostname called `www.example.com`.
+
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+  annotations:
+    metric-config.external.example-rps.hostname-rps/hostname: www.example.com
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: custom-metrics-consumer
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: External
+    external:
+      metric:
+        name: example-rps
+        selector:
+          matchLabels:
+            type: hostname-rps
+      target:
+        type: AverageValue
+        averageValue: "42"
+```
+
 ## InfluxDB collector
 
 The InfluxDB collector maps [Flux](https://github.com/influxdata/flux) queries to metrics that can be used for scaling.
