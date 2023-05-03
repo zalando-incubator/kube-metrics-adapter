@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb-client-go"
-	"k8s.io/api/autoscaling/v2beta2"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -39,7 +38,7 @@ func NewInfluxDBCollectorPlugin(client kubernetes.Interface, address, token, org
 	}, nil
 }
 
-func (p *InfluxDBCollectorPlugin) NewCollector(hpa *v2beta2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (p *InfluxDBCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return NewInfluxDBCollector(hpa, p.address, p.token, p.org, config, interval)
 }
 
@@ -56,7 +55,7 @@ type InfluxDBCollector struct {
 	namespace      string
 }
 
-func NewInfluxDBCollector(hpa *v2beta2.HorizontalPodAutoscaler, address string, token string, org string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
+func NewInfluxDBCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, address string, token string, org string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
 	collector := &InfluxDBCollector{
 		interval:   interval,
 		metric:     config.Metric,

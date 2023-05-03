@@ -12,7 +12,7 @@ import (
 	rginterface "github.com/szuecs/routegroup-client/client/clientset/versioned"
 	rgfake "github.com/szuecs/routegroup-client/client/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -35,7 +35,7 @@ func TestTargetRefReplicasDeployments(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the deployment as ref
-	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(deployment.Namespace).
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(deployment.Namespace).
 		Create(context.TODO(), newHPA(defaultNamespace, name, "Deployment"), metav1.CreateOptions{})
 	require.NoError(t, err)
 
@@ -52,7 +52,7 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the statefulSet as ref
-	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(statefulSet.Namespace).
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(statefulSet.Namespace).
 		Create(context.TODO(), newHPA(defaultNamespace, name, "StatefulSet"), metav1.CreateOptions{})
 	require.NoError(t, err)
 

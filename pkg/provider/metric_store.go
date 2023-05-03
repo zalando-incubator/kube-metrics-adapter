@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"

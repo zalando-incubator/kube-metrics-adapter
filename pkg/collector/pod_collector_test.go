@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -280,7 +280,7 @@ func makeTestHPA(t *testing.T, client kubernetes.Interface) *autoscalingv2.Horiz
 			},
 		},
 	}
-	_, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers("test-namespace").Create(context.TODO(), hpa, v1.CreateOptions{})
+	_, err := client.AutoscalingV2().HorizontalPodAutoscalers("test-namespace").Create(context.TODO(), hpa, v1.CreateOptions{})
 	require.NoError(t, err)
 	return hpa
 }

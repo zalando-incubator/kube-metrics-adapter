@@ -12,7 +12,7 @@ import (
 
 	rgv1 "github.com/szuecs/routegroup-client/apis/zalando.org/v1"
 	rginterface "github.com/szuecs/routegroup-client/client/clientset/versioned"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
