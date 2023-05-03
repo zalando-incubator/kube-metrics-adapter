@@ -3,6 +3,7 @@ package collector
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 
 const (
 	HostnameMetricType = "hostname-rps"
-	HostnameRPSQuery   = `scalar(sum(rate(%s{host=~"%s"}[1m])))`
+	HostnameRPSQuery   = `scalar(sum(rate(%s{host=~"%s"}[1m])) * %.4f)`
 )
 
 type HostnameCollectorPlugin struct {
@@ -51,19 +52,37 @@ func (p *HostnameCollectorPlugin) NewCollector(
 	// RPS data from a specific hostname from prometheus. The idea
 	// of the copy is to not modify the original config struct.
 	confCopy := *config
-	hostnames := config.Config["hostname"]
+	//hostnames := config.Config["hostnames"]
+	//weights := config.Config["weights"]
 
-	if ok, err := regexp.MatchString("^[a-zA-Z0-9.,-]+$", hostnames); !ok || err != nil {
-		return nil, fmt.Errorf(
-			"hostname is not specified or invalid format, unable to create collector",
-		)
+	if _, ok := config.Config["hostnames"]; !ok {
+		return nil, fmt.Errorf("hostname is not specified, unable to create collector")
+	}
+	hostnames := strings.Split(config.Config["hostnames"], ",")
+	for _, h := range hostnames {
+		if ok, err := regexp.MatchString("^[a-zA-Z0-9.-]+$", h); !ok || err != nil {
+			return nil, fmt.Errorf(
+				"Invalid hostname format, unable to create collector: %s",
+				h,
+			)
+		}
+	}
+
+	weight := 1.0
+	if w, ok := config.Config["weight"]; ok {
+		num, err := strconv.ParseFloat(w, 64)
+		if err != nil {
+			return nil, fmt.Errorf("Could not parse weight annotation, unable to create collector: %s", w)
+		}
+		weight = num / 100.0
 	}
 
 	confCopy.Config = map[string]string{
 		"query": fmt.Sprintf(
 			HostnameRPSQuery,
 			p.metricName,
-			strings.Replace(strings.Replace(hostnames, ",", "|", -1), ".", "_", -1),
+			strings.Replace(strings.Join(hostnames, "|"), ".", "_", -1),
+			weight,
 		),
 	}
 

@@ -68,22 +68,28 @@ func TestHostnamePluginNewCollector(tt *testing.T) {
 		},
 		{
 			"Valid hostname no prom query config",
-			&MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz"}},
-			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz"}[1m])))`,
+			&MetricConfig{Config: map[string]string{"hostnames": "foo.bar.baz"}},
+			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz"}[1m])) * 1.0000)`,
+			true,
+		},
+		{
+			"Valid hostname no prom query config",
+			&MetricConfig{Config: map[string]string{"hostnames": "foo.bar.baz", "weight": "42"}},
+			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz"}[1m])) * 0.4200)`,
 			true,
 		},
 		{
 			"Multiple valid hostnames no prom query config",
-			&MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz,foz.bax.bas"}},
-			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz|foz_bax_bas"}[1m])))`,
+			&MetricConfig{Config: map[string]string{"hostnames": "foo.bar.baz,foz.bax.bas"}},
+			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz|foz_bax_bas"}[1m])) * 1.0000)`,
 			true,
 		},
 		{
 			"Valid hostname with prom query config",
 			&MetricConfig{
-				Config: map[string]string{"hostname": "foo.bar.baz", "query": "some_other_query"},
+				Config: map[string]string{"hostnames": "foo.bar.baz", "query": "some_other_query"},
 			},
-			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz"}[1m])))`,
+			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz"}[1m])) * 1.0000)`,
 			true,
 		},
 	} {
@@ -169,7 +175,7 @@ func TestHostnameCollectorInterval(t *testing.T) {
 	}
 	c, err := plugin.NewCollector(
 		&autoscalingv2.HorizontalPodAutoscaler{},
-		&MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz"}},
+		&MetricConfig{Config: map[string]string{"hostnames": "foo.bar.baz"}},
 		interval,
 	)
 
@@ -179,11 +185,12 @@ func TestHostnameCollectorInterval(t *testing.T) {
 }
 
 func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
-	expectedQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])))`
+	expectedQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])) * 0.4200)`
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"metric-config.external.foo.hostname-rps/hostname": "just.testing.com",
+				"metric-config.external.foo.hostname-rps/hostnames": "just.testing.com",
+				"metric-config.external.foo.hostname-rps/weight":    "42",
 			},
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
@@ -222,13 +229,14 @@ func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
 }
 
 func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
-	hostnameQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])))`
+	hostnameQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])) * 0.4200)`
 	promQuery := "sum(rate(rps[1m]))"
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"metric-config.external.foo.hostname-rps/hostname": "just.testing.com",
-				"metric-config.external.bar.prometheus/query":      promQuery,
+				"metric-config.external.foo.hostname-rps/hostnames": "just.testing.com",
+				"metric-config.external.foo.hostname-rps/weight":    "42",
+				"metric-config.external.bar.prometheus/query":       promQuery,
 			},
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
