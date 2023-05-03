@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	HostnameMetricType = "hostname-rps"
+	HostnameMetricType = "requests-per-second"
 	HostnameRPSQuery   = `scalar(sum(rate(%s{host=~"%s"}[1m])) * %.4f)`
 )
 

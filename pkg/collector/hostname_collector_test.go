@@ -189,8 +189,8 @@ func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"metric-config.external.foo.hostname-rps/hostnames": "just.testing.com",
-				"metric-config.external.foo.hostname-rps/weight":    "42",
+				"metric-config.external.foo.requests-per-second/hostnames": "just.testing.com",
+				"metric-config.external.foo.requests-per-second/weight":    "42",
 			},
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
@@ -201,7 +201,7 @@ func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
 						Metric: autoscalingv2.MetricIdentifier{
 							Name: "foo",
 							Selector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"type": "hostname-rps"},
+								MatchLabels: map[string]string{"type": "requests-per-second"},
 							},
 						},
 					},
@@ -234,9 +234,9 @@ func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"metric-config.external.foo.hostname-rps/hostnames": "just.testing.com",
-				"metric-config.external.foo.hostname-rps/weight":    "42",
-				"metric-config.external.bar.prometheus/query":       promQuery,
+				"metric-config.external.foo.requests-per-second/hostnames": "just.testing.com",
+				"metric-config.external.foo.requests-per-second/weight":    "42",
+				"metric-config.external.bar.prometheus/query":              promQuery,
 			},
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
@@ -247,7 +247,7 @@ func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
 						Metric: autoscalingv2.MetricIdentifier{
 							Name: "foo",
 							Selector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"type": "hostname-rps"},
+								MatchLabels: map[string]string{"type": "requests-per-second"},
 							},
 						},
 					},
