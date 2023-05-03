@@ -2,6 +2,8 @@ package collector
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -49,14 +51,20 @@ func (p *HostnameCollectorPlugin) NewCollector(
 	// RPS data from a specific hostname from prometheus. The idea
 	// of the copy is to not modify the original config struct.
 	confCopy := *config
-	hostname := config.Config["hostname"]
+	hostnames := config.Config["hostname"]
 
-	if hostname == "" {
-		return nil, fmt.Errorf("hostname not specified, unable to create collector")
+	if ok, err := regexp.MatchString("^[a-zA-Z0-9.,-]+$", hostnames); !ok || err != nil {
+		return nil, fmt.Errorf(
+			"hostname is not specified or invalid format, unable to create collector",
+		)
 	}
 
 	confCopy.Config = map[string]string{
-		"query": fmt.Sprintf(HostnameRPSQuery, p.metricName, hostname),
+		"query": fmt.Sprintf(
+			HostnameRPSQuery,
+			p.metricName,
+			strings.Replace(strings.Replace(hostnames, ",", "|", -1), ".", "_", -1),
+		),
 	}
 
 	c, err := p.promPlugin.NewCollector(hpa, &confCopy, interval)

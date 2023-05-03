@@ -47,17 +47,45 @@ func TestHostnamePluginNewCollector(tt *testing.T) {
 		promPlugin: fakePlugin,
 	}
 	interval := time.Duration(42)
-	expectedQuery := `scalar(sum(rate(a_valid_one{host=~"foo.bar.baz"}[1m])))`
 
 	for _, testcase := range []struct {
-		msg        string
-		config     *MetricConfig
-		shouldWork bool
+		msg           string
+		config        *MetricConfig
+		expectedQuery string
+		shouldWork    bool
 	}{
-		{"No hostname config", &MetricConfig{Config: make(map[string]string)}, false},
-		{"Nil metric config", nil, false},
-		{"Valid hostname no prom query config", &MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz"}}, true},
-		{"Valid hostname with prom query config", &MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz", "query": "some_other_query"}}, true},
+		{
+			"No hostname config",
+			&MetricConfig{Config: make(map[string]string)},
+			"",
+			false,
+		},
+		{
+			"Nil metric config",
+			nil,
+			"",
+			false,
+		},
+		{
+			"Valid hostname no prom query config",
+			&MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz"}},
+			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz"}[1m])))`,
+			true,
+		},
+		{
+			"Multiple valid hostnames no prom query config",
+			&MetricConfig{Config: map[string]string{"hostname": "foo.bar.baz,foz.bax.bas"}},
+			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz|foz_bax_bas"}[1m])))`,
+			true,
+		},
+		{
+			"Valid hostname with prom query config",
+			&MetricConfig{
+				Config: map[string]string{"hostname": "foo.bar.baz", "query": "some_other_query"},
+			},
+			`scalar(sum(rate(a_valid_one{host=~"foo_bar_baz"}[1m])))`,
+			true,
+		},
 	} {
 		tt.Run(testcase.msg, func(t *testing.T) {
 			c, err := plugin.NewCollector(
@@ -69,7 +97,7 @@ func TestHostnamePluginNewCollector(tt *testing.T) {
 			if testcase.shouldWork {
 				require.NotNil(t, c)
 				require.Nil(t, err)
-				require.Equal(t, fakePlugin.config["query"], expectedQuery)
+				require.Equal(t, testcase.expectedQuery, fakePlugin.config["query"])
 			} else {
 				require.Nil(t, c)
 				require.NotNil(t, err)
@@ -123,7 +151,7 @@ func TestHostnameCollectorGetMetrics(tt *testing.T) {
 				require.Nil(t, err)
 				require.NotNil(t, m)
 				require.Len(t, m, 1)
-				require.Equal(t, m[0].External.Value, expectedMetric)
+				require.Equal(t, expectedMetric, m[0].External.Value)
 			} else {
 				require.NotNil(t, err)
 				require.Nil(t, m)
@@ -151,7 +179,7 @@ func TestHostnameCollectorInterval(t *testing.T) {
 }
 
 func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
-	expectedQuery := `scalar(sum(rate(a_metric{host=~"just.testing.com"}[1m])))`
+	expectedQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])))`
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
@@ -189,12 +217,12 @@ func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
 	require.NoError(t, err)
 	_, ok := c.(*HostnameCollector)
 	require.True(t, ok)
-	require.Equal(t, fakePlugin.config["query"], expectedQuery)
+	require.Equal(t, expectedQuery, fakePlugin.config["query"])
 
 }
 
 func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
-	hostnameQuery := `scalar(sum(rate(a_metric{host=~"just.testing.com"}[1m])))`
+	hostnameQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])))`
 	promQuery := "sum(rate(rps[1m]))"
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
@@ -256,6 +284,6 @@ func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
 	hostnameProm, ok := hostname.promCollector.(*PrometheusCollector)
 	require.True(t, ok)
 
-	require.Equal(t, prom.query, promQuery)
-	require.Equal(t, hostnameProm.query, hostnameQuery)
+	require.Equal(t, promQuery, prom.query)
+	require.Equal(t, hostnameQuery, hostnameProm.query)
 }
