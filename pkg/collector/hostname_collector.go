@@ -30,7 +30,7 @@ func NewHostnameCollectorPlugin(
 	metricName string,
 ) (*HostnameCollectorPlugin, error) {
 	if metricName == "" {
-		return nil, fmt.Errorf("failed to initialize hostname collector plugin, metric name was not defined")
+		return nil, fmt.Errorf("Failed to initialize hostname collector plugin, metric name was not defined")
 	}
 
 	return &HostnameCollectorPlugin{
@@ -52,15 +52,17 @@ func (p *HostnameCollectorPlugin) NewCollector(
 	// RPS data from a specific hostname from prometheus. The idea
 	// of the copy is to not modify the original config struct.
 	confCopy := *config
-	//hostnames := config.Config["hostnames"]
-	//weights := config.Config["weights"]
 
 	if _, ok := config.Config["hostnames"]; !ok {
-		return nil, fmt.Errorf("hostname is not specified, unable to create collector")
+		return nil, fmt.Errorf("Hostname is not specified, unable to create collector")
+	}
+	regex, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create regular expression to match hostname format")
 	}
 	hostnames := strings.Split(config.Config["hostnames"], ",")
 	for _, h := range hostnames {
-		if ok, err := regexp.MatchString("^[a-zA-Z0-9.-]+$", h); !ok || err != nil {
+		if ok := regex.MatchString(h); !ok {
 			return nil, fmt.Errorf(
 				"Invalid hostname format, unable to create collector: %s",
 				h,
@@ -105,7 +107,7 @@ func (c *HostnameCollector) GetMetrics() ([]CollectedMetric, error) {
 	}
 
 	if len(v) != 1 {
-		return nil, fmt.Errorf("expected to only get one metric value, got %d", len(v))
+		return nil, fmt.Errorf("Expected to only get one metric value, got %d", len(v))
 	}
 	return v, nil
 }
