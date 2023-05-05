@@ -414,11 +414,11 @@ box so users don't have to define those manually.
 
 | Metric | Description | Type | Kind | K8s Versions |
 | ------------ | -------------- | ------- | -- | -- |
-| `hostname-rps` | Scale based on requests per second for a certain hostname. | External | | `>=1.12` |
+| `requests-per-second` | Scale based on requests per second for a certain hostname. | External | | `>=1.12` |
 
 ### Example: External Metric
 
-This is an example of an HPA that will scale based on `hostname-rps` for the RPS measured in the hostname called `www.example.com`.
+This is an example of an HPA that will scale based on `requests-per-second` for the RPS measured in the hostnames called: `www.example1.com` and `www.example2.com`; and weighted by 42%.
 
 ```yaml
 apiVersion: autoscaling/v2beta2
@@ -426,7 +426,8 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
-    metric-config.external.example-rps.hostname-rps/hostname: www.example.com
+    metric-config.external.example-rps.requests-per-second/hostname: www.example1.com,www.example2.com
+    metric-config.external.example-rps.requests-per-second/weight: 42
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -441,11 +442,23 @@ spec:
         name: example-rps
         selector:
           matchLabels:
-            type: hostname-rps
+            type: requests-per-second
       target:
         type: AverageValue
         averageValue: "42"
 ```
+### Multiple hostnames per metric
+
+This metric supports a relation of n:1 with metrics. The way it works is the measured RPS is the sum of the RPS rate of each of the specified hostnames. This value is further modified by the weight parameter explained bellow.
+
+### Metric weighting based on backend
+
+There are ingress-controllers, like skipper-ingress, that supports sending traffic to different backends based on some kind of configuration, in case of skipper annotations
+present on the `Ingress` object, or weights on the RouteGroup backends. By
+default the number of replicas will be calculated based on the full traffic
+served by these components.  If however only the traffic being routed to
+a specific hostname should be used then the weight for the configured hostname(s) might be specified via the `weight` annotation `metric-config.external.<metric-name>.request-per-second/weight` for the metric being configured.
+
 
 ## InfluxDB collector
 
