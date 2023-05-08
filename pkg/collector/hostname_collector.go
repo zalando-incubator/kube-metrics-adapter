@@ -18,6 +18,7 @@ const (
 type HostnameCollectorPlugin struct {
 	metricName string
 	promPlugin CollectorPlugin
+	pattern    *regexp.Regexp
 }
 
 type HostnameCollector struct {
@@ -33,9 +34,15 @@ func NewHostnameCollectorPlugin(
 		return nil, fmt.Errorf("Failed to initialize hostname collector plugin, metric name was not defined")
 	}
 
+	p, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create regular expression to match hostname format")
+	}
+
 	return &HostnameCollectorPlugin{
 		metricName: metricName,
 		promPlugin: promPlugin,
+		pattern:    p,
 	}, nil
 }
 
@@ -56,13 +63,13 @@ func (p *HostnameCollectorPlugin) NewCollector(
 	if _, ok := config.Config["hostnames"]; !ok {
 		return nil, fmt.Errorf("Hostname is not specified, unable to create collector")
 	}
-	regex, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create regular expression to match hostname format")
-	}
+
 	hostnames := strings.Split(config.Config["hostnames"], ",")
+	if p.pattern == nil {
+		return nil, fmt.Errorf("Plugin did not specify hostname regex pattern, unable to create collector")
+	}
 	for _, h := range hostnames {
-		if ok := regex.MatchString(h); !ok {
+		if ok := p.pattern.MatchString(h); !ok {
 			return nil, fmt.Errorf(
 				"Invalid hostname format, unable to create collector: %s",
 				h,

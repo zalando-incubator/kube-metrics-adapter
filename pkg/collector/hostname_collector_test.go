@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -42,9 +43,13 @@ func TestHostnameCollectorPluginConstructor(tt *testing.T) {
 func TestHostnamePluginNewCollector(tt *testing.T) {
 	fakePlugin := &FakeCollectorPlugin{}
 
+	pattern, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
+	require.Nil(tt, err, "Something is up, regex compiling failed.")
+
 	plugin := &HostnameCollectorPlugin{
 		metricName: "a_valid_one",
 		promPlugin: fakePlugin,
+		pattern:    pattern,
 	}
 	interval := time.Duration(42)
 
@@ -169,9 +174,12 @@ func TestHostnameCollectorGetMetrics(tt *testing.T) {
 func TestHostnameCollectorInterval(t *testing.T) {
 	interval := time.Duration(42)
 	fakePlugin := &FakeCollectorPlugin{}
+	pattern, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
+	require.Nil(t, err, "Something is up, regex compiling failed.")
 	plugin := &HostnameCollectorPlugin{
 		metricName: "a_valid_one",
 		promPlugin: fakePlugin,
+		pattern:    pattern,
 	}
 	c, err := plugin.NewCollector(
 		&autoscalingv2.HorizontalPodAutoscaler{},
@@ -179,8 +187,8 @@ func TestHostnameCollectorInterval(t *testing.T) {
 		interval,
 	)
 
-	require.NotNil(t, c)
 	require.Nil(t, err)
+	require.NotNil(t, c)
 	require.Equal(t, interval, c.Interval())
 }
 
