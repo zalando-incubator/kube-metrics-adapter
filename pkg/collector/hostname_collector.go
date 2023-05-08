@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	//autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 )
 
