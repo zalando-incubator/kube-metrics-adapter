@@ -4,7 +4,7 @@ replicas: 1
 
 registry:
   image: registry.opensource.zalan.do/teapot/kube-metrics-adapter
-  imageTag: v0.1.10
+  imageTag: v0.2.0
   imagePullPolicy: IfNotPresent
 
 service:
@@ -22,6 +22,7 @@ http2MaxStreamsPerConnection:
 listerKubeConfig:
 skipperBackendsAnnotation:
 skipperIngressMetrics:
+skipperRouteGroupMetrics:
 token:
 vmodule:
 

@@ -164,6 +164,9 @@ spec:
             {{- if .Values.skipperIngressMetrics }}
             - --skipper-ingress-metrics={{ .Values.skipperIngressMetrics }}
             {{- end}}
+            {{- if .Values.skipperRouteGroupMetrics }}
+            - --skipper-routegroup-metrics={{ .Values.skipperRouteGroupMetrics }}
+            {{- end}}
             {{- if .Values.log.stderrThreshold }}
             - --stderrthreshold={{ .Values.log.stderrThreshold }}
             {{- end}}
