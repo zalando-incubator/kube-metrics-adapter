@@ -31,12 +31,12 @@ func NewHostnameCollectorPlugin(
 	metricName string,
 ) (*HostnameCollectorPlugin, error) {
 	if metricName == "" {
-		return nil, fmt.Errorf("Failed to initialize hostname collector plugin, metric name was not defined")
+		return nil, fmt.Errorf("failed to initialize hostname collector plugin, metric name was not defined")
 	}
 
 	p, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create regular expression to match hostname format")
+		return nil, fmt.Errorf("failed to create regular expression to match hostname format")
 	}
 
 	return &HostnameCollectorPlugin{
@@ -53,7 +53,7 @@ func (p *HostnameCollectorPlugin) NewCollector(
 	interval time.Duration,
 ) (Collector, error) {
 	if config == nil {
-		return nil, fmt.Errorf("Metric config not present, it is not possible to initialize the collector.")
+		return nil, fmt.Errorf("metric config not present, it is not possible to initialize the collector")
 	}
 	// Need to copy config and add a promQL query in order to get
 	// RPS data from a specific hostname from prometheus. The idea
@@ -66,12 +66,12 @@ func (p *HostnameCollectorPlugin) NewCollector(
 
 	hostnames := strings.Split(config.Config["hostnames"], ",")
 	if p.pattern == nil {
-		return nil, fmt.Errorf("Plugin did not specify hostname regex pattern, unable to create collector")
+		return nil, fmt.Errorf("plugin did not specify hostname regex pattern, unable to create collector")
 	}
 	for _, h := range hostnames {
 		if ok := p.pattern.MatchString(h); !ok {
 			return nil, fmt.Errorf(
-				"Invalid hostname format, unable to create collector: %s",
+				"invalid hostname format, unable to create collector: %s",
 				h,
 			)
 		}
@@ -81,16 +81,18 @@ func (p *HostnameCollectorPlugin) NewCollector(
 	if w, ok := config.Config["weight"]; ok {
 		num, err := strconv.ParseFloat(w, 64)
 		if err != nil {
-			return nil, fmt.Errorf("Could not parse weight annotation, unable to create collector: %s", w)
+			return nil, fmt.Errorf("could not parse weight annotation, unable to create collector: %s", w)
 		}
 		weight = num / 100.0
 	}
+    
+    
 
 	confCopy.Config = map[string]string{
 		"query": fmt.Sprintf(
 			HostnameRPSQuery,
 			p.metricName,
-			strings.Replace(strings.Join(hostnames, "|"), ".", "_", -1),
+            strings.ReplaceAll(strings.Join(hostnames, "|"), ".", "_"),
 			weight,
 		),
 	}
@@ -114,7 +116,7 @@ func (c *HostnameCollector) GetMetrics() ([]CollectedMetric, error) {
 	}
 
 	if len(v) != 1 {
-		return nil, fmt.Errorf("Expected to only get one metric value, got %d", len(v))
+		return nil, fmt.Errorf("expected to only get one metric value, got %d", len(v))
 	}
 	return v, nil
 }
@@ -123,3 +125,4 @@ func (c *HostnameCollector) GetMetrics() ([]CollectedMetric, error) {
 func (c *HostnameCollector) Interval() time.Duration {
 	return c.interval
 }
+
