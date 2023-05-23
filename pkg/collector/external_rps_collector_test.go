@@ -13,7 +13,7 @@ import (
 	"k8s.io/metrics/pkg/apis/external_metrics"
 )
 
-func TestHostnameCollectorPluginConstructor(tt *testing.T) {
+func TestExternalRPSCollectorPluginConstructor(tt *testing.T) {
 	for _, testcase := range []struct {
 		msg     string
 		name    string
@@ -25,7 +25,7 @@ func TestHostnameCollectorPluginConstructor(tt *testing.T) {
 		tt.Run(testcase.msg, func(t *testing.T) {
 
 			fakePlugin := &FakeCollectorPlugin{}
-			plugin, err := NewHostnameCollectorPlugin(fakePlugin, testcase.name)
+			plugin, err := NewExternalRPSCollectorPlugin(fakePlugin, testcase.name)
 
 			if testcase.isValid {
 				require.NoError(t, err)
@@ -40,13 +40,13 @@ func TestHostnameCollectorPluginConstructor(tt *testing.T) {
 	}
 }
 
-func TestHostnamePluginNewCollector(tt *testing.T) {
+func TestExternalRPSPluginNewCollector(tt *testing.T) {
 	fakePlugin := &FakeCollectorPlugin{}
 
 	pattern, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
 	require.Nil(tt, err, "Something is up, regex compiling failed.")
 
-	plugin := &HostnameCollectorPlugin{
+	plugin := &ExternalRPSCollectorPlugin{
 		metricName: "a_valid_one",
 		promPlugin: fakePlugin,
 		pattern:    pattern,
@@ -117,7 +117,7 @@ func TestHostnamePluginNewCollector(tt *testing.T) {
 	}
 }
 
-func TestHostnameCollectorGetMetrics(tt *testing.T) {
+func TestExternalRPSCollectorGetMetrics(tt *testing.T) {
 	genericErr := fmt.Errorf("This is an error")
 	expectedMetric := *resource.NewQuantity(int64(42), resource.DecimalSI)
 
@@ -155,7 +155,7 @@ func TestHostnameCollectorGetMetrics(tt *testing.T) {
 	} {
 		tt.Run(testcase.msg, func(t *testing.T) {
 			fake := makeCollectorWithStub(testcase.stub)
-			c := &HostnameCollector{promCollector: fake}
+			c := &ExternalRPSCollector{promCollector: fake}
 			m, err := c.GetMetrics()
 
 			if testcase.shouldWork {
@@ -171,12 +171,12 @@ func TestHostnameCollectorGetMetrics(tt *testing.T) {
 	}
 }
 
-func TestHostnameCollectorInterval(t *testing.T) {
+func TestExternalRPSCollectorInterval(t *testing.T) {
 	interval := time.Duration(42)
 	fakePlugin := &FakeCollectorPlugin{}
 	pattern, err := regexp.Compile("^[a-zA-Z0-9.-]+$")
 	require.Nil(t, err, "Something is up, regex compiling failed.")
-	plugin := &HostnameCollectorPlugin{
+	plugin := &ExternalRPSCollectorPlugin{
 		metricName: "a_valid_one",
 		promPlugin: fakePlugin,
 		pattern:    pattern,
@@ -192,7 +192,7 @@ func TestHostnameCollectorInterval(t *testing.T) {
 	require.Equal(t, interval, c.Interval())
 }
 
-func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
+func TestExternalRPSCollectorAndCollectorFabricInteraction(t *testing.T) {
 	expectedQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])) * 0.4200)`
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
@@ -220,9 +220,9 @@ func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
 
 	factory := NewCollectorFactory()
 	fakePlugin := makePlugin(42)
-	hostnamePlugin, err := NewHostnameCollectorPlugin(fakePlugin, "a_metric")
+	hostnamePlugin, err := NewExternalRPSCollectorPlugin(fakePlugin, "a_metric")
 	require.NoError(t, err)
-	factory.RegisterExternalCollector([]string{HostnameMetricType}, hostnamePlugin)
+	factory.RegisterExternalCollector([]string{ExternalRPSMetricType}, hostnamePlugin)
 	conf, err := ParseHPAMetrics(hpa)
 	require.NoError(t, err)
 	require.Len(t, conf, 1)
@@ -230,14 +230,14 @@ func TestHostnameCollectorAndCollectorFabricInteraction(t *testing.T) {
 	c, err := factory.NewCollector(hpa, conf[0], 0)
 
 	require.NoError(t, err)
-	_, ok := c.(*HostnameCollector)
+	_, ok := c.(*ExternalRPSCollector)
 	require.True(t, ok)
 	require.Equal(t, expectedQuery, fakePlugin.config["query"])
 
 }
 
-func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
-	hostnameQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])) * 0.4200)`
+func TestExternalRPSPrometheusCollectorInteraction(t *testing.T) {
+	externalRPSQuery := `scalar(sum(rate(a_metric{host=~"just_testing_com"}[1m])) * 0.4200)`
 	promQuery := "sum(rate(rps[1m]))"
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
@@ -279,9 +279,9 @@ func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
 	promPlugin, err := NewPrometheusCollectorPlugin(nil, "http://prometheus")
 	require.NoError(t, err)
 	factory.RegisterExternalCollector([]string{PrometheusMetricType, PrometheusMetricNameLegacy}, promPlugin)
-	hostnamePlugin, err := NewHostnameCollectorPlugin(promPlugin, "a_metric")
+	hostnamePlugin, err := NewExternalRPSCollectorPlugin(promPlugin, "a_metric")
 	require.NoError(t, err)
-	factory.RegisterExternalCollector([]string{HostnameMetricType}, hostnamePlugin)
+	factory.RegisterExternalCollector([]string{ExternalRPSMetricType}, hostnamePlugin)
 
 	conf, err := ParseHPAMetrics(hpa)
 	require.NoError(t, err)
@@ -295,11 +295,11 @@ func TestHostnamePrometheusCollectorInteraction(t *testing.T) {
 
 	prom, ok := collectors["prom"].(*PrometheusCollector)
 	require.True(t, ok)
-	hostname, ok := collectors["hostname"].(*HostnameCollector)
+	hostname, ok := collectors["hostname"].(*ExternalRPSCollector)
 	require.True(t, ok)
 	hostnameProm, ok := hostname.promCollector.(*PrometheusCollector)
 	require.True(t, ok)
 
 	require.Equal(t, promQuery, prom.query)
-	require.Equal(t, hostnameQuery, hostnameProm.query)
+	require.Equal(t, externalRPSQuery, hostnameProm.query)
 }

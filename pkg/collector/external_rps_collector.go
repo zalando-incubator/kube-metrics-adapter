@@ -11,25 +11,25 @@ import (
 )
 
 const (
-	HostnameMetricType = "requests-per-second"
-	HostnameRPSQuery   = `scalar(sum(rate(%s{host=~"%s"}[1m])) * %.4f)`
+	ExternalRPSMetricType = "requests-per-second"
+	ExternalRPSQuery   = `scalar(sum(rate(%s{host=~"%s"}[1m])) * %.4f)`
 )
 
-type HostnameCollectorPlugin struct {
+type ExternalRPSCollectorPlugin struct {
 	metricName string
 	promPlugin CollectorPlugin
 	pattern    *regexp.Regexp
 }
 
-type HostnameCollector struct {
+type ExternalRPSCollector struct {
 	interval      time.Duration
 	promCollector Collector
 }
 
-func NewHostnameCollectorPlugin(
+func NewExternalRPSCollectorPlugin(
 	promPlugin CollectorPlugin,
 	metricName string,
-) (*HostnameCollectorPlugin, error) {
+) (*ExternalRPSCollectorPlugin, error) {
 	if metricName == "" {
 		return nil, fmt.Errorf("failed to initialize hostname collector plugin, metric name was not defined")
 	}
@@ -39,7 +39,7 @@ func NewHostnameCollectorPlugin(
 		return nil, fmt.Errorf("failed to create regular expression to match hostname format")
 	}
 
-	return &HostnameCollectorPlugin{
+	return &ExternalRPSCollectorPlugin{
 		metricName: metricName,
 		promPlugin: promPlugin,
 		pattern:    p,
@@ -47,7 +47,7 @@ func NewHostnameCollectorPlugin(
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
-func (p *HostnameCollectorPlugin) NewCollector(
+func (p *ExternalRPSCollectorPlugin) NewCollector(
 	hpa *autoscalingv2.HorizontalPodAutoscaler,
 	config *MetricConfig,
 	interval time.Duration,
@@ -90,7 +90,7 @@ func (p *HostnameCollectorPlugin) NewCollector(
 
 	confCopy.Config = map[string]string{
 		"query": fmt.Sprintf(
-			HostnameRPSQuery,
+			ExternalRPSQuery,
 			p.metricName,
             strings.ReplaceAll(strings.Join(hostnames, "|"), ".", "_"),
 			weight,
@@ -102,14 +102,14 @@ func (p *HostnameCollectorPlugin) NewCollector(
 		return nil, err
 	}
 
-	return &HostnameCollector{
+	return &ExternalRPSCollector{
 		interval:      interval,
 		promCollector: c,
 	}, nil
 }
 
 // GetMetrics gets hostname metrics from Prometheus
-func (c *HostnameCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *ExternalRPSCollector) GetMetrics() ([]CollectedMetric, error) {
 	v, err := c.promCollector.GetMetrics()
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func (c *HostnameCollector) GetMetrics() ([]CollectedMetric, error) {
 }
 
 // Interval returns the interval at which the collector should run.
-func (c *HostnameCollector) Interval() time.Duration {
+func (c *ExternalRPSCollector) Interval() time.Duration {
 	return c.interval
 }
 
