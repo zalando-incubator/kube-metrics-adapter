@@ -133,10 +133,10 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
 	flags.IntVar(&o.RampSteps, "scaling-schedule-ramp-steps", 10, "Number of steps used to rampup and rampdown ScalingSchedules. It's used to guarantee won't avoid reaching the max scaling due to the 10% minimum change rule.")
 	flags.StringVar(&o.DefaultTimeZone, "scaling-schedule-default-time-zone", "Europe/Berlin", "Default time zone to use for ScalingSchedules.")
-	flags.StringVar(&o.ExternalRPSMetricName, "hostname-rps-metric-name", o.ExternalRPSMetricName, ""+
+	flags.StringVar(&o.ExternalRPSMetricName, "external-rps-metric-name", o.ExternalRPSMetricName, ""+
 		"The name of the metric that should be used to query prometheus for RPS per hostname.")
-	flags.BoolVar(&o.ExternalRPSMetrics, "hostname-rps-metrics", o.ExternalRPSMetrics, ""+
-		"whether to enable hostname RPS metric collector or not")
+	flags.BoolVar(&o.ExternalRPSMetrics, "external-rps-metrics", o.ExternalRPSMetrics, ""+
+		"whether to enable external RPS metric collector or not")
 	return cmd
 }
 
