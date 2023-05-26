@@ -65,6 +65,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		MetricsAddress:                    ":7979",
 		ZMONTokenName:                     "zmon",
 		CredentialsDir:                    "/meta/credentials",
+		ExternalRPSMetricName:             "skipper_serve_host_duration_seconds_count",
 	}
 
 	cmd := &cobra.Command{
@@ -132,6 +133,10 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
 	flags.IntVar(&o.RampSteps, "scaling-schedule-ramp-steps", 10, "Number of steps used to rampup and rampdown ScalingSchedules. It's used to guarantee won't avoid reaching the max scaling due to the 10% minimum change rule.")
 	flags.StringVar(&o.DefaultTimeZone, "scaling-schedule-default-time-zone", "Europe/Berlin", "Default time zone to use for ScalingSchedules.")
+	flags.StringVar(&o.ExternalRPSMetricName, "external-rps-metric-name", o.ExternalRPSMetricName, ""+
+		"The name of the metric that should be used to query prometheus for RPS per hostname.")
+	flags.BoolVar(&o.ExternalRPSMetrics, "external-rps-metrics", o.ExternalRPSMetrics, ""+
+		"whether to enable external RPS metric collector or not")
 	return cmd
 }
 
@@ -216,6 +221,18 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 				if err != nil {
 					return fmt.Errorf("failed to register skipper RouteGroup collector plugin: %v", err)
 				}
+			}
+		}
+
+		// External RPS collector, like skipper's, depends on prometheus being enabled.
+		// Also, to enable hostname metric its necessary to pass the metric name that
+		// will be used. This was built this way so we can support hostname metrics to
+		// any ingress provider, e.g. Skipper, Nginx, envoy etc, in a simple way.
+		if o.ExternalRPSMetrics && o.ExternalRPSMetricName != "" {
+			externalRPSPlugin, err := collector.NewExternalRPSCollectorPlugin(promPlugin, o.ExternalRPSMetricName)
+			collectorFactory.RegisterExternalCollector([]string{collector.ExternalRPSMetricType}, externalRPSPlugin)
+			if err != nil {
+				return fmt.Errorf("failed to register hostname collector plugin: %v", err)
 			}
 		}
 	}
@@ -445,4 +462,8 @@ type AdapterServerOptions struct {
 	RampSteps int
 	// Default time zone to use for ScalingSchedules.
 	DefaultTimeZone string
+	// Feature flag to enable external rps metric collector
+	ExternalRPSMetrics bool
+	// Name of the Prometheus metric that stores RPS by hostname for external RPS metrics.
+	ExternalRPSMetricName string
 }
