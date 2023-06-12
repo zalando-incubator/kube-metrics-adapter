@@ -363,7 +363,7 @@ func collectorRunner(ctx context.Context, collector collector.Collector, metrics
 	}
 }
 
-// Remove removes a collector from the Collector schduler. The collector is
+// Remove removes a collector from the Collector scheduler. The collector is
 // stopped before it's removed.
 func (t *CollectorScheduler) Remove(resourceRef resourceReference) {
 	t.Lock()

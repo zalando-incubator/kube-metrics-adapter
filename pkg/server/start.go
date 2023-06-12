@@ -332,7 +332,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to register ScalingSchedule object collector plugin: %v", err)
 		}
 
-		// setup ScheduledScaling controller to continously update
+		// setup ScheduledScaling controller to continuously update
 		// status of ScalingSchedule and ClusterScalingSchedule
 		// resources.
 		scheduledScalingController := scheduledscaling.NewController(scalingScheduleClient.ZalandoV1(), scalingSchedulesStore, clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone)
@@ -400,7 +400,7 @@ func newOauth2HTTPClient(ctx context.Context, tokenSource oauth2.TokenSource) *h
 	// add HTTP client to context (this is how the oauth2 lib gets it).
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, client)
 
-	// instantiate an http.Client containg the token source.
+	// instantiate an http.Client containing the token source.
 	return oauth2.NewClient(ctx, tokenSource)
 }
 

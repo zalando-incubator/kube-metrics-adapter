@@ -68,11 +68,11 @@ type Schedule struct {
 	// +optional
 	Period *SchedulePeriod `json:"period,omitempty"`
 	// Defines the starting date of a OneTime schedule. It has to
-	// be a RFC3339 formated date.
+	// be a RFC3339 formatted date.
 	// +optional
 	Date *ScheduleDate `json:"date,omitempty"`
 	// Defines the ending date of a OneTime schedule. It must be
-	// a RFC3339 formated date.
+	// a RFC3339 formatted date.
 	// +optional
 	EndDate *ScheduleDate `json:"endDate,omitempty"`
 	// The duration in minutes (default 0) that the configured value will be

@@ -50,7 +50,7 @@ contribution is in line with our goals.
 - Make sure you sign-off on your commits `git commit -s -m "adding X to change Y"`
 - Write good commit messages (see below).
 - Push your changes to a topic branch in your fork of the repository.
-- As you push your changes, update the pull request with new infomation and tasks as you complete them
+- As you push your changes, update the pull request with new information and tasks as you complete them
 - Project maintainers might comment on your work as you progress
 - When you are done, remove the `work in progess` label and ping the maintainers for a review
 - Your pull request must receive a :thumbsup: from two [maintainers](MAINTAINERS)
