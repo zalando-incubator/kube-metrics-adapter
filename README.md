@@ -449,7 +449,7 @@ spec:
 ```
 ### Multiple hostnames per metric
 
-This metric supports a relation of n:1 between hostnames and metrics. The way it works is the measured RPS is the sum of the RPS rate of each of the specified hostnames. This value is further modified by the weight parameter explained bellow.
+This metric supports a relation of n:1 between hostnames and metrics. The way it works is the measured RPS is the sum of the RPS rate of each of the specified hostnames. This value is further modified by the weight parameter explained below.
 
 ### Metric weighting based on backend
 

@@ -61,10 +61,10 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.Equal(t, statefulSet.Status.Replicas, replicas)
 }
 
-func newHPA(namesapce string, refName string, refKind string) *autoscalingv2.HorizontalPodAutoscaler {
+func newHPA(namespace string, refName string, refKind string) *autoscalingv2.HorizontalPodAutoscaler {
 	return &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: namesapce,
+			Name: namespace,
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
