@@ -12,7 +12,7 @@ import (
 
 const (
 	ExternalRPSMetricType = "requests-per-second"
-	ExternalRPSQuery   = `scalar(sum(rate(%s{host=~"%s"}[1m])) * %.4f)`
+	ExternalRPSQuery      = `scalar(sum(rate(%s{host=~"%s"}[1m])) * %.4f)`
 )
 
 type ExternalRPSCollectorPlugin struct {
@@ -85,14 +85,12 @@ func (p *ExternalRPSCollectorPlugin) NewCollector(
 		}
 		weight = num / 100.0
 	}
-    
-    
 
 	confCopy.Config = map[string]string{
 		"query": fmt.Sprintf(
 			ExternalRPSQuery,
 			p.metricName,
-            strings.ReplaceAll(strings.Join(hostnames, "|"), ".", "_"),
+			strings.ReplaceAll(strings.Join(hostnames, "|"), ".", "_"),
 			weight,
 		),
 	}
@@ -125,4 +123,3 @@ func (c *ExternalRPSCollector) GetMetrics() ([]CollectedMetric, error) {
 func (c *ExternalRPSCollector) Interval() time.Duration {
 	return c.interval
 }
-
