@@ -11,18 +11,18 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/szuecs/routegroup-client v0.21.1
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20230601114834-6ed1bba3c85d
-	golang.org/x/net v0.12.0
+	golang.org/x/net v0.13.0
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/sync v0.3.0
-	k8s.io/api v0.23.17
-	k8s.io/apimachinery v0.23.17
+	k8s.io/api v0.28.1
+	k8s.io/apimachinery v0.28.1
 	k8s.io/apiserver v0.23.17
-	k8s.io/client-go v0.23.17
-	k8s.io/code-generator v0.23.17
+	k8s.io/client-go v0.28.1
+	k8s.io/code-generator v0.28.1
 	k8s.io/component-base v0.23.17
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20230614213217-ba0abe644833
-	k8s.io/metrics v0.23.17
+	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9
+	k8s.io/metrics v0.28.1
 	sigs.k8s.io/controller-tools v0.8.0
 	sigs.k8s.io/custom-metrics-apiserver v1.22.0
 )
@@ -36,7 +36,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
-	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -49,6 +49,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -108,7 +109,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.23.0 // indirect
-	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
+	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/utils v0.0.0-20230711102312-30195339c3c7 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.35 // indirect
