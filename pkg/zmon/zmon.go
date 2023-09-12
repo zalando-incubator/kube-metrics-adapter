@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -14,13 +14,13 @@ var (
 	// set of valid aggregators that can be used in queries
 	// https://kairosdb.github.io/docs/build/html/restapi/Aggregators.html
 	validAggregators = map[string]struct{}{
-		"avg":   struct{}{},
-		"count": struct{}{},
-		"last":  struct{}{},
-		"max":   struct{}{},
-		"min":   struct{}{},
-		"sum":   struct{}{},
-		"diff":  struct{}{},
+		"avg":   {},
+		"count": {},
+		"last":  {},
+		"max":   {},
+		"min":   {},
+		"sum":   {},
+		"diff":  {},
 	}
 )
 
@@ -161,7 +161,7 @@ func (c *Client) Query(checkID int, key string, tags map[string]string, aggregat
 	}
 	defer resp.Body.Close()
 
-	d, err := ioutil.ReadAll(resp.Body)
+	d, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

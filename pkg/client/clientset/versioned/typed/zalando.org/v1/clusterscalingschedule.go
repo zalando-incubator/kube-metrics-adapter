@@ -40,6 +40,7 @@ type ClusterScalingSchedulesGetter interface {
 type ClusterScalingScheduleInterface interface {
 	Create(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.CreateOptions) (*v1.ClusterScalingSchedule, error)
 	Update(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (*v1.ClusterScalingSchedule, error)
+	UpdateStatus(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (*v1.ClusterScalingSchedule, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ClusterScalingSchedule, error)
@@ -121,6 +122,21 @@ func (c *clusterScalingSchedules) Update(ctx context.Context, clusterScalingSche
 	err = c.client.Put().
 		Resource("clusterscalingschedules").
 		Name(clusterScalingSchedule.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(clusterScalingSchedule).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *clusterScalingSchedules) UpdateStatus(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (result *v1.ClusterScalingSchedule, err error) {
+	result = &v1.ClusterScalingSchedule{}
+	err = c.client.Put().
+		Resource("clusterscalingschedules").
+		Name(clusterScalingSchedule.Name).
+		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(clusterScalingSchedule).
 		Do(ctx).

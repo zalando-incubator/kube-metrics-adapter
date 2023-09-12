@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -16,16 +16,14 @@ import (
 const (
 	// ZMONMetricType defines the metric type for metrics based on ZMON
 	// checks.
-	ZMONMetricType             = "zmon"
-	ZMONCheckMetricLegacy      = "zmon-check"
-	zmonCheckIDLabelKey        = "check-id"
-	zmonKeyLabelKey            = "key"
-	zmonDurationLabelKey       = "duration"
-	zmonAggregatorsLabelKey    = "aggregators"
-	zmonTagPrefixLabelKey      = "tag-"
-	defaultQueryDuration       = 10 * time.Minute
-	zmonKeyAnnotationKey       = "metric-config.external.zmon-check.zmon/key"
-	zmonTagPrefixAnnotationKey = "metric-config.external.zmon-check.zmon/tag-"
+	ZMONMetricType          = "zmon"
+	ZMONCheckMetricLegacy   = "zmon-check"
+	zmonCheckIDLabelKey     = "check-id"
+	zmonKeyLabelKey         = "key"
+	zmonDurationLabelKey    = "duration"
+	zmonAggregatorsLabelKey = "aggregators"
+	zmonTagPrefixLabelKey   = "tag-"
+	defaultQueryDuration    = 10 * time.Minute
 )
 
 // ZMONCollectorPlugin defines a plugin for creating collectors that can get

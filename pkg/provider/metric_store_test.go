@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/stretchr/testify/require"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	"golang.org/x/net/context"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -16,10 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 )
 
-func newMetricIdentifier(metricName string) custom_metrics.MetricIdentifier {
-	selector := metav1.LabelSelector{}
+func newMetricIdentifier(metricName string, selector metav1.LabelSelector) custom_metrics.MetricIdentifier {
 	return custom_metrics.MetricIdentifier{
 		Name:     metricName,
 		Selector: &selector,
@@ -46,7 +46,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("metric-per-unit"),
+					Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 					Value:  *resource.NewQuantity(0, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
@@ -94,7 +94,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("metric-per-unit"),
+					Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 					Value:  *resource.NewQuantity(0, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
@@ -151,7 +151,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("scalingschedulename"),
+					Metric: newMetricIdentifier("scalingschedulename", metav1.LabelSelector{}),
 					Value:  *resource.NewQuantity(10, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
@@ -208,7 +208,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("clusterscalingschedulename"),
+					Metric: newMetricIdentifier("clusterscalingschedulename", metav1.LabelSelector{}),
 					Value:  *resource.NewQuantity(10, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
@@ -265,7 +265,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("metric-per-unit"),
+					Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 					Value:  *resource.NewQuantity(0, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
@@ -308,16 +308,20 @@ func TestInternalMetricStorage(t *testing.T) {
 			},
 		},
 		{
-			test: "insert/list/get an Ingress metric",
+			test: "insert/list/get an Ingress metric with match labels",
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("metric-per-unit"),
-					Value:  *resource.NewQuantity(0, ""),
+					Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"select_key": "select_value",
+						},
+					}),
+					Value: *resource.NewQuantity(0, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
 						Kind:       "Ingress",
-						APIVersion: "extensions/v1beta1",
+						APIVersion: "networking.k8s.io/v1",
 					},
 				},
 			},
@@ -325,7 +329,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -339,7 +343,63 @@ func TestInternalMetricStorage(t *testing.T) {
 				name: types.NamespacedName{Name: "metricObject", Namespace: ""},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
+						Resource: "ingresses",
+					},
+					Namespaced: false,
+					Metric:     "metric-per-unit",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "",
+				selector:  labels.SelectorFromSet(labels.Set{"select_key": "select_value"}),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "networking.k8s.io",
+						Resource: "ingresses",
+					},
+					Namespaced: false,
+					Metric:     "metric-per-unit",
+				},
+			},
+		},
+		{
+			test: "insert/list/get an Ingress metric",
+			insert: collector.CollectedMetric{
+				Type: autoscalingv2.MetricSourceType("Object"),
+				Custom: custom_metrics.MetricValue{
+					Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
+					Value:  *resource.NewQuantity(0, ""),
+					DescribedObject: custom_metrics.ObjectReference{
+						Name:       "metricObject",
+						Kind:       "Ingress",
+						APIVersion: "networking.k8s.io/v1",
+					},
+				},
+			},
+			expectedFound: true,
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{
+						Group:    "networking.k8s.io",
+						Resource: "ingresses",
+					},
+					Namespaced: false,
+					Metric:     "metric-per-unit",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject", Namespace: ""},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -355,7 +415,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				selector:  labels.Everything(),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -368,13 +428,13 @@ func TestInternalMetricStorage(t *testing.T) {
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("metric-per-unit"),
+					Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 					Value:  *resource.NewQuantity(0, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
 						Namespace:  "right",
 						Kind:       "Ingress",
-						APIVersion: "extensions/v1beta1",
+						APIVersion: "networking.k8s.io/v1",
 					},
 				},
 			},
@@ -382,7 +442,7 @@ func TestInternalMetricStorage(t *testing.T) {
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: true,
@@ -396,7 +456,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				name: types.NamespacedName{Name: "metricObject", Namespace: "wrong"},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: true,
@@ -412,7 +472,7 @@ func TestInternalMetricStorage(t *testing.T) {
 				selector:  labels.Everything(),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: true,
@@ -436,18 +496,15 @@ func TestInternalMetricStorage(t *testing.T) {
 			require.Equal(t, tc.list, metricInfos)
 
 			// Get the metric by name
-			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info)
-
+			metric := metricsStore.GetMetricsByName(context.Background(), tc.byName.name, tc.byName.info, tc.byLabel.selector)
 			if tc.expectedFound {
 				require.Equal(t, tc.insert.Custom, *metric)
-				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Equal(t, tc.insert.Custom, metrics.Items[0])
 			} else {
-				require.Nil(t, metric)
-				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Len(t, metrics.Items, 0)
 			}
-
 		})
 	}
 
@@ -474,24 +531,24 @@ func TestMultipleMetricValues(t *testing.T) {
 				{
 					Type: autoscalingv2.MetricSourceType("Object"),
 					Custom: custom_metrics.MetricValue{
-						Metric: newMetricIdentifier("metric-per-unit"),
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 						Value:  *resource.NewQuantity(0, ""),
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
 							Kind:       "Ingress",
-							APIVersion: "extensions/v1beta1",
+							APIVersion: "networking.k8s.io/v1",
 						},
 					},
 				},
 				{
 					Type: autoscalingv2.MetricSourceType("Object"),
 					Custom: custom_metrics.MetricValue{
-						Metric: newMetricIdentifier("metric-per-unit"),
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 						Value:  *resource.NewQuantity(1, ""),
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
 							Kind:       "Ingress",
-							APIVersion: "extensions/v1beta1",
+							APIVersion: "networking.k8s.io/v1",
 						},
 					},
 				},
@@ -499,7 +556,7 @@ func TestMultipleMetricValues(t *testing.T) {
 			list: []provider.CustomMetricInfo{
 				{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -513,7 +570,7 @@ func TestMultipleMetricValues(t *testing.T) {
 				name: types.NamespacedName{Name: "metricObject", Namespace: ""},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -529,7 +586,7 @@ func TestMultipleMetricValues(t *testing.T) {
 				selector:  labels.Everything(),
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{
-						Group:    "extensions",
+						Group:    "networking.k8s.io",
 						Resource: "ingresses",
 					},
 					Namespaced: false,
@@ -543,7 +600,7 @@ func TestMultipleMetricValues(t *testing.T) {
 				{
 					Type: autoscalingv2.MetricSourceType("Object"),
 					Custom: custom_metrics.MetricValue{
-						Metric: newMetricIdentifier("metric-per-unit"),
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 						Value:  *resource.NewQuantity(0, ""),
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
@@ -556,7 +613,7 @@ func TestMultipleMetricValues(t *testing.T) {
 				{
 					Type: autoscalingv2.MetricSourceType("Object"),
 					Custom: custom_metrics.MetricValue{
-						Metric: newMetricIdentifier("metric-per-unit"),
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 						Value:  *resource.NewQuantity(1, ""),
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
@@ -612,11 +669,11 @@ func TestMultipleMetricValues(t *testing.T) {
 				metricsStore.Insert(insert)
 
 				// Get the metric by name
-				metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info)
+				metric := metricsStore.GetMetricsByName(context.Background(), tc.byName.name, tc.byName.info, tc.byLabel.selector)
 				require.Equal(t, insert.Custom, *metric)
 
 				// Get the metric by label
-				metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+				metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 				require.Equal(t, insert.Custom, metrics.Items[0])
 			}
 
@@ -677,7 +734,7 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 			insert: collector.CollectedMetric{
 				Type: autoscalingv2.MetricSourceType("Object"),
 				Custom: custom_metrics.MetricValue{
-					Metric: newMetricIdentifier("metric-per-unit"),
+					Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 					Value:  *resource.NewQuantity(0, ""),
 					DescribedObject: custom_metrics.ObjectReference{
 						Name:       "metricObject",
@@ -741,10 +798,10 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 			require.Equal(t, tc.list, metricInfos)
 
 			// Get the metric by name
-			metric := metricsStore.GetMetricsByName(tc.byName.name, tc.byName.info)
+			metric := metricsStore.GetMetricsByName(context.Background(), tc.byName.name, tc.byName.info, tc.byLabel.selector)
 			require.Nil(t, metric)
 
-			metrics := metricsStore.GetMetricsBySelector(tc.byLabel.namespace, tc.byLabel.selector, tc.byLabel.info)
+			metrics := metricsStore.GetMetricsBySelector(context.Background(), objectNamespace(tc.byLabel.namespace), tc.byLabel.selector, tc.byLabel.info)
 			require.Equal(t, &custom_metrics.MetricValueList{}, metrics)
 
 		})
@@ -769,20 +826,20 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 				{
 					Type: autoscalingv2.MetricSourceType("Object"),
 					Custom: custom_metrics.MetricValue{
-						Metric: newMetricIdentifier("metric-per-unit"),
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 						Value:  *resource.NewQuantity(0, ""),
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
 							Namespace:  "default",
 							Kind:       "Ingress",
-							APIVersion: "extensions/vbeta1",
+							APIVersion: "networking.k8s.io/v1",
 						},
 					},
 				},
 				{
 					Type: autoscalingv2.MetricSourceType("Object"),
 					Custom: custom_metrics.MetricValue{
-						Metric: newMetricIdentifier("metric-per-unit"),
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 						Value:  *resource.NewQuantity(1, ""),
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
@@ -795,7 +852,7 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 				{
 					Type: autoscalingv2.MetricSourceType("Object"),
 					Custom: custom_metrics.MetricValue{
-						Metric: newMetricIdentifier("metric-per-unit"),
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 						Value:  *resource.NewQuantity(1, ""),
 						DescribedObject: custom_metrics.ObjectReference{
 							Name:       "metricObject",
@@ -818,6 +875,69 @@ func TestCustomMetricsStorageErrors(t *testing.T) {
 				info provider.CustomMetricInfo
 			}{
 				name: types.NamespacedName{Name: "metricObject", Namespace: "default"},
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byLabel: struct {
+				namespace string
+				selector  labels.Selector
+				info      provider.CustomMetricInfo
+			}{
+				namespace: "default",
+				selector:  labels.Everything(),
+				info: provider.CustomMetricInfo{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+		},
+		// Regression test covering https://github.com/zalando-incubator/kube-metrics-adapter/issues/379
+		{
+			test: "test multiple metrics with label added to metric name",
+			insert: []collector.CollectedMetric{
+				{
+					Type: autoscalingv2.MetricSourceType("Object"),
+					Custom: custom_metrics.MetricValue{
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
+						Value:  *resource.NewQuantity(0, ""),
+						DescribedObject: custom_metrics.ObjectReference{
+							Name:       "metricObject",
+							Namespace:  "default",
+							Kind:       "Deployment",
+							APIVersion: "apps/v1",
+						},
+					},
+				},
+				{
+					Type: autoscalingv2.MetricSourceType("Object"),
+					Custom: custom_metrics.MetricValue{
+						Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
+						Value:  *resource.NewQuantity(1, ""),
+						DescribedObject: custom_metrics.ObjectReference{
+							Name:       "metricObject-000",
+							Namespace:  "default",
+							Kind:       "Deployment",
+							APIVersion: "apps/v1",
+						},
+					},
+				},
+			},
+			list: []provider.CustomMetricInfo{
+				{
+					GroupResource: schema.GroupResource{},
+					Namespaced:    true,
+					Metric:        "metric-per-unit",
+				},
+			},
+			byName: struct {
+				name types.NamespacedName
+				info provider.CustomMetricInfo
+			}{
+				name: types.NamespacedName{Name: "metricObject-000", Namespace: "default"},
 				info: provider.CustomMetricInfo{
 					GroupResource: schema.GroupResource{},
 					Namespaced:    true,
@@ -934,7 +1054,7 @@ func TestExternalMetricStorage(t *testing.T) {
 			require.Equal(t, tc.list, metricInfos[0])
 
 			// Get the metric by name
-			metrics, err := metricsStore.GetExternalMetric(tc.get.namespace, tc.get.selector, tc.get.info)
+			metrics, err := metricsStore.GetExternalMetric(context.Background(), objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
 			require.NoError(t, err)
 			require.Equal(t, tc.insert.External, metrics.Items[0])
 
@@ -1102,7 +1222,7 @@ func TestMultipleExternalMetricStorage(t *testing.T) {
 			}
 
 			// Get the metric by name
-			metrics, err := metricsStore.GetExternalMetric(tc.get.namespace, tc.get.selector, tc.get.info)
+			metrics, err := metricsStore.GetExternalMetric(context.Background(), objectNamespace(tc.get.namespace), tc.get.selector, tc.get.info)
 			require.NoError(t, err)
 			require.Len(t, metrics.Items, 1)
 			require.Contains(t, metrics.Items, tc.insert[tc.expectedIdx].External)
@@ -1128,7 +1248,7 @@ func TestMetricsExpiration(t *testing.T) {
 	customMetric := collector.CollectedMetric{
 		Type: autoscalingv2.MetricSourceType("Object"),
 		Custom: custom_metrics.MetricValue{
-			Metric: newMetricIdentifier("metric-per-unit"),
+			Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 			Value:  *resource.NewQuantity(0, ""),
 			DescribedObject: custom_metrics.ObjectReference{
 				Name:       "metricObject",
@@ -1167,7 +1287,7 @@ func TestMetricsNonExpiration(t *testing.T) {
 	customMetric := collector.CollectedMetric{
 		Type: autoscalingv2.MetricSourceType("Object"),
 		Custom: custom_metrics.MetricValue{
-			Metric: newMetricIdentifier("metric-per-unit"),
+			Metric: newMetricIdentifier("metric-per-unit", metav1.LabelSelector{}),
 			Value:  *resource.NewQuantity(0, ""),
 			DescribedObject: custom_metrics.ObjectReference{
 				Name:       "metricObject",

@@ -26,8 +26,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/apiserver"
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	rg "github.com/szuecs/routegroup-client/client/clientset/versioned"
@@ -36,6 +34,7 @@ import (
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/controller/scheduledscaling"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
 	"golang.org/x/oauth2"
@@ -48,6 +47,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/apiserver"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/cmd/server"
 )
 
 const (
@@ -64,6 +65,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		MetricsAddress:                    ":7979",
 		ZMONTokenName:                     "zmon",
 		CredentialsDir:                    "/meta/credentials",
+		ExternalRPSMetricName:             "skipper_serve_host_duration_seconds_count",
 	}
 
 	cmd := &cobra.Command{
@@ -132,6 +134,13 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.DurationVar(&o.GCInterval, "garbage-collector-interval", 10*time.Minute, "Interval to clean up metrics that are stored in in-memory cache.")
 	flags.BoolVar(&o.ScalingScheduleMetrics, "scaling-schedule", o.ScalingScheduleMetrics, ""+
 		"whether to enable time-based ScalingSchedule metrics")
+	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
+	flags.IntVar(&o.RampSteps, "scaling-schedule-ramp-steps", 10, "Number of steps used to rampup and rampdown ScalingSchedules. It's used to guarantee won't avoid reaching the max scaling due to the 10% minimum change rule.")
+	flags.StringVar(&o.DefaultTimeZone, "scaling-schedule-default-time-zone", "Europe/Berlin", "Default time zone to use for ScalingSchedules.")
+	flags.StringVar(&o.ExternalRPSMetricName, "external-rps-metric-name", o.ExternalRPSMetricName, ""+
+		"The name of the metric that should be used to query prometheus for RPS per hostname.")
+	flags.BoolVar(&o.ExternalRPSMetrics, "external-rps-metrics", o.ExternalRPSMetrics, ""+
+		"whether to enable external RPS metric collector or not")
 	return cmd
 }
 
@@ -223,6 +232,18 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 				}
 			}
 		}
+
+		// External RPS collector, like skipper's, depends on prometheus being enabled.
+		// Also, to enable hostname metric its necessary to pass the metric name that
+		// will be used. This was built this way so we can support hostname metrics to
+		// any ingress provider, e.g. Skipper, Nginx, envoy etc, in a simple way.
+		if o.ExternalRPSMetrics && o.ExternalRPSMetricName != "" {
+			externalRPSPlugin, err := collector.NewExternalRPSCollectorPlugin(promPlugin, o.ExternalRPSMetricName)
+			collectorFactory.RegisterExternalCollector([]string{collector.ExternalRPSMetricType}, externalRPSPlugin)
+			if err != nil {
+				return fmt.Errorf("failed to register hostname collector plugin: %v", err)
+			}
+		}
 	}
 
 	if o.InfluxDBAddress != "" && o.InfluxDBEnabled {
@@ -307,7 +328,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		)
 		go reflector.Run(ctx.Done())
 
-		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now)
+		clusterPlugin, err := collector.NewClusterScalingScheduleCollectorPlugin(clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ClusterScalingScheduleCollector plugin: %v", err)
 		}
@@ -316,7 +337,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to register ClusterScalingSchedule object collector plugin: %v", err)
 		}
 
-		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now)
+		plugin, err := collector.NewScalingScheduleCollectorPlugin(scalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone, o.RampSteps)
 		if err != nil {
 			return fmt.Errorf("unable to create ScalingScheduleCollector plugin: %v", err)
 		}
@@ -324,6 +345,13 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		if err != nil {
 			return fmt.Errorf("failed to register ScalingSchedule object collector plugin: %v", err)
 		}
+
+		// setup ScheduledScaling controller to continuously update
+		// status of ScalingSchedule and ClusterScalingSchedule
+		// resources.
+		scheduledScalingController := scheduledscaling.NewController(scalingScheduleClient.ZalandoV1(), scalingSchedulesStore, clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone)
+
+		go scheduledScalingController.Run(ctx)
 	}
 
 	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory, o.DisregardIncompatibleHPAs, o.MetricsTTL, o.GCInterval)
@@ -386,7 +414,7 @@ func newOauth2HTTPClient(ctx context.Context, tokenSource oauth2.TokenSource) *h
 	// add HTTP client to context (this is how the oauth2 lib gets it).
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, client)
 
-	// instantiate an http.Client containg the token source.
+	// instantiate an http.Client containing the token source.
 	return oauth2.NewClient(ctx, tokenSource)
 }
 
@@ -445,4 +473,14 @@ type AdapterServerOptions struct {
 	GCInterval time.Duration
 	// Time-based scaling based on the CRDs ScheduleScaling and ClusterScheduleScaling.
 	ScalingScheduleMetrics bool
+	// Default ramp-up/ramp-down window duration for scheduled metrics
+	DefaultScheduledScalingWindow time.Duration
+	// Number of steps utilized during the rampup and rampdown for scheduled metrics
+	RampSteps int
+	// Default time zone to use for ScalingSchedules.
+	DefaultTimeZone string
+	// Feature flag to enable external rps metric collector
+	ExternalRPSMetrics bool
+	// Name of the Prometheus metric that stores RPS by hostname for external RPS metrics.
+	ExternalRPSMetricName string
 }

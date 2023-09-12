@@ -59,12 +59,22 @@ rules:
   - statefulsets
   verbs:
   - get
+{{- if .Values.skipperRouteGroupMetrics }}
 - apiGroups:
-  - extensions
+  - networking.k8s.io
   resources:
   - ingresses
   verbs:
   - get
+{{- end }}
+{{- if .Values.skipperRouteGroupMetrics }}
+- apiGroups:
+  - zalando.org
+  resources:
+  - routegroups
+  verbs:
+  - get
+{{- end }}
 - apiGroups:
   - autoscaling
   resources:
@@ -83,6 +93,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - zalando.org
+  resources:
+  - clusterscalingschedules/status
+  - scalingschedules/status
+  verbs:
+  - update
 {{- end}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

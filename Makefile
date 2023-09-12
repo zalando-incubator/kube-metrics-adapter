@@ -50,7 +50,9 @@ $(OPENAPI): go.mod
 
 build.local: build/$(BINARY) $(GENERATED_CRDS)
 build.linux: build/linux/$(BINARY)
-build.osx: build/osx/$(BINARY)
+build.linux.amd64: build/linux/amd64/$(BINARY)
+build.linux.arm64: build/linux/arm64/$(BINARY)
+
 
 build/$(BINARY): go.mod $(SOURCES) $(GENERATED)
 	CGO_ENABLED=0 go build -o build/$(BINARY) $(BUILD_FLAGS) -ldflags "$(LDFLAGS)" .
@@ -58,11 +60,14 @@ build/$(BINARY): go.mod $(SOURCES) $(GENERATED)
 build/linux/$(BINARY): go.mod $(SOURCES) $(GENERATED)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/linux/$(BINARY) -ldflags "$(LDFLAGS)" .
 
-build/osx/$(BINARY): go.mod $(SOURCES) $(GENERATED)
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/osx/$(BINARY) -ldflags "$(LDFLAGS)" .
+build/linux/amd64/$(BINARY): go.mod $(SOURCES)
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/linux/amd64/$(BINARY) -ldflags "$(LDFLAGS)" .
+
+build/linux/arm64/$(BINARY): go.mod $(SOURCES)
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/linux/arm64/$(BINARY) -ldflags "$(LDFLAGS)" .
 
 build.docker: build.linux
-	docker build --rm -t "$(IMAGE):$(TAG)" -f $(DOCKERFILE) .
+	docker build --rm -t "$(IMAGE):$(TAG)" -f $(DOCKERFILE) --build-arg TARGETARCH= .
 
 build.push: build.docker
 	docker push "$(IMAGE):$(TAG)"

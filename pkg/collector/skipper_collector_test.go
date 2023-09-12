@@ -12,9 +12,9 @@ import (
 	rginterface "github.com/szuecs/routegroup-client/client/clientset/versioned"
 	rgfake "github.com/szuecs/routegroup-client/client/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/networking/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -35,7 +35,7 @@ func TestTargetRefReplicasDeployments(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the deployment as ref
-	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(deployment.Namespace).
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(deployment.Namespace).
 		Create(context.TODO(), newHPA(defaultNamespace, name, "Deployment"), metav1.CreateOptions{})
 	require.NoError(t, err)
 
@@ -52,7 +52,7 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an HPA with the statefulSet as ref
-	hpa, err := client.AutoscalingV2beta2().HorizontalPodAutoscalers(statefulSet.Namespace).
+	hpa, err := client.AutoscalingV2().HorizontalPodAutoscalers(statefulSet.Namespace).
 		Create(context.TODO(), newHPA(defaultNamespace, name, "StatefulSet"), metav1.CreateOptions{})
 	require.NoError(t, err)
 
@@ -61,10 +61,10 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 	require.Equal(t, statefulSet.Status.Replicas, replicas)
 }
 
-func newHPA(namesapce string, refName string, refKind string) *autoscalingv2.HorizontalPodAutoscaler {
+func newHPA(namespace string, refName string, refKind string) *autoscalingv2.HorizontalPodAutoscaler {
 	return &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: namesapce,
+			Name: namespace,
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
@@ -547,29 +547,31 @@ func makeIngress(client kubernetes.Interface, namespace, resourceName, backend s
 		}
 		annotations[anno] = string(sWeights)
 	}
-	ingress := &v1beta1.Ingress{
+	ingress := &netv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        resourceName,
 			Annotations: annotations,
 		},
-		Spec: v1beta1.IngressSpec{
-			Backend: &v1beta1.IngressBackend{
-				ServiceName: backend,
+		Spec: netv1.IngressSpec{
+			DefaultBackend: &netv1.IngressBackend{
+				Service: &netv1.IngressServiceBackend{
+					Name: backend,
+				},
 			},
 			TLS: nil,
 		},
-		Status: v1beta1.IngressStatus{
+		Status: netv1.IngressStatus{
 			LoadBalancer: corev1.LoadBalancerStatus{
 				Ingress: nil,
 			},
 		},
 	}
 	for _, hostname := range hostnames {
-		ingress.Spec.Rules = append(ingress.Spec.Rules, v1beta1.IngressRule{
+		ingress.Spec.Rules = append(ingress.Spec.Rules, netv1.IngressRule{
 			Host: hostname,
 		})
 	}
-	_, err := client.NetworkingV1beta1().Ingresses(namespace).Create(context.TODO(), ingress, metav1.CreateOptions{})
+	_, err := client.NetworkingV1().Ingresses(namespace).Create(context.TODO(), ingress, metav1.CreateOptions{})
 	return err
 }
 
@@ -655,39 +657,4 @@ func makeConfig(resourceName, namespace, kind, backend string, fakedAverage bool
 		config.MetricSpec.Object.Target.AverageValue = resource.NewQuantity(10, resource.DecimalSI)
 	}
 	return config
-}
-
-type FakeCollectorPlugin struct {
-	metrics []CollectedMetric
-	config  map[string]string
-}
-
-type FakeCollector struct {
-	metrics []CollectedMetric
-}
-
-func (c *FakeCollector) GetMetrics() ([]CollectedMetric, error) {
-	return c.metrics, nil
-}
-
-func (FakeCollector) Interval() time.Duration {
-	return time.Minute
-}
-
-func (p *FakeCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	if p.config != nil {
-		return nil, fmt.Errorf("config already assigned once: %v", p.config)
-	}
-	p.config = config.Config
-	return &FakeCollector{metrics: p.metrics}, nil
-}
-
-func makePlugin(metric int) *FakeCollectorPlugin {
-	return &FakeCollectorPlugin{
-		metrics: []CollectedMetric{
-			{
-				Custom: custom_metrics.MetricValue{Value: *resource.NewQuantity(int64(metric), resource.DecimalSI)},
-			},
-		},
-	}
 }

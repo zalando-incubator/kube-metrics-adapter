@@ -2,7 +2,7 @@ package httpmetrics
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -76,8 +76,19 @@ func (g *JSONPathMetricsGetter) GetMetric(metricsURL url.URL) (float64, error) {
 		return 0, fmt.Errorf("unexpected json: expected single numeric or array value")
 	}
 
-	if len(nodes) != 1 {
-		nodes = []*ajson.Node{ajson.ArrayNode("root", nodes)}
+	if len(nodes) > 1 {
+		if g.aggregator == nil {
+			return 0, fmt.Errorf("no aggregator function has been specified")
+		}
+		values := make([]float64, 0, len(nodes))
+		for _, node := range nodes {
+			v, err := node.GetNumeric()
+			if err != nil {
+				return 0, fmt.Errorf("unexpected json: did not find numeric or array value '%s': %w", nodes, err)
+			}
+			values = append(values, v)
+		}
+		return g.aggregator(values...), nil
 	}
 
 	node := nodes[0]
@@ -119,7 +130,7 @@ func (g *JSONPathMetricsGetter) fetchMetrics(metricsURL url.URL) ([]byte, error)
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

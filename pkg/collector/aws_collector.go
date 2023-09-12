@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -39,7 +39,6 @@ func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutosc
 type AWSSQSCollector struct {
 	sqs        sqsiface.SQSAPI
 	interval   time.Duration
-	region     string
 	queueURL   string
 	queueName  string
 	namespace  string

@@ -96,10 +96,21 @@ func (c *FakeClusterScalingSchedules) Update(ctx context.Context, clusterScaling
 	return obj.(*zalandoorgv1.ClusterScalingSchedule), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeClusterScalingSchedules) UpdateStatus(ctx context.Context, clusterScalingSchedule *zalandoorgv1.ClusterScalingSchedule, opts v1.UpdateOptions) (*zalandoorgv1.ClusterScalingSchedule, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateSubresourceAction(clusterscalingschedulesResource, "status", clusterScalingSchedule), &zalandoorgv1.ClusterScalingSchedule{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*zalandoorgv1.ClusterScalingSchedule), err
+}
+
 // Delete takes name of the clusterScalingSchedule and deletes it. Returns an error if one occurs.
 func (c *FakeClusterScalingSchedules) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterscalingschedulesResource, name), &zalandoorgv1.ClusterScalingSchedule{})
+		Invokes(testing.NewRootDeleteActionWithOptions(clusterscalingschedulesResource, name, opts), &zalandoorgv1.ClusterScalingSchedule{})
 	return err
 }
 

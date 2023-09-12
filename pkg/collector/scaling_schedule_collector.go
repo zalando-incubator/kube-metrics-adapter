@@ -3,34 +3,16 @@ package collector
 import (
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	scheduledscaling "github.com/zalando-incubator/kube-metrics-adapter/pkg/controller/scheduledscaling"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 )
-
-const (
-	// The format used by v1.SchedulePeriod.StartTime. 15:04 are
-	// the defined reference time in time.Format.
-	hourColonMinuteLayout = "15:04"
-	// The default timezone used in v1.SchedulePeriod if none is
-	// defined.
-	// TODO(jonathanbeber): it should be configurable.
-	defaultTimeZone = "Europe/Berlin"
-)
-
-var days = map[v1.ScheduleDay]time.Weekday{
-	v1.SundaySchedule:    time.Sunday,
-	v1.MondaySchedule:    time.Monday,
-	v1.TuesdaySchedule:   time.Tuesday,
-	v1.WednesdaySchedule: time.Wednesday,
-	v1.ThursdaySchedule:  time.Thursday,
-	v1.FridaySchedule:    time.Friday,
-	v1.SaturdaySchedule:  time.Saturday,
-}
 
 var (
 	// ErrScalingScheduleNotFound is returned when a item referenced in
@@ -48,15 +30,6 @@ var (
 	// be an ClusterScalingSchedule but the type assertion failed. When
 	// returned the type assertion to ScalingSchedule failed too.
 	ErrNotClusterScalingScheduleFound = errors.New("error converting returned object to ClusterScalingSchedule")
-	// ErrInvalidScheduleDate is returned when the v1.ScheduleDate is
-	// not a valid RFC3339 date. It shouldn't happen since the
-	// validation is done by the CRD.
-	ErrInvalidScheduleDate = errors.New("could not parse the specified schedule date, format is not RFC3339")
-	// ErrInvalidScheduleStartTime is returned when the
-	// v1.SchedulePeriod.StartTime is not in the format specified by
-	// hourColonMinuteLayout. It shouldn't happen since the validation
-	// is done by the CRD.
-	ErrInvalidScheduleStartTime = errors.New("could not parse the specified schedule period start time, format is not HH:MM")
 )
 
 // Now is the function that returns a time.Time object representing the
@@ -78,30 +51,42 @@ type Store interface {
 // ScalingScheduleCollectorPlugin is a collector plugin for initializing metrics
 // collectors for getting ScalingSchedule configured metrics.
 type ScalingScheduleCollectorPlugin struct {
-	store Store
-	now   Now
+	store                Store
+	now                  Now
+	defaultScalingWindow time.Duration
+	defaultTimeZone      string
+	rampSteps            int
 }
 
 // ClusterScalingScheduleCollectorPlugin is a collector plugin for initializing metrics
 // collectors for getting ClusterScalingSchedule configured metrics.
 type ClusterScalingScheduleCollectorPlugin struct {
-	store Store
-	now   Now
+	store                Store
+	now                  Now
+	defaultScalingWindow time.Duration
+	defaultTimeZone      string
+	rampSteps            int
 }
 
 // NewScalingScheduleCollectorPlugin initializes a new ScalingScheduleCollectorPlugin.
-func NewScalingScheduleCollectorPlugin(store Store, now Now) (*ScalingScheduleCollectorPlugin, error) {
+func NewScalingScheduleCollectorPlugin(store Store, now Now, defaultScalingWindow time.Duration, defaultTimeZone string, rampSteps int) (*ScalingScheduleCollectorPlugin, error) {
 	return &ScalingScheduleCollectorPlugin{
-		store: store,
-		now:   now,
+		store:                store,
+		now:                  now,
+		defaultScalingWindow: defaultScalingWindow,
+		defaultTimeZone:      defaultTimeZone,
+		rampSteps:            rampSteps,
 	}, nil
 }
 
 // NewClusterScalingScheduleCollectorPlugin initializes a new ClusterScalingScheduleCollectorPlugin.
-func NewClusterScalingScheduleCollectorPlugin(store Store, now Now) (*ClusterScalingScheduleCollectorPlugin, error) {
+func NewClusterScalingScheduleCollectorPlugin(store Store, now Now, defaultScalingWindow time.Duration, defaultTimeZone string, rampSteps int) (*ClusterScalingScheduleCollectorPlugin, error) {
 	return &ClusterScalingScheduleCollectorPlugin{
-		store: store,
-		now:   now,
+		store:                store,
+		now:                  now,
+		defaultScalingWindow: defaultScalingWindow,
+		defaultTimeZone:      defaultTimeZone,
+		rampSteps:            rampSteps,
 	}, nil
 }
 
@@ -109,14 +94,14 @@ func NewClusterScalingScheduleCollectorPlugin(store Store, now Now) (*ClusterSca
 // specified HPA. It's the only required method to implement the
 // collector.CollectorPlugin interface.
 func (c *ScalingScheduleCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewScalingScheduleCollector(c.store, c.now, hpa, config, interval)
+	return NewScalingScheduleCollector(c.store, c.defaultScalingWindow, c.defaultTimeZone, c.rampSteps, c.now, hpa, config, interval)
 }
 
 // NewCollector initializes a new cluster wide scaling schedule
 // collector from the specified HPA. It's the only required method to
 // implement the collector.CollectorPlugin interface.
 func (c *ClusterScalingScheduleCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewClusterScalingScheduleCollector(c.store, c.now, hpa, config, interval)
+	return NewClusterScalingScheduleCollector(c.store, c.defaultScalingWindow, c.defaultTimeZone, c.rampSteps, c.now, hpa, config, interval)
 }
 
 // ScalingScheduleCollector is a metrics collector for time based
@@ -135,41 +120,50 @@ type ClusterScalingScheduleCollector struct {
 // struct used by both ClusterScalingScheduleCollector and the
 // ScalingScheduleCollector.
 type scalingScheduleCollector struct {
-	store           Store
-	now             Now
-	metric          autoscalingv2.MetricIdentifier
-	objectReference custom_metrics.ObjectReference
-	hpa             *autoscalingv2.HorizontalPodAutoscaler
-	interval        time.Duration
-	config          MetricConfig
+	store                Store
+	now                  Now
+	metric               autoscalingv2.MetricIdentifier
+	objectReference      custom_metrics.ObjectReference
+	hpa                  *autoscalingv2.HorizontalPodAutoscaler
+	interval             time.Duration
+	config               MetricConfig
+	defaultScalingWindow time.Duration
+	defaultTimeZone      string
+	rampSteps            int
 }
 
 // NewScalingScheduleCollector initializes a new ScalingScheduleCollector.
-func NewScalingScheduleCollector(store Store, now Now, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*ScalingScheduleCollector, error) {
+func NewScalingScheduleCollector(store Store, defaultScalingWindow time.Duration, defaultTimeZone string, rampSteps int, now Now, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*ScalingScheduleCollector, error) {
 	return &ScalingScheduleCollector{
 		scalingScheduleCollector{
-			store:           store,
-			now:             now,
-			objectReference: config.ObjectReference,
-			hpa:             hpa,
-			metric:          config.Metric,
-			interval:        interval,
-			config:          *config,
+			store:                store,
+			now:                  now,
+			objectReference:      config.ObjectReference,
+			hpa:                  hpa,
+			metric:               config.Metric,
+			interval:             interval,
+			config:               *config,
+			defaultScalingWindow: defaultScalingWindow,
+			defaultTimeZone:      defaultTimeZone,
+			rampSteps:            rampSteps,
 		},
 	}, nil
 }
 
 // NewClusterScalingScheduleCollector initializes a new ScalingScheduleCollector.
-func NewClusterScalingScheduleCollector(store Store, now Now, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*ClusterScalingScheduleCollector, error) {
+func NewClusterScalingScheduleCollector(store Store, defaultScalingWindow time.Duration, defaultTimeZone string, rampSteps int, now Now, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*ClusterScalingScheduleCollector, error) {
 	return &ClusterScalingScheduleCollector{
 		scalingScheduleCollector{
-			store:           store,
-			now:             now,
-			objectReference: config.ObjectReference,
-			hpa:             hpa,
-			metric:          config.Metric,
-			interval:        interval,
-			config:          *config,
+			store:                store,
+			now:                  now,
+			objectReference:      config.ObjectReference,
+			hpa:                  hpa,
+			metric:               config.Metric,
+			interval:             interval,
+			config:               *config,
+			defaultScalingWindow: defaultScalingWindow,
+			defaultTimeZone:      defaultTimeZone,
+			rampSteps:            rampSteps,
 		},
 	}, nil
 }
@@ -188,7 +182,7 @@ func (c *ScalingScheduleCollector) GetMetrics() ([]CollectedMetric, error) {
 	if !ok {
 		return nil, ErrNotScalingScheduleFound
 	}
-	return calculateMetrics(scalingSchedule.Spec.Schedules, c.now(), c.objectReference, c.metric)
+	return calculateMetrics(scalingSchedule.Spec, c.defaultScalingWindow, c.defaultTimeZone, c.rampSteps, c.now(), c.objectReference, c.metric)
 }
 
 // GetMetrics is the main implementation for collector.Collector interface
@@ -221,7 +215,7 @@ func (c *ClusterScalingScheduleCollector) GetMetrics() ([]CollectedMetric, error
 		clusterScalingSchedule = v1.ClusterScalingSchedule(*scalingSchedule)
 	}
 
-	return calculateMetrics(clusterScalingSchedule.Spec.Schedules, c.now(), c.objectReference, c.metric)
+	return calculateMetrics(clusterScalingSchedule.Spec, c.defaultScalingWindow, c.defaultTimeZone, c.rampSteps, c.now(), c.objectReference, c.metric)
 }
 
 // Interval returns the interval at which the collector should run.
@@ -234,56 +228,22 @@ func (c *ClusterScalingScheduleCollector) Interval() time.Duration {
 	return c.interval
 }
 
-func calculateMetrics(schedules []v1.Schedule, now time.Time, objectReference custom_metrics.ObjectReference, metric autoscalingv2.MetricIdentifier) ([]CollectedMetric, error) {
-	value := 0
-	for _, schedule := range schedules {
-		switch schedule.Type {
-		case v1.RepeatingSchedule:
-			location, err := time.LoadLocation(schedule.Period.Timezone)
-			if schedule.Period.Timezone == "" || err != nil {
-				location, err = time.LoadLocation(defaultTimeZone)
-				if err != nil {
-					return nil, fmt.Errorf("unexpected error loading default location: %s", err.Error())
-				}
-			}
-			nowInLocation := now.In(location)
-			weekday := nowInLocation.Weekday()
-			for _, day := range schedule.Period.Days {
-				if days[day] == weekday {
-					parsedStartTime, err := time.Parse(hourColonMinuteLayout, schedule.Period.StartTime)
-					if err != nil {
-						return nil, ErrInvalidScheduleStartTime
-					}
-					scheduledTime := time.Date(
-						// v1.SchedulePeriod.StartTime can't define the
-						// year, month or day, so we compute it as the
-						// current date in the configured location.
-						nowInLocation.Year(),
-						nowInLocation.Month(),
-						nowInLocation.Day(),
-						// Hours and minute are configured in the
-						// v1.SchedulePeriod.StartTime.
-						parsedStartTime.Hour(),
-						parsedStartTime.Minute(),
-						parsedStartTime.Second(),
-						parsedStartTime.Nanosecond(),
-						location,
-					)
-					if within(now, scheduledTime, schedule.DurationMinutes) && schedule.Value > value {
-						value = schedule.Value
-					}
-					break
-				}
-			}
-		case v1.OneTimeSchedule:
-			scheduledTime, err := time.Parse(time.RFC3339, string(*schedule.Date))
-			if err != nil {
-				return nil, ErrInvalidScheduleDate
-			}
-			if within(now, scheduledTime, schedule.DurationMinutes) && schedule.Value > value {
-				value = schedule.Value
-			}
+func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Duration, defaultTimeZone string, rampSteps int, now time.Time, objectReference custom_metrics.ObjectReference, metric autoscalingv2.MetricIdentifier) ([]CollectedMetric, error) {
+	scalingWindowDuration := defaultScalingWindow
+	if spec.ScalingWindowDurationMinutes != nil {
+		scalingWindowDuration = time.Duration(*spec.ScalingWindowDurationMinutes) * time.Minute
+	}
+	if scalingWindowDuration < 0 {
+		return nil, fmt.Errorf("scaling window duration cannot be negative")
+	}
+
+	value := int64(0)
+	for _, schedule := range spec.Schedules {
+		startTime, endTime, err := scheduledscaling.ScheduleStartEnd(now, schedule, defaultTimeZone)
+		if err != nil {
+			return nil, err
 		}
+		value = maxInt64(value, valueForEntry(now, startTime, endTime, scalingWindowDuration, rampSteps, schedule.Value))
 	}
 
 	return []CollectedMetric{
@@ -293,17 +253,48 @@ func calculateMetrics(schedules []v1.Schedule, now time.Time, objectReference cu
 			Custom: custom_metrics.MetricValue{
 				DescribedObject: objectReference,
 				Timestamp:       metav1.Time{Time: now},
-				Value:           *resource.NewMilliQuantity(int64(value*1000), resource.DecimalSI),
+				Value:           *resource.NewMilliQuantity(value*1000, resource.DecimalSI),
 				Metric:          custom_metrics.MetricIdentifier(metric),
 			},
 		},
 	}, nil
 }
 
-// within receive two time.Time and a number of minutes. It returns true
-// if the first given time, instant, is within the period of the second
-// given time (start) plus the given number of minutes.
-func within(instant, start time.Time, minutes int) bool {
-	return (instant.After(start) || instant.Equal(start)) &&
-		instant.Before(start.Add(time.Duration(minutes)*time.Minute))
+func valueForEntry(timestamp time.Time, startTime time.Time, endTime time.Time, scalingWindowDuration time.Duration, rampSteps int, value int64) int64 {
+	scaleUpStart := startTime.Add(-scalingWindowDuration)
+	scaleUpEnd := endTime.Add(scalingWindowDuration)
+
+	if scheduledscaling.Between(timestamp, startTime, endTime) {
+		return value
+	}
+	if scheduledscaling.Between(timestamp, scaleUpStart, startTime) {
+		return scaledValue(timestamp, scaleUpStart, scalingWindowDuration, rampSteps, value)
+	}
+	if scheduledscaling.Between(timestamp, endTime, scaleUpEnd) {
+		return scaledValue(scaleUpEnd, timestamp, scalingWindowDuration, rampSteps, value)
+	}
+	return 0
+}
+
+// The HPA has a rule to do not scale up or down if the change in the
+// metric is less than 10% (by default) of the current value. We will
+// use buckets of time using the floor of each as the returned metric.
+// Any config greater or equal to 10 buckets must guarantee changes
+// bigger than 10%.
+func scaledValue(timestamp time.Time, startTime time.Time, scalingWindowDuration time.Duration, rampSteps int, value int64) int64 {
+	if scalingWindowDuration == 0 {
+		return 0
+	}
+
+	steps := float64(rampSteps)
+
+	requiredPercentage := math.Abs(float64(timestamp.Sub(startTime))) / float64(scalingWindowDuration)
+	return int64(math.Floor(requiredPercentage*steps) * (float64(value) / steps))
+}
+
+func maxInt64(i1, i2 int64) int64 {
+	if i1 > i2 {
+		return i1
+	}
+	return i2
 }

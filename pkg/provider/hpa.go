@@ -7,11 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -20,6 +19,7 @@ import (
 	kube_record "k8s.io/client-go/tools/record"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
@@ -122,7 +122,7 @@ func (p *HPAProvider) Run(ctx context.Context) {
 func (p *HPAProvider) updateHPAs() error {
 	p.logger.Info("Looking for HPAs")
 
-	hpas, err := p.client.AutoscalingV2beta2().HorizontalPodAutoscalers(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{})
+	hpas, err := p.client.AutoscalingV2().HorizontalPodAutoscalers(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -268,8 +268,8 @@ func (p *HPAProvider) collectMetrics(ctx context.Context) {
 }
 
 // GetMetricByName gets a single metric by name.
-func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
-	metric := p.metricStore.GetMetricsByName(name, info)
+func (p *HPAProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
+	metric := p.metricStore.GetMetricsByName(ctx, name, info, metricSelector)
 	if metric == nil {
 		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name.Name)
 	}
@@ -278,8 +278,8 @@ func (p *HPAProvider) GetMetricByName(name types.NamespacedName, info provider.C
 
 // GetMetricBySelector returns metrics for namespaced resources by
 // label selector.
-func (p *HPAProvider) GetMetricBySelector(namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	return p.metricStore.GetMetricsBySelector(namespace, selector, info), nil
+func (p *HPAProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
+	return p.metricStore.GetMetricsBySelector(ctx, objectNamespace(namespace), selector, info), nil
 }
 
 // ListAllMetrics list all available metrics from the provicer.
@@ -287,8 +287,8 @@ func (p *HPAProvider) ListAllMetrics() []provider.CustomMetricInfo {
 	return p.metricStore.ListAllMetrics()
 }
 
-func (p *HPAProvider) GetExternalMetric(namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
-	return p.metricStore.GetExternalMetric(namespace, metricSelector, info)
+func (p *HPAProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+	return p.metricStore.GetExternalMetric(ctx, objectNamespace(namespace), metricSelector, info)
 }
 
 func (p *HPAProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
@@ -363,7 +363,7 @@ func collectorRunner(ctx context.Context, collector collector.Collector, metrics
 	}
 }
 
-// Remove removes a collector from the Collector schduler. The collector is
+// Remove removes a collector from the Collector scheduler. The collector is
 // stopped before it's removed.
 func (t *CollectorScheduler) Remove(resourceRef resourceReference) {
 	t.Lock()

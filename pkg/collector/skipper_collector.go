@@ -12,7 +12,7 @@ import (
 
 	rgv1 "github.com/szuecs/routegroup-client/apis/zalando.org/v1"
 	rginterface "github.com/szuecs/routegroup-client/client/clientset/versioned"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -162,7 +162,7 @@ func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) 
 	var backendWeight float64
 	switch c.objectReference.Kind {
 	case "Ingress":
-		ingress, err := c.client.NetworkingV1beta1().Ingresses(c.objectReference.Namespace).Get(ctx, c.objectReference.Name, metav1.GetOptions{})
+		ingress, err := c.client.NetworkingV1().Ingresses(c.objectReference.Namespace).Get(ctx, c.objectReference.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

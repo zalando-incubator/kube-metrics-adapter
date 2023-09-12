@@ -1,9 +1,11 @@
-FROM registry.opensource.zalan.do/library/alpine-3.12:latest
+ARG BASE_IMAGE=registry.opensource.zalan.do/library/alpine-3.13:latest
+FROM ${BASE_IMAGE}
 LABEL maintainer="Team Teapot @ Zalando SE <team-teapot@zalando.de>"
 
 RUN apk add --no-cache tzdata
 
-# add binary
-ADD build/linux/kube-metrics-adapter /
+ARG TARGETARCH
+
+ADD build/linux/${TARGETARCH}/kube-metrics-adapter /
 
 ENTRYPOINT ["/kube-metrics-adapter"]
