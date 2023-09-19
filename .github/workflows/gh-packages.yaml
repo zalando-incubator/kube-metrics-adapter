@@ -1,0 +1,78 @@
+name: gh-package-deploy
+permissions: {}
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: "${{ github.repository }}"
+
+jobs:
+  docker:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+
+    runs-on: ubuntu-latest
+    # Adding this block will overridw default values to None if not specified in the block
+    # https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+    permissions:
+      contents: read
+      actions: read
+      packages: write # to push packages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753
+        with:
+          # https://www.npmjs.com/package/semver#caret-ranges-123-025-004
+          go-version: '^1.21'
+
+      - name: Login to Github Container Registry
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions-ecosystem/action-get-latest-tag@b7c32daec3395a9616f88548363a42652b22d435
+        id: get-latest-tag
+
+      - name: Build binaries
+        run: |
+          make build.linux.amd64 build.linux.arm64
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4c0219f9ac95b02789c1075625400b2acbff50b1
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        uses: docker/metadata-action@818d4b7b91585d195f67373fd9cb0332e31a7175
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+
+      - name: Build and push
+        uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825
+        with:
+          context: .
+          build-args: BASE_IMAGE=alpine:3
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
