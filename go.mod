@@ -11,7 +11,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/szuecs/routegroup-client v0.21.1
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20230601114834-6ed1bba3c85d
-	golang.org/x/net v0.16.0
+	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.13.0
 	golang.org/x/sync v0.4.0
 	k8s.io/api v0.24.17
