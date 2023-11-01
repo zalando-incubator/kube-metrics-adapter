@@ -15,13 +15,13 @@ require (
 	golang.org/x/oauth2 v0.13.0
 	golang.org/x/sync v0.4.0
 	k8s.io/api v0.24.17
-	k8s.io/apimachinery v0.24.17
+	k8s.io/apimachinery v0.28.3
 	k8s.io/apiserver v0.24.17
 	k8s.io/client-go v0.24.17
 	k8s.io/code-generator v0.24.17
 	k8s.io/component-base v0.24.17
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20230614213217-ba0abe644833
+	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9
 	k8s.io/metrics v0.24.17
 	sigs.k8s.io/controller-tools v0.9.0
 	sigs.k8s.io/custom-metrics-apiserver v1.24.0
