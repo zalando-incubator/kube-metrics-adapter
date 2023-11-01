@@ -14,15 +14,15 @@ require (
 	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.13.0
 	golang.org/x/sync v0.4.0
-	k8s.io/api v0.24.17
-	k8s.io/apimachinery v0.24.17
+	k8s.io/api v0.28.3
+	k8s.io/apimachinery v0.28.3
 	k8s.io/apiserver v0.24.17
-	k8s.io/client-go v0.24.17
-	k8s.io/code-generator v0.24.17
+	k8s.io/client-go v0.28.3
+	k8s.io/code-generator v0.28.3
 	k8s.io/component-base v0.24.17
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20230614213217-ba0abe644833
-	k8s.io/metrics v0.24.17
+	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9
+	k8s.io/metrics v0.28.3
 	sigs.k8s.io/controller-tools v0.9.0
 	sigs.k8s.io/custom-metrics-apiserver v1.24.0
 )
@@ -50,6 +50,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
+	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -108,7 +109,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.24.0 // indirect
-	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
+	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/utils v0.0.0-20230711102312-30195339c3c7 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.37 // indirect
