@@ -706,14 +706,17 @@ defined, then the annotation takes precedence.
 ## Nakadi collector
 
 The Nakadi collector allows scaling based on [Nakadi](https://nakadi.io/)
-`consumer_lag_seconds` or `unconsumed_events`.
+ Subscription API stats metrics `consumer_lag_seconds` or `unconsumed_events`.
 
 ### Supported metrics
 
-| Metric Type | Description | Type | K8s Versions |
+| Metric Type            | Description                                                                 | Type     | K8s Versions |
+|------------------------|-----------------------------------------------------------------------------|----------|--------------|
+| `unconsumed-events`    | Scale based on number of unconsumed events for a Nakadi subscription        | External | `>=1.24`     |
+| `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi subscription | External | `>=1.24`     |
 | ------------ | ------- | -- | -- |
-| `unconsumed-events` | Scale based on number of unconsumed events for a Nakadi subscription | External | `>=1.24` |
-| `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi subscription | External | `>=1.24` |
+| `unconsumed-events` | Scale based on number of unconsumed events for a Nakadi Subscription | External | `>=1.24` |
+| `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi Subscription | External | `>=1.24` |
 
 ```yaml
 apiVersion: autoscaling/v2
@@ -748,14 +751,14 @@ spec:
         # consumer-lag-seconds is the max of all the partitions.
         value: "600" # 10m
         # averageValue is compatible with unconsumed-events metric type.
-        # This means for every 30 unconsumed events a pod is scaled up.
+        # This means for every 30 unconsumed events a pod is added.
         # unconsumed-events is the sum of of unconsumed_events over all
         # partitions.
         averageValue: "30"
         type: AverageValue
 ```
 
-The `subscription-id` is the ID of the relevant consumer subscription. The
+The `subscription-id` is the Subscription ID of the relevant consumer. The
 `metric-type` indicates whether to scale on `consumer-lag-seconds` or
 `unconsumed-events` as outlined below.
 
