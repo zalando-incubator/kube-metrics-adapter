@@ -714,9 +714,6 @@ The Nakadi collector allows scaling based on [Nakadi](https://nakadi.io/)
 |------------------------|-----------------------------------------------------------------------------|----------|--------------|
 | `unconsumed-events`    | Scale based on number of unconsumed events for a Nakadi subscription        | External | `>=1.24`     |
 | `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi subscription | External | `>=1.24`     |
-| ------------ | ------- | -- | -- |
-| `unconsumed-events` | Scale based on number of unconsumed events for a Nakadi Subscription | External | `>=1.24` |
-| `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi Subscription | External | `>=1.24` |
 
 ```yaml
 apiVersion: autoscaling/v2
