@@ -702,6 +702,95 @@ you need to define a `key` or other `tag` with a "star" query syntax like
 metric label definitions. If both annotations and corresponding label is
 defined, then the annotation takes precedence.
 
+
+## Nakadi collector
+
+The Nakadi collector allows scaling based on [Nakadi](https://nakadi.io/)
+ Subscription API stats metrics `consumer_lag_seconds` or `unconsumed_events`.
+
+### Supported metrics
+
+| Metric Type            | Description                                                                 | Type     | K8s Versions |
+|------------------------|-----------------------------------------------------------------------------|----------|--------------|
+| `unconsumed-events`    | Scale based on number of unconsumed events for a Nakadi subscription        | External | `>=1.24`     |
+| `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi subscription | External | `>=1.24`     |
+| ------------ | ------- | -- | -- |
+| `unconsumed-events` | Scale based on number of unconsumed events for a Nakadi Subscription | External | `>=1.24` |
+| `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi Subscription | External | `>=1.24` |
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+  annotations:
+    # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
+    metric-config.external.my-nakadi-consumer.nakadi/interval: "60s" # optional
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: custom-metrics-consumer
+  minReplicas: 0
+  maxReplicas: 8 # should match number of partitions for the event type
+  metrics:
+  - type: External
+    external:
+      metric:
+          name: my-nakadi-consumer
+          selector:
+            matchLabels:
+              type: nakadi
+              subscription-id: "708095f6-cece-4d02-840e-ee488d710b29"
+              metric-type: "consumer-lag-seconds|unconsumed-events"
+      target:
+        # value is compatible with the consumer-lag-seconds metric type.
+        # It describes the amount of consumer lag in seconds before scaling
+        # additionally up.
+        # if an event-type has multiple partitions the value of
+        # consumer-lag-seconds is the max of all the partitions.
+        value: "600" # 10m
+        # averageValue is compatible with unconsumed-events metric type.
+        # This means for every 30 unconsumed events a pod is added.
+        # unconsumed-events is the sum of of unconsumed_events over all
+        # partitions.
+        averageValue: "30"
+        type: AverageValue
+```
+
+The `subscription-id` is the Subscription ID of the relevant consumer. The
+`metric-type` indicates whether to scale on `consumer-lag-seconds` or
+`unconsumed-events` as outlined below.
+
+`unconsumed-events` - is the total number of unconsumed events over all
+partitions. When using this `metric-type` you should also use the target
+`averageValue` which indicates the number of events which can be handled per
+pod. To best estimate the number of events per pods, you need to understand the
+average time for processing an event as well as the rate of events.
+
+*Example*: You have an event type producing 100 events per second between 00:00
+and 08:00. Between 08:01 to 23:59 it produces 400 events per second.
+Let's assume that on average a single pod can consume 100 events per second,
+then we can define 100 as `averageValue` and the HPA would scale to 1 between
+00:00 and 08:00, and scale to 4 between 08:01 and 23:59. If there for some
+reason is a short spike of 800 events per second, then it would scale to 8 pods
+to process those events until the rate goes down again.
+
+`consumer-lag-seconds` -  describes the age of the oldest unconsumed event for
+a subscription. If the event type has multiple partitions the lag is defined as
+the max age over all partitions. When using this `metric-type` you should use
+the target `value` to indicate the max lag (in seconds) before the HPA should
+scale.
+
+*Example*: You have a subscription with a defined SLO of "99.99 of events are
+consumed within 30 min.". In this case you can define a target `value` of e.g.
+20 min. (1200s) (to include a safety buffer) such that the HPA only scales up
+from 1 to 2 if the target of 20 min. is breached and it needs to work faster
+with more consumers.
+For this case you should also account for the average time for processing an
+event when defining the target.
+
+
 ## HTTP Collector
 
 The http collector allows collecting metrics from an external endpoint specified in the HPA.
