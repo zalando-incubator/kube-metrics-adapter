@@ -747,6 +747,7 @@ spec:
         # if an event-type has multiple partitions the value of
         # consumer-lag-seconds is the max of all the partitions.
         value: "600" # 10m
+        type: Value
         # averageValue is compatible with unconsumed-events metric type.
         # This means for every 30 unconsumed events a pod is added.
         # unconsumed-events is the sum of of unconsumed_events over all
