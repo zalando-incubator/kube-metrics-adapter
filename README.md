@@ -714,9 +714,6 @@ The Nakadi collector allows scaling based on [Nakadi](https://nakadi.io/)
 |------------------------|-----------------------------------------------------------------------------|----------|--------------|
 | `unconsumed-events`    | Scale based on number of unconsumed events for a Nakadi subscription        | External | `>=1.24`     |
 | `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi subscription | External | `>=1.24`     |
-| ------------ | ------- | -- | -- |
-| `unconsumed-events` | Scale based on number of unconsumed events for a Nakadi Subscription | External | `>=1.24` |
-| `consumer-lag-seconds` | Scale based on number of max consumer lag seconds for a Nakadi Subscription | External | `>=1.24` |
 
 ```yaml
 apiVersion: autoscaling/v2
@@ -750,6 +747,7 @@ spec:
         # if an event-type has multiple partitions the value of
         # consumer-lag-seconds is the max of all the partitions.
         value: "600" # 10m
+        type: Value
         # averageValue is compatible with unconsumed-events metric type.
         # This means for every 30 unconsumed events a pod is added.
         # unconsumed-events is the sum of of unconsumed_events over all
