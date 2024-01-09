@@ -35,6 +35,7 @@ import (
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/controller/scheduledscaling"
+	"github.com/zalando-incubator/kube-metrics-adapter/pkg/nakadi"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/provider"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
 	"golang.org/x/oauth2"
@@ -64,6 +65,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		EnableExternalMetricsAPI:          true,
 		MetricsAddress:                    ":7979",
 		ZMONTokenName:                     "zmon",
+		NakadiTokenName:                   "nakadi",
 		CredentialsDir:                    "/meta/credentials",
 		ExternalRPSMetricName:             "skipper_serve_host_duration_seconds_count",
 	}
@@ -110,8 +112,12 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"url of ZMON KariosDB endpoint to query for ZMON checks")
 	flags.StringVar(&o.ZMONTokenName, "zmon-token-name", o.ZMONTokenName, ""+
 		"name of the token used to query ZMON")
+	flags.StringVar(&o.NakadiEndpoint, "nakadi-endpoint", o.NakadiEndpoint, ""+
+		"url of Nakadi endpoint to for nakadi subscription stats")
+	flags.StringVar(&o.NakadiTokenName, "nakadi-token-name", o.NakadiTokenName, ""+
+		"name of the token used to call nakadi subscription API")
 	flags.StringVar(&o.Token, "token", o.Token, ""+
-		"static oauth2 token to use when calling external services like ZMON")
+		"static oauth2 token to use when calling external services like ZMON and Nakadi")
 	flags.StringVar(&o.CredentialsDir, "credentials-dir", o.CredentialsDir, ""+
 		"path to the credentials dir where tokens are stored")
 	flags.BoolVar(&o.SkipperIngressMetrics, "skipper-ingress-metrics", o.SkipperIngressMetrics, ""+
@@ -274,6 +280,27 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		collectorFactory.RegisterExternalCollector([]string{collector.ZMONMetricType, collector.ZMONCheckMetricLegacy}, zmonPlugin)
 	}
 
+	// enable Nakadi based metrics
+	if o.NakadiEndpoint != "" {
+		var tokenSource oauth2.TokenSource
+		if o.Token != "" {
+			tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: o.Token})
+		} else {
+			tokenSource = platformiam.NewTokenSource(o.NakadiTokenName, o.CredentialsDir)
+		}
+
+		httpClient := newOauth2HTTPClient(ctx, tokenSource)
+
+		nakadiClient := nakadi.NewNakadiClient(o.NakadiEndpoint, httpClient)
+
+		nakadiPlugin, err := collector.NewNakadiCollectorPlugin(nakadiClient)
+		if err != nil {
+			return fmt.Errorf("failed to initialize Nakadi collector plugin: %v", err)
+		}
+
+		collectorFactory.RegisterExternalCollector([]string{collector.NakadiMetricType}, nakadiPlugin)
+	}
+
 	awsSessions := make(map[string]*session.Session, len(o.AWSRegions))
 	for _, region := range o.AWSRegions {
 		awsSessions[region], err = session.NewSessionWithOptions(session.Options{
@@ -427,6 +454,10 @@ type AdapterServerOptions struct {
 	ZMONKariosDBEndpoint string
 	// ZMONTokenName is the name of the token used to query ZMON
 	ZMONTokenName string
+	// NakadiEndpoint enables Nakadi metrics from the specified endpoint
+	NakadiEndpoint string
+	// NakadiTokenName is the name of the token used to call Nakadi
+	NakadiTokenName string
 	// Token is an oauth2 token used to authenticate with services like
 	// ZMON.
 	Token string
