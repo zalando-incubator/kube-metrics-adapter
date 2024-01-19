@@ -426,7 +426,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: myapp-hpa
   annotations:
-    metric-config.external.example-rps.requests-per-second/hostname: www.example1.com,www.example2.com
+    metric-config.external.example-rps.requests-per-second/hostnames: www.example1.com,www.example2.com
     metric-config.external.example-rps.requests-per-second/weight: "42"
 spec:
   scaleTargetRef:
