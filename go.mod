@@ -13,7 +13,7 @@ require (
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20230601114834-6ed1bba3c85d
 	golang.org/x/net v0.19.0
 	golang.org/x/oauth2 v0.15.0
-	golang.org/x/sync v0.5.0
+	golang.org/x/sync v0.6.0
 	k8s.io/api v0.24.17
 	k8s.io/apimachinery v0.24.17
 	k8s.io/apiserver v0.24.17
