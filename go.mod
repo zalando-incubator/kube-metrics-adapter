@@ -9,7 +9,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spyzhov/ajson v0.9.0
 	github.com/stretchr/testify v1.8.4
-	github.com/szuecs/routegroup-client v0.21.1
+	github.com/szuecs/routegroup-client v0.24.0
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20230601114834-6ed1bba3c85d
 	golang.org/x/net v0.19.0
 	golang.org/x/oauth2 v0.15.0
@@ -23,7 +23,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20230614213217-ba0abe644833
 	k8s.io/metrics v0.24.17
-	sigs.k8s.io/controller-tools v0.9.0
+	sigs.k8s.io/controller-tools v0.9.2
 	sigs.k8s.io/custom-metrics-apiserver v1.24.0
 )
 
