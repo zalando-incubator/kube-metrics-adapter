@@ -9,7 +9,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spyzhov/ajson v0.9.0
 	github.com/stretchr/testify v1.8.4
-	github.com/szuecs/routegroup-client v0.24.0
+	github.com/szuecs/routegroup-client v0.25.0
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20230601114834-6ed1bba3c85d
 	golang.org/x/net v0.21.0
 	golang.org/x/oauth2 v0.17.0
