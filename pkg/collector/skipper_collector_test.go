@@ -13,7 +13,6 @@ import (
 	rgfake "github.com/szuecs/routegroup-client/client/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
-	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -561,7 +560,7 @@ func makeIngress(client kubernetes.Interface, namespace, resourceName, backend s
 			TLS: nil,
 		},
 		Status: netv1.IngressStatus{
-			LoadBalancer: corev1.LoadBalancerStatus{
+			LoadBalancer: netv1.IngressLoadBalancerStatus{
 				Ingress: nil,
 			},
 		},

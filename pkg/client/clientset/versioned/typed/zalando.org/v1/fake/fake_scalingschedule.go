@@ -21,10 +21,9 @@ package fake
 import (
 	"context"
 
-	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -36,25 +35,25 @@ type FakeScalingSchedules struct {
 	ns   string
 }
 
-var scalingschedulesResource = schema.GroupVersionResource{Group: "zalando.org", Version: "v1", Resource: "scalingschedules"}
+var scalingschedulesResource = v1.SchemeGroupVersion.WithResource("scalingschedules")
 
-var scalingschedulesKind = schema.GroupVersionKind{Group: "zalando.org", Version: "v1", Kind: "ScalingSchedule"}
+var scalingschedulesKind = v1.SchemeGroupVersion.WithKind("ScalingSchedule")
 
 // Get takes name of the scalingSchedule, and returns the corresponding scalingSchedule object, and an error if there is any.
-func (c *FakeScalingSchedules) Get(ctx context.Context, name string, options v1.GetOptions) (result *zalandoorgv1.ScalingSchedule, err error) {
+func (c *FakeScalingSchedules) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(scalingschedulesResource, c.ns, name), &zalandoorgv1.ScalingSchedule{})
+		Invokes(testing.NewGetAction(scalingschedulesResource, c.ns, name), &v1.ScalingSchedule{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*zalandoorgv1.ScalingSchedule), err
+	return obj.(*v1.ScalingSchedule), err
 }
 
 // List takes label and field selectors, and returns the list of ScalingSchedules that match those selectors.
-func (c *FakeScalingSchedules) List(ctx context.Context, opts v1.ListOptions) (result *zalandoorgv1.ScalingScheduleList, err error) {
+func (c *FakeScalingSchedules) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ScalingScheduleList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(scalingschedulesResource, scalingschedulesKind, c.ns, opts), &zalandoorgv1.ScalingScheduleList{})
+		Invokes(testing.NewListAction(scalingschedulesResource, scalingschedulesKind, c.ns, opts), &v1.ScalingScheduleList{})
 
 	if obj == nil {
 		return nil, err
@@ -64,8 +63,8 @@ func (c *FakeScalingSchedules) List(ctx context.Context, opts v1.ListOptions) (r
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &zalandoorgv1.ScalingScheduleList{ListMeta: obj.(*zalandoorgv1.ScalingScheduleList).ListMeta}
-	for _, item := range obj.(*zalandoorgv1.ScalingScheduleList).Items {
+	list := &v1.ScalingScheduleList{ListMeta: obj.(*v1.ScalingScheduleList).ListMeta}
+	for _, item := range obj.(*v1.ScalingScheduleList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -74,69 +73,69 @@ func (c *FakeScalingSchedules) List(ctx context.Context, opts v1.ListOptions) (r
 }
 
 // Watch returns a watch.Interface that watches the requested scalingSchedules.
-func (c *FakeScalingSchedules) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeScalingSchedules) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(scalingschedulesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a scalingSchedule and creates it.  Returns the server's representation of the scalingSchedule, and an error, if there is any.
-func (c *FakeScalingSchedules) Create(ctx context.Context, scalingSchedule *zalandoorgv1.ScalingSchedule, opts v1.CreateOptions) (result *zalandoorgv1.ScalingSchedule, err error) {
+func (c *FakeScalingSchedules) Create(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.CreateOptions) (result *v1.ScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(scalingschedulesResource, c.ns, scalingSchedule), &zalandoorgv1.ScalingSchedule{})
+		Invokes(testing.NewCreateAction(scalingschedulesResource, c.ns, scalingSchedule), &v1.ScalingSchedule{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*zalandoorgv1.ScalingSchedule), err
+	return obj.(*v1.ScalingSchedule), err
 }
 
 // Update takes the representation of a scalingSchedule and updates it. Returns the server's representation of the scalingSchedule, and an error, if there is any.
-func (c *FakeScalingSchedules) Update(ctx context.Context, scalingSchedule *zalandoorgv1.ScalingSchedule, opts v1.UpdateOptions) (result *zalandoorgv1.ScalingSchedule, err error) {
+func (c *FakeScalingSchedules) Update(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (result *v1.ScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(scalingschedulesResource, c.ns, scalingSchedule), &zalandoorgv1.ScalingSchedule{})
+		Invokes(testing.NewUpdateAction(scalingschedulesResource, c.ns, scalingSchedule), &v1.ScalingSchedule{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*zalandoorgv1.ScalingSchedule), err
+	return obj.(*v1.ScalingSchedule), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeScalingSchedules) UpdateStatus(ctx context.Context, scalingSchedule *zalandoorgv1.ScalingSchedule, opts v1.UpdateOptions) (*zalandoorgv1.ScalingSchedule, error) {
+func (c *FakeScalingSchedules) UpdateStatus(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (*v1.ScalingSchedule, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(scalingschedulesResource, "status", c.ns, scalingSchedule), &zalandoorgv1.ScalingSchedule{})
+		Invokes(testing.NewUpdateSubresourceAction(scalingschedulesResource, "status", c.ns, scalingSchedule), &v1.ScalingSchedule{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*zalandoorgv1.ScalingSchedule), err
+	return obj.(*v1.ScalingSchedule), err
 }
 
 // Delete takes name of the scalingSchedule and deletes it. Returns an error if one occurs.
-func (c *FakeScalingSchedules) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+func (c *FakeScalingSchedules) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(scalingschedulesResource, c.ns, name, opts), &zalandoorgv1.ScalingSchedule{})
+		Invokes(testing.NewDeleteActionWithOptions(scalingschedulesResource, c.ns, name, opts), &v1.ScalingSchedule{})
 
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeScalingSchedules) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+func (c *FakeScalingSchedules) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(scalingschedulesResource, c.ns, listOpts)
 
-	_, err := c.Fake.Invokes(action, &zalandoorgv1.ScalingScheduleList{})
+	_, err := c.Fake.Invokes(action, &v1.ScalingScheduleList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched scalingSchedule.
-func (c *FakeScalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *zalandoorgv1.ScalingSchedule, err error) {
+func (c *FakeScalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ScalingSchedule, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(scalingschedulesResource, c.ns, name, pt, data, subresources...), &zalandoorgv1.ScalingSchedule{})
+		Invokes(testing.NewPatchSubresourceAction(scalingschedulesResource, c.ns, name, pt, data, subresources...), &v1.ScalingSchedule{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*zalandoorgv1.ScalingSchedule), err
+	return obj.(*v1.ScalingSchedule), err
 }
