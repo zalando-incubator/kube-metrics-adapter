@@ -40,6 +40,7 @@ import (
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/fields"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/informers"
@@ -49,7 +50,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/apiserver"
-	"sigs.k8s.io/custom-metrics-apiserver/pkg/cmd/server"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/cmd/options"
 )
 
 const (
@@ -58,7 +59,7 @@ const (
 
 // NewCommandStartAdapterServer provides a CLI handler for 'start adapter server' command
 func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
-	baseOpts := server.NewCustomMetricsAdapterServerOptions()
+	baseOpts := options.NewCustomMetricsAdapterServerOptions()
 	o := AdapterServerOptions{
 		CustomMetricsAdapterServerOptions: baseOpts,
 		EnableCustomMetricsAPI:            true,
@@ -74,11 +75,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		Short: "Launch the custom metrics API adapter server",
 		Long:  "Launch the custom metrics API adapter server",
 		RunE: func(c *cobra.Command, args []string) error {
-			if err := o.Complete(); err != nil {
-				return err
-			}
-			if err := o.Validate(args); err != nil {
-				return err
+			if errList := o.Validate(); len(errList) > 0 {
+				return utilerrors.NewAggregate(errList)
 			}
 			if err := o.RunCustomMetricsAdapterServer(stopCh); err != nil {
 				return err
@@ -152,9 +150,14 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		klog.Fatal(http.ListenAndServe(o.MetricsAddress, nil))
 	}()
 
-	config, err := o.Config()
+	serverConfig := genericapiserver.NewConfig(apiserver.Codecs)
+	err := o.CustomMetricsAdapterServerOptions.ApplyTo(serverConfig)
 	if err != nil {
 		return err
+	}
+
+	config := &apiserver.Config{
+		GenericConfig: serverConfig,
 	}
 
 	config.GenericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(apiserver.Scheme))
@@ -432,7 +435,7 @@ func newOauth2HTTPClient(ctx context.Context, tokenSource oauth2.TokenSource) *h
 }
 
 type AdapterServerOptions struct {
-	*server.CustomMetricsAdapterServerOptions
+	*options.CustomMetricsAdapterServerOptions
 
 	// RemoteKubeConfigFile is the config used to list pods from the master API server
 	RemoteKubeConfigFile string
