@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	argorolloutsv1alpha1 "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
+	argorolloutsfake "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -25,6 +27,7 @@ const (
 	applicationLabelName  = "application"
 	applicationLabelValue = "test-application"
 	testDeploymentName    = "test-application"
+	testRolloutName       = "test-application"
 	testInterval          = 10 * time.Second
 )
 
@@ -42,7 +45,8 @@ func TestPodCollector(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := fake.NewSimpleClientset()
-			plugin := NewPodCollectorPlugin(client)
+			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
+			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
 			lastReadyTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
@@ -80,7 +84,8 @@ func TestPodCollectorWithMinPodReadyAge(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := fake.NewSimpleClientset()
-			plugin := NewPodCollectorPlugin(client)
+			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
+			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
 			// Setting pods age to 30 seconds
@@ -120,7 +125,8 @@ func TestPodCollectorWithPodCondition(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := fake.NewSimpleClientset()
-			plugin := NewPodCollectorPlugin(client)
+			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
+			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
 			lastScheduledTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
@@ -159,7 +165,8 @@ func TestPodCollectorWithPodTerminatingCondition(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := fake.NewSimpleClientset()
-			plugin := NewPodCollectorPlugin(client)
+			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
+			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
 			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
 			lastScheduledTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
@@ -169,6 +176,46 @@ func TestPodCollectorWithPodTerminatingCondition(t *testing.T) {
 			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastTransitionTime: lastScheduledTransitionTimeTimestamp}
 			makeTestPods(t, host, port, "test-metric", client, 5, podCondition, podDeletionTimestamp)
 			testHPA := makeTestHPA(t, client)
+			testConfig := makeTestConfig(port, minPodReadyAge)
+			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
+			require.NoError(t, err)
+			metrics, err := collector.GetMetrics()
+			require.NoError(t, err)
+			require.Equal(t, len(metrics), int(metricsHandler.calledCounter))
+			var values []int64
+			for _, m := range metrics {
+				values = append(values, m.Custom.Value.Value())
+			}
+			require.ElementsMatch(t, tc.result, values)
+		})
+	}
+}
+
+func TestPodCollectorWithRollout(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		metrics [][]int64
+		result  []int64
+	}{
+		{
+			name:    "simple-with-rollout",
+			metrics: [][]int64{{1}, {3}, {8}, {5}, {2}},
+			result:  []int64{1, 3, 8, 5, 2},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset()
+			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
+			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
+
+			makeTestRollout(t, argoRolloutsClient)
+			host, port, metricsHandler := makeTestHTTPServer(t, tc.metrics)
+			lastReadyTransitionTimeTimestamp := v1.NewTime(time.Now().Add(time.Duration(-30) * time.Second))
+			minPodReadyAge := time.Duration(0 * time.Second)
+			podCondition := corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastTransitionTime: lastReadyTransitionTimeTimestamp}
+			podDeletionTimestamp := time.Time{}
+			makeTestPods(t, host, port, "test-metric", client, 5, podCondition, podDeletionTimestamp)
+			testHPA := makeTestHPAForRollout(t, client)
 			testConfig := makeTestConfig(port, minPodReadyAge)
 			collector, err := plugin.NewCollector(testHPA, testConfig, testInterval)
 			require.NoError(t, err)
@@ -266,6 +313,22 @@ func makeTestDeployment(t *testing.T, client kubernetes.Interface) *appsv1.Deplo
 
 }
 
+func makeTestRollout(t *testing.T, argoRolloutsClient *argorolloutsfake.Clientset) *argorolloutsv1alpha1.Rollout {
+	rollout := &argorolloutsv1alpha1.Rollout{
+		ObjectMeta: v1.ObjectMeta{
+			Name: testRolloutName,
+		},
+		Spec: argorolloutsv1alpha1.RolloutSpec{
+			Selector: &v1.LabelSelector{
+				MatchLabels: map[string]string{applicationLabelName: applicationLabelValue},
+			},
+		},
+	}
+	_, err := argoRolloutsClient.ArgoprojV1alpha1().Rollouts(testNamespace).Create(context.TODO(), rollout, v1.CreateOptions{})
+	require.NoError(t, err)
+	return rollout
+}
+
 func makeTestHPA(t *testing.T, client kubernetes.Interface) *autoscalingv2.HorizontalPodAutoscaler {
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: v1.ObjectMeta{
@@ -281,6 +344,25 @@ func makeTestHPA(t *testing.T, client kubernetes.Interface) *autoscalingv2.Horiz
 		},
 	}
 	_, err := client.AutoscalingV2().HorizontalPodAutoscalers("test-namespace").Create(context.TODO(), hpa, v1.CreateOptions{})
+	require.NoError(t, err)
+	return hpa
+}
+
+func makeTestHPAForRollout(t *testing.T, client kubernetes.Interface) *autoscalingv2.HorizontalPodAutoscaler {
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "test-hpa-rollout",
+			Namespace: testNamespace,
+		},
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				Kind:       "Rollout",
+				Name:       testRolloutName,
+				APIVersion: "argoproj.io/v1alpha1",
+			},
+		},
+	}
+	_, err := client.AutoscalingV2().HorizontalPodAutoscalers(testNamespace).Create(context.TODO(), hpa, v1.CreateOptions{})
 	require.NoError(t, err)
 	return hpa
 }

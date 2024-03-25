@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	argoRolloutsClient "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	log "github.com/sirupsen/logrus"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -18,17 +19,19 @@ import (
 )
 
 type PodCollectorPlugin struct {
-	client kubernetes.Interface
+	client             kubernetes.Interface
+	argoRolloutsClient argoRolloutsClient.Interface
 }
 
-func NewPodCollectorPlugin(client kubernetes.Interface) *PodCollectorPlugin {
+func NewPodCollectorPlugin(client kubernetes.Interface, argoRolloutsClient argoRolloutsClient.Interface) *PodCollectorPlugin {
 	return &PodCollectorPlugin{
-		client: client,
+		client:             client,
+		argoRolloutsClient: argoRolloutsClient,
 	}
 }
 
 func (p *PodCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewPodCollector(p.client, hpa, config, interval)
+	return NewPodCollector(p.client, p.argoRolloutsClient, hpa, config, interval)
 }
 
 type PodCollector struct {
@@ -43,9 +46,9 @@ type PodCollector struct {
 	logger           *log.Entry
 }
 
-func NewPodCollector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PodCollector, error) {
+func NewPodCollector(client kubernetes.Interface, argoRolloutsClient argoRolloutsClient.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PodCollector, error) {
 	// get pod selector based on HPA scale target ref
-	selector, err := getPodLabelSelector(client, hpa)
+	selector, err := getPodLabelSelector(client, argoRolloutsClient, hpa)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pod label selector: %v", err)
 	}
@@ -153,7 +156,7 @@ func (c *PodCollector) getPodMetric(pod corev1.Pod, ch chan CollectedMetric, err
 	}
 }
 
-func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (*metav1.LabelSelector, error) {
+func getPodLabelSelector(client kubernetes.Interface, argoRolloutsClient argoRolloutsClient.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (*metav1.LabelSelector, error) {
 	switch hpa.Spec.ScaleTargetRef.Kind {
 	case "Deployment":
 		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
@@ -167,6 +170,12 @@ func getPodLabelSelector(client kubernetes.Interface, hpa *autoscalingv2.Horizon
 			return nil, err
 		}
 		return sts.Spec.Selector, nil
+	case "Rollout":
+		rollout, err := argoRolloutsClient.ArgoprojV1alpha1().Rollouts(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return rollout.Spec.Selector, nil
 	}
 
 	return nil, fmt.Errorf("unable to get pod label selector for scale target ref '%s'", hpa.Spec.ScaleTargetRef.Kind)

@@ -82,8 +82,11 @@ HPA resource, or via additional annotations on the HPA resource.
 
 ## Pod collector
 
-The pod collector allows collecting metrics from each pod matched by the HPA.
+The pod collector allows collecting metrics from each pod matching the label selector defined in the HPA's `scaleTargetRef`.
 Currently only `json-path` collection is supported.
+
+### Supported HPA `scaleTargetRef`
+The Pod Collector utilizes the `scaleTargetRef` specified in an HPA resource to obtain the label selector from the referenced Kubernetes object. This enables the identification and management of pods associated with that object. Currently, the supported Kubernetes objects for this operation are: `Deployment`, `StatefulSet` and [`Rollout`](https://argoproj.github.io/argo-rollouts/features/specification/).
 
 ### Supported metrics
 

@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"time"
 
+	argoRolloutsClient "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -191,6 +192,11 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		return fmt.Errorf("failed to initialize new client: %v", err)
 	}
 
+	argoRolloutsClient, err := argoRolloutsClient.NewForConfig(clientConfig)
+	if err != nil {
+		return fmt.Errorf("failed to initialize Argo Rollouts client: %v", err)
+	}
+
 	rgClient, err := rg.NewForConfig(clientConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize RouteGroup client: %v", err)
@@ -257,7 +263,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 	plugin, _ := collector.NewHTTPCollectorPlugin()
 	collectorFactory.RegisterExternalCollector([]string{collector.HTTPJSONPathType, collector.HTTPMetricNameLegacy}, plugin)
 	// register generic pod collector
-	err = collectorFactory.RegisterPodsCollector("", collector.NewPodCollectorPlugin(client))
+	err = collectorFactory.RegisterPodsCollector("", collector.NewPodCollectorPlugin(client, argoRolloutsClient))
 	if err != nil {
 		return fmt.Errorf("failed to register pod collector plugin: %v", err)
 	}
