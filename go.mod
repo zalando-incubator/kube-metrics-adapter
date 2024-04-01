@@ -7,7 +7,7 @@ require (
 	github.com/prometheus/common v0.44.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
-	github.com/spyzhov/ajson v0.9.0
+	github.com/spyzhov/ajson v0.9.1
 	github.com/stretchr/testify v1.9.0
 	github.com/szuecs/routegroup-client v0.25.0
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20230601114834-6ed1bba3c85d
