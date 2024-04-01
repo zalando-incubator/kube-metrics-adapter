@@ -15,7 +15,7 @@ require (
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/sync v0.6.0
 	k8s.io/api v0.27.12
-	k8s.io/apimachinery v0.27.12
+	k8s.io/apimachinery v0.29.3
 	k8s.io/apiserver v0.27.12
 	k8s.io/client-go v0.27.12
 	k8s.io/code-generator v0.27.12
