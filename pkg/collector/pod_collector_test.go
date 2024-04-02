@@ -293,7 +293,7 @@ func makeTestPods(t *testing.T, testServer string, metricName string, port strin
 		} else {
 			testPod.ObjectMeta.DeletionTimestamp = &v1.Time{Time: podDeletionTimestamp}
 		}
-		_, err := client.CoreV1().Pods(testNamespace).Create(context.TODO(), testPod, v1.CreateOptions{})
+		_, err := client.CoreV1().Pods(testNamespace).Create(context.Background(), testPod, v1.CreateOptions{})
 		require.NoError(t, err)
 	}
 }
@@ -307,7 +307,7 @@ func makeTestDeployment(t *testing.T, client kubernetes.Interface) *appsv1.Deplo
 			},
 		},
 	}
-	_, err := client.AppsV1().Deployments(testNamespace).Create(context.TODO(), &deployment, v1.CreateOptions{})
+	_, err := client.AppsV1().Deployments(testNamespace).Create(context.Background(), &deployment, v1.CreateOptions{})
 	require.NoError(t, err)
 	return &deployment
 
@@ -324,7 +324,7 @@ func makeTestRollout(t *testing.T, argoRolloutsClient *argorolloutsfake.Clientse
 			},
 		},
 	}
-	_, err := argoRolloutsClient.ArgoprojV1alpha1().Rollouts(testNamespace).Create(context.TODO(), rollout, v1.CreateOptions{})
+	_, err := argoRolloutsClient.ArgoprojV1alpha1().Rollouts(testNamespace).Create(context.Background(), rollout, v1.CreateOptions{})
 	require.NoError(t, err)
 	return rollout
 }
@@ -343,7 +343,7 @@ func makeTestHPA(t *testing.T, client kubernetes.Interface) *autoscalingv2.Horiz
 			},
 		},
 	}
-	_, err := client.AutoscalingV2().HorizontalPodAutoscalers("test-namespace").Create(context.TODO(), hpa, v1.CreateOptions{})
+	_, err := client.AutoscalingV2().HorizontalPodAutoscalers("test-namespace").Create(context.Background(), hpa, v1.CreateOptions{})
 	require.NoError(t, err)
 	return hpa
 }
@@ -362,7 +362,7 @@ func makeTestHPAForRollout(t *testing.T, client kubernetes.Interface) *autoscali
 			},
 		},
 	}
-	_, err := client.AutoscalingV2().HorizontalPodAutoscalers(testNamespace).Create(context.TODO(), hpa, v1.CreateOptions{})
+	_, err := client.AutoscalingV2().HorizontalPodAutoscalers(testNamespace).Create(context.Background(), hpa, v1.CreateOptions{})
 	require.NoError(t, err)
 	return hpa
 }
