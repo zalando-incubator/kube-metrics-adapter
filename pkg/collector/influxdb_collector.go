@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/influxdata/influxdb-client-go"
+	influxdb "github.com/influxdata/influxdb-client-go"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +47,7 @@ type InfluxDBCollector struct {
 	token   string
 	org     string
 
-	influxDBClient *influxdb.Client
+	influxDBClient influxdb.Client
 	interval       time.Duration
 	metric         autoscalingv2.MetricIdentifier
 	metricType     autoscalingv2.MetricSourceType
@@ -92,10 +92,7 @@ func NewInfluxDBCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, address st
 	if v, ok := config.Config[influxDBOrgKey]; ok {
 		org = v
 	}
-	influxDbClient, err := influxdb.New(address, token)
-	if err != nil {
-		return nil, err
-	}
+	influxDbClient := influxdb.NewClient(address, token)
 	collector.address = address
 	collector.token = token
 	collector.org = org
@@ -111,7 +108,8 @@ type queryResult struct {
 
 // getValue returns the first result gathered from an InfluxDB instance.
 func (c *InfluxDBCollector) getValue() (resource.Quantity, error) {
-	res, err := c.influxDBClient.QueryCSV(context.Background(), c.query, c.org)
+	queryAPI := c.influxDBClient.QueryAPI(c.org)
+	res, err := queryAPI.Query(context.Background(), c.query)
 	if err != nil {
 		return resource.Quantity{}, err
 	}
@@ -119,12 +117,9 @@ func (c *InfluxDBCollector) getValue() (resource.Quantity, error) {
 	// Keeping just the first result.
 	if res.Next() {
 		qr := queryResult{}
-		if err := res.Unmarshal(&qr); err != nil {
-			return resource.Quantity{}, fmt.Errorf("error in unmarshaling query result: %v", err)
-		}
 		return *resource.NewMilliQuantity(int64(qr.MetricValue*1000), resource.DecimalSI), nil
 	}
-	if err := res.Err; err != nil {
+	if err := res.Err(); err != nil {
 		return resource.Quantity{}, fmt.Errorf("error in query result: %v", err)
 	}
 	return resource.Quantity{}, fmt.Errorf("empty result returned")
