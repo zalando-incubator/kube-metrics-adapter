@@ -47,7 +47,7 @@ type InfluxDBCollector struct {
 	token   string
 	org     string
 
-	influxDBClient *influxdb.Client
+	influxDBClient influxdb.Client
 	interval       time.Duration
 	metric         autoscalingv2.MetricIdentifier
 	metricType     autoscalingv2.MetricSourceType
@@ -96,7 +96,7 @@ func NewInfluxDBCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, address st
 	collector.address = address
 	collector.token = token
 	collector.org = org
-	collector.influxDBClient = &influxDbClient
+	collector.influxDBClient = influxDbClient
 	return collector, nil
 }
 
@@ -108,8 +108,7 @@ type queryResult struct {
 
 // getValue returns the first result gathered from an InfluxDB instance.
 func (c *InfluxDBCollector) getValue() (resource.Quantity, error) {
-	client := *c.influxDBClient
-	queryAPI := client.QueryAPI(c.org)
+	queryAPI := c.influxDBClient.QueryAPI(c.org)
 	res, err := queryAPI.Query(context.Background(), c.query)
 	if err != nil {
 		return resource.Quantity{}, err
