@@ -34,7 +34,7 @@ $(GENERATED): go.mod $(CRD_TYPE_SOURCE) $(OPENAPI)
 	./hack/update-codegen.sh
 
 $(GENERATED_CRDS): $(GENERATED) $(CRD_SOURCES)
-	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd:crdVersions=v1 paths=./pkg/apis/... output:crd:dir=docs || /bin/true || true
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd:crdVersions=v1 paths=./pkg/apis/... output:crd:dir=docs
 	mv docs/zalando.org_clusterscalingschedules.yaml docs/cluster_scaling_schedules_crd.yaml
 	mv docs/zalando.org_scalingschedules.yaml docs/scaling_schedules_crd.yaml
 
