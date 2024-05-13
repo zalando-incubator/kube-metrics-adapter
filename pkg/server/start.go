@@ -151,21 +151,8 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		klog.Fatal(http.ListenAndServe(o.MetricsAddress, nil))
 	}()
 
-	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
-	err := o.CustomMetricsAdapterServerOptions.ApplyTo(serverConfig)
-	if err != nil {
-		return err
-	}
-
-	config := &apiserver.Config{
-		GenericConfig: &serverConfig.Config,
-	}
-
-	config.GenericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(apiserver.Scheme))
-	config.GenericConfig.OpenAPIConfig.Info.Title = "kube-metrics-adapter"
-	config.GenericConfig.OpenAPIConfig.Info.Version = "1.0.0"
-
 	var clientConfig *rest.Config
+	var err error
 	if len(o.RemoteKubeConfigFile) > 0 {
 		loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: o.RemoteKubeConfigFile}
 		loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
@@ -177,6 +164,21 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 	if err != nil {
 		return fmt.Errorf("unable to construct lister client config to initialize provider: %v", err)
 	}
+
+	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
+	serverConfig.ClientConfig = clientConfig
+	err = o.CustomMetricsAdapterServerOptions.ApplyTo(serverConfig)
+	if err != nil {
+		return err
+	}
+
+	config := &apiserver.Config{
+		GenericConfig: &serverConfig.Config,
+	}
+
+	config.GenericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(apiserver.Scheme))
+	config.GenericConfig.OpenAPIConfig.Info.Title = "kube-metrics-adapter"
+	config.GenericConfig.OpenAPIConfig.Info.Version = "1.0.0"
 
 	// convert stop channel to a context
 	ctx, cancel := context.WithCancel(context.Background())
