@@ -151,14 +151,14 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		klog.Fatal(http.ListenAndServe(o.MetricsAddress, nil))
 	}()
 
-	serverConfig := genericapiserver.NewConfig(apiserver.Codecs)
+	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
 	err := o.CustomMetricsAdapterServerOptions.ApplyTo(serverConfig)
 	if err != nil {
 		return err
 	}
 
 	config := &apiserver.Config{
-		GenericConfig: serverConfig,
+		GenericConfig: &serverConfig.Config,
 	}
 
 	config.GenericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(apiserver.Scheme))
