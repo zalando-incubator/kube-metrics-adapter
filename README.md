@@ -71,6 +71,15 @@ export GO111MODULE=on # needed if the project is checked out in your $GOPATH.
 $ make
 ```
 
+## Install in Kubernetes
+
+Clone this repository, and run as below:
+
+```sh
+$ cd kube-metrics-adapter/docs
+$ kubectl apply -f .
+```
+
 ## Collectors
 
 Collectors are different implementations for getting metrics requested by an
