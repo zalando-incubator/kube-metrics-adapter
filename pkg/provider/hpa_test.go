@@ -17,13 +17,13 @@ import (
 
 type mockCollectorPlugin struct{}
 
-func (m mockCollectorPlugin) NewCollector(hpa *autoscaling.HorizontalPodAutoscaler, config *collector.MetricConfig, interval time.Duration) (collector.Collector, error) {
+func (m mockCollectorPlugin) NewCollector(_ context.Context, hpa *autoscaling.HorizontalPodAutoscaler, config *collector.MetricConfig, interval time.Duration) (collector.Collector, error) {
 	return mockCollector{}, nil
 }
 
 type mockCollector struct{}
 
-func (c mockCollector) GetMetrics() ([]collector.CollectedMetric, error) {
+func (c mockCollector) GetMetrics(_ context.Context) ([]collector.CollectedMetric, error) {
 	return nil, nil
 }
 

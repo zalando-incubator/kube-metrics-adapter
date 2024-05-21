@@ -3,6 +3,7 @@ package collector
 import (
 	"time"
 
+	"golang.org/x/net/context"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
@@ -19,7 +20,7 @@ type FakeCollector struct {
 	stub     func() ([]CollectedMetric, error)
 }
 
-func (c *FakeCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *FakeCollector) GetMetrics(_ context.Context) ([]CollectedMetric, error) {
 	if c.stub != nil {
 		v, err := c.stub()
 		return v, err
@@ -33,6 +34,7 @@ func (FakeCollector) Interval() time.Duration {
 }
 
 func (p *FakeCollectorPlugin) NewCollector(
+	_ context.Context,
 	hpa *autoscalingv2.HorizontalPodAutoscaler,
 	config *MetricConfig,
 	interval time.Duration,

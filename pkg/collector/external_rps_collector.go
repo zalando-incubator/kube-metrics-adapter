@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -48,6 +49,7 @@ func NewExternalRPSCollectorPlugin(
 
 // NewCollector initializes a new skipper collector from the specified HPA.
 func (p *ExternalRPSCollectorPlugin) NewCollector(
+	ctx context.Context,
 	hpa *autoscalingv2.HorizontalPodAutoscaler,
 	config *MetricConfig,
 	interval time.Duration,
@@ -95,7 +97,7 @@ func (p *ExternalRPSCollectorPlugin) NewCollector(
 		),
 	}
 
-	c, err := p.promPlugin.NewCollector(hpa, &confCopy, interval)
+	c, err := p.promPlugin.NewCollector(ctx, hpa, &confCopy, interval)
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +109,8 @@ func (p *ExternalRPSCollectorPlugin) NewCollector(
 }
 
 // GetMetrics gets hostname metrics from Prometheus
-func (c *ExternalRPSCollector) GetMetrics() ([]CollectedMetric, error) {
-	v, err := c.promCollector.GetMetrics()
+func (c *ExternalRPSCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
+	v, err := c.promCollector.GetMetrics(ctx)
 	if err != nil {
 		return nil, err
 	}

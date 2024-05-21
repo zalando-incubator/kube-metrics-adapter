@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -93,14 +94,14 @@ func NewClusterScalingScheduleCollectorPlugin(store Store, now Now, defaultScali
 // NewCollector initializes a new scaling schedule collector from the
 // specified HPA. It's the only required method to implement the
 // collector.CollectorPlugin interface.
-func (c *ScalingScheduleCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *ScalingScheduleCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return NewScalingScheduleCollector(c.store, c.defaultScalingWindow, c.defaultTimeZone, c.rampSteps, c.now, hpa, config, interval)
 }
 
 // NewCollector initializes a new cluster wide scaling schedule
 // collector from the specified HPA. It's the only required method to
 // implement the collector.CollectorPlugin interface.
-func (c *ClusterScalingScheduleCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *ClusterScalingScheduleCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return NewClusterScalingScheduleCollector(c.store, c.defaultScalingWindow, c.defaultTimeZone, c.rampSteps, c.now, hpa, config, interval)
 }
 
@@ -169,7 +170,7 @@ func NewClusterScalingScheduleCollector(store Store, defaultScalingWindow time.D
 }
 
 // GetMetrics is the main implementation for collector.Collector interface
-func (c *ScalingScheduleCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *ScalingScheduleCollector) GetMetrics(_ context.Context) ([]CollectedMetric, error) {
 	scalingScheduleInterface, exists, err := c.store.GetByKey(fmt.Sprintf("%s/%s", c.objectReference.Namespace, c.objectReference.Name))
 	if !exists {
 		return nil, ErrScalingScheduleNotFound
@@ -186,7 +187,7 @@ func (c *ScalingScheduleCollector) GetMetrics() ([]CollectedMetric, error) {
 }
 
 // GetMetrics is the main implementation for collector.Collector interface
-func (c *ClusterScalingScheduleCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *ClusterScalingScheduleCollector) GetMetrics(_ context.Context) ([]CollectedMetric, error) {
 	clusterScalingScheduleInterface, exists, err := c.store.GetByKey(c.objectReference.Name)
 	if !exists {
 		return nil, ErrClusterScalingScheduleNotFound

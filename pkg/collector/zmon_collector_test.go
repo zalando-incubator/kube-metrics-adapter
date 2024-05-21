@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -38,7 +39,7 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
 
-	collector, err := collectPlugin.NewCollector(hpa, config, 1*time.Second)
+	collector, err := collectPlugin.NewCollector(context.Background(), hpa, config, 1*time.Second)
 	require.NoError(t, err)
 	require.NotNil(t, collector)
 	zmonCollector := collector.(*ZMONCollector)
@@ -52,7 +53,7 @@ func TestZMONCollectorNewCollector(t *testing.T) {
 	// should fail if the check id is not specified.
 	delete(config.Config, zmonCheckIDLabelKey)
 	config.Metric.Name = "foo-check"
-	_, err = collectPlugin.NewCollector(nil, config, 1*time.Second)
+	_, err = collectPlugin.NewCollector(context.Background(), nil, config, 1*time.Second)
 	require.Error(t, err)
 }
 
@@ -124,7 +125,7 @@ func TestZMONCollectorGetMetrics(tt *testing.T) {
 			zmonCollector, err := NewZMONCollector(z, hpa, config, 1*time.Second)
 			require.NoError(t, err)
 
-			metrics, _ := zmonCollector.GetMetrics()
+			metrics, _ := zmonCollector.GetMetrics(context.Background())
 			require.Equal(t, ti.collectedMetrics, metrics)
 		})
 	}

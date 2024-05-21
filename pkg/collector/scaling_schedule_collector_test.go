@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -626,17 +627,17 @@ func TestScalingScheduleCollector(t *testing.T) {
 			err = collectorFactoryFirstRun.RegisterObjectCollector("ClusterScalingSchedule", "", clusterPluginFirstRun)
 			require.NoError(t, err)
 
-			collector, err := collectorFactory.NewCollector(hpa, configs[0], 0)
+			collector, err := collectorFactory.NewCollector(context.Background(), hpa, configs[0], 0)
 			require.NoError(t, err)
 			collector, ok := collector.(*ScalingScheduleCollector)
 			require.True(t, ok)
 
-			clusterCollector, err := collectorFactory.NewCollector(hpa, configs[1], 0)
+			clusterCollector, err := collectorFactory.NewCollector(context.Background(), hpa, configs[1], 0)
 			require.NoError(t, err)
 			clusterCollector, ok = clusterCollector.(*ClusterScalingScheduleCollector)
 			require.True(t, ok)
 
-			clusterCollectorFirstRun, err := collectorFactoryFirstRun.NewCollector(hpa, configs[1], 0)
+			clusterCollectorFirstRun, err := collectorFactoryFirstRun.NewCollector(context.Background(), hpa, configs[1], 0)
 			require.NoError(t, err)
 			clusterCollectorFirstRun, ok = clusterCollectorFirstRun.(*ClusterScalingScheduleCollector)
 			require.True(t, ok)
@@ -659,13 +660,13 @@ func TestScalingScheduleCollector(t *testing.T) {
 				}
 			}
 
-			collected, err := collector.GetMetrics()
+			collected, err := collector.GetMetrics(context.Background())
 			checkCollectedMetrics(t, collected, "ScalingSchedule")
 
-			clusterCollected, err := clusterCollector.GetMetrics()
+			clusterCollected, err := clusterCollector.GetMetrics(context.Background())
 			checkCollectedMetrics(t, clusterCollected, "ClusterScalingSchedule")
 
-			clusterCollectedFirstRun, err := clusterCollectorFirstRun.GetMetrics()
+			clusterCollectedFirstRun, err := clusterCollectorFirstRun.GetMetrics(context.Background())
 			checkCollectedMetrics(t, clusterCollectedFirstRun, "ClusterScalingSchedule")
 		})
 	}
@@ -698,21 +699,21 @@ func TestScalingScheduleObjectNotPresentReturnsError(t *testing.T) {
 	err = collectorFactory.RegisterObjectCollector("ClusterScalingSchedule", "", clusterPlugin)
 	require.NoError(t, err)
 
-	collector, err := collectorFactory.NewCollector(hpa, configs[0], 0)
+	collector, err := collectorFactory.NewCollector(context.Background(), hpa, configs[0], 0)
 	require.NoError(t, err)
 	collector, ok := collector.(*ScalingScheduleCollector)
 	require.True(t, ok)
 
-	clusterCollector, err := collectorFactory.NewCollector(hpa, configs[1], 0)
+	clusterCollector, err := collectorFactory.NewCollector(context.Background(), hpa, configs[1], 0)
 	require.NoError(t, err)
 	clusterCollector, ok = clusterCollector.(*ClusterScalingScheduleCollector)
 	require.True(t, ok)
 
-	_, err = collector.GetMetrics()
+	_, err = collector.GetMetrics(context.Background())
 	require.Error(t, err)
 	require.Equal(t, ErrScalingScheduleNotFound, err)
 
-	_, err = clusterCollector.GetMetrics()
+	_, err = clusterCollector.GetMetrics(context.Background())
 	require.Error(t, err)
 	require.Equal(t, ErrClusterScalingScheduleNotFound, err)
 
@@ -721,11 +722,11 @@ func TestScalingScheduleObjectNotPresentReturnsError(t *testing.T) {
 	store.d["namespace/scalingScheduleName"] = invalidObject
 	clusterStore.d["scalingScheduleName"] = invalidObject
 
-	_, err = collector.GetMetrics()
+	_, err = collector.GetMetrics(context.Background())
 	require.Error(t, err)
 	require.Equal(t, ErrNotScalingScheduleFound, err)
 
-	_, err = clusterCollector.GetMetrics()
+	_, err = clusterCollector.GetMetrics(context.Background())
 	require.Error(t, err)
 	require.Equal(t, ErrNotClusterScalingScheduleFound, err)
 }
@@ -755,20 +756,20 @@ func TestReturnsErrorWhenStoreDoes(t *testing.T) {
 	err = collectorFactory.RegisterObjectCollector("ClusterScalingSchedule", "", clusterPlugin)
 	require.NoError(t, err)
 
-	collector, err := collectorFactory.NewCollector(hpa, configs[0], 0)
+	collector, err := collectorFactory.NewCollector(context.Background(), hpa, configs[0], 0)
 	require.NoError(t, err)
 	collector, ok := collector.(*ScalingScheduleCollector)
 	require.True(t, ok)
 
-	clusterCollector, err := collectorFactory.NewCollector(hpa, configs[1], 0)
+	clusterCollector, err := collectorFactory.NewCollector(context.Background(), hpa, configs[1], 0)
 	require.NoError(t, err)
 	clusterCollector, ok = clusterCollector.(*ClusterScalingScheduleCollector)
 	require.True(t, ok)
 
-	_, err = collector.GetMetrics()
+	_, err = collector.GetMetrics(context.Background())
 	require.Error(t, err)
 
-	_, err = clusterCollector.GetMetrics()
+	_, err = clusterCollector.GetMetrics(context.Background())
 	require.Error(t, err)
 }
 
