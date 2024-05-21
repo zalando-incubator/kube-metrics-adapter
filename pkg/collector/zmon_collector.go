@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
+	"golang.org/x/net/context"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +41,7 @@ func NewZMONCollectorPlugin(zmon zmon.ZMON) (*ZMONCollectorPlugin, error) {
 }
 
 // NewCollector initializes a new ZMON collector from the specified HPA.
-func (c *ZMONCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *ZMONCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return NewZMONCollector(c.zmon, hpa, config, interval)
 }
 
@@ -121,7 +122,7 @@ func NewZMONCollector(zmon zmon.ZMON, hpa *autoscalingv2.HorizontalPodAutoscaler
 }
 
 // GetMetrics returns a list of collected metrics for the ZMON check.
-func (c *ZMONCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *ZMONCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
 	dataPoints, err := c.zmon.Query(c.checkID, c.key, c.tags, c.aggregators, c.duration)
 	if err != nil {
 		return nil, err

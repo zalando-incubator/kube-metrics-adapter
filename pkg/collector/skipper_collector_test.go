@@ -38,7 +38,7 @@ func TestTargetRefReplicasDeployments(t *testing.T) {
 		Create(context.TODO(), newHPA(defaultNamespace, name, "Deployment"), metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	replicas, err := targetRefReplicas(client, hpa)
+	replicas, err := targetRefReplicas(context.Background(), client, hpa)
 	require.NoError(t, err)
 	require.Equal(t, deployment.Status.Replicas, replicas)
 }
@@ -55,7 +55,7 @@ func TestTargetRefReplicasStatefulSets(t *testing.T) {
 		Create(context.TODO(), newHPA(defaultNamespace, name, "StatefulSet"), metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	replicas, err := targetRefReplicas(client, hpa)
+	replicas, err := targetRefReplicas(context.Background(), client, hpa)
 	require.NoError(t, err)
 	require.Equal(t, statefulSet.Status.Replicas, replicas)
 }
@@ -340,7 +340,7 @@ func TestSkipperCollectorIngress(t *testing.T) {
 			require.NoError(t, err)
 			collector, err := NewSkipperCollector(client, nil, plugin, hpa, config, time.Minute, tc.backendAnnotations, tc.backend)
 			require.NoError(t, err, "failed to create skipper collector: %v", err)
-			collected, err := collector.GetMetrics()
+			collected, err := collector.GetMetrics(context.Background())
 			if tc.expectError {
 				require.Error(t, err)
 			} else {
@@ -522,7 +522,7 @@ func TestSkipperCollector(t *testing.T) {
 				require.NoError(t, err)
 				collector, err := NewSkipperCollector(client, rgClient, plugin, hpa, config, time.Minute, []string{testBackendWeightsAnnotation}, tc.backend)
 				require.NoError(t, err, "failed to create skipper collector: %v", err)
-				collected, err := collector.GetMetrics()
+				collected, err := collector.GetMetrics(context.Background())
 				if tc.expectError {
 					require.Error(t, err, "%s", kind)
 				} else {

@@ -161,7 +161,7 @@ func (p *HPAProvider) updateHPAs() error {
 					interval = p.collectorInterval
 				}
 
-				c, err := p.collectorFactory.NewCollector(&hpa, config, interval)
+				c, err := p.collectorFactory.NewCollector(context.TODO(), &hpa, config, interval)
 				if err != nil {
 
 					// Only log when it's not a PluginNotFoundError AND flag disregardIncompatibleHPAs is true
@@ -347,7 +347,7 @@ func (t *CollectorScheduler) Add(resourceRef resourceReference, typeName collect
 // context is canceled the collection will be stopped.
 func collectorRunner(ctx context.Context, collector collector.Collector, metricsc chan<- metricCollection) {
 	for {
-		values, err := collector.GetMetrics()
+		values, err := collector.GetMetrics(ctx)
 
 		metricsc <- metricCollection{
 			Values: values,

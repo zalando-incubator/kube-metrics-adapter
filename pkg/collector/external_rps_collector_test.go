@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
@@ -100,6 +101,7 @@ func TestExternalRPSPluginNewCollector(tt *testing.T) {
 	} {
 		tt.Run(testcase.msg, func(t *testing.T) {
 			c, err := plugin.NewCollector(
+				context.Background(),
 				&autoscalingv2.HorizontalPodAutoscaler{},
 				testcase.config,
 				interval,
@@ -156,7 +158,7 @@ func TestExternalRPSCollectorGetMetrics(tt *testing.T) {
 		tt.Run(testcase.msg, func(t *testing.T) {
 			fake := makeCollectorWithStub(testcase.stub)
 			c := &ExternalRPSCollector{promCollector: fake}
-			m, err := c.GetMetrics()
+			m, err := c.GetMetrics(context.Background())
 
 			if testcase.shouldWork {
 				require.Nil(t, err)
@@ -182,6 +184,7 @@ func TestExternalRPSCollectorInterval(t *testing.T) {
 		pattern:    pattern,
 	}
 	c, err := plugin.NewCollector(
+		context.Background(),
 		&autoscalingv2.HorizontalPodAutoscaler{},
 		&MetricConfig{Config: map[string]string{"hostnames": "foo.bar.baz"}},
 		interval,
@@ -227,7 +230,7 @@ func TestExternalRPSCollectorAndCollectorFabricInteraction(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, conf, 1)
 
-	c, err := factory.NewCollector(hpa, conf[0], 0)
+	c, err := factory.NewCollector(context.Background(), hpa, conf[0], 0)
 
 	require.NoError(t, err)
 	_, ok := c.(*ExternalRPSCollector)
@@ -288,9 +291,9 @@ func TestExternalRPSPrometheusCollectorInteraction(t *testing.T) {
 	require.Len(t, conf, 2)
 
 	collectors := make(map[string]Collector)
-	collectors["hostname"], err = factory.NewCollector(hpa, conf[0], 0)
+	collectors["hostname"], err = factory.NewCollector(context.Background(), hpa, conf[0], 0)
 	require.NoError(t, err)
-	collectors["prom"], err = factory.NewCollector(hpa, conf[1], 0)
+	collectors["prom"], err = factory.NewCollector(context.Background(), hpa, conf[1], 0)
 	require.NoError(t, err)
 
 	prom, ok := collectors["prom"].(*PrometheusCollector)

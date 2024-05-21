@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ type mockCollectorPlugin struct {
 	Name string
 }
 
-func (c *mockCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *mockCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return &mockCollector{Name: c.Name}, nil
 }
 
@@ -21,7 +22,7 @@ type mockCollector struct {
 	Name string
 }
 
-func (c *mockCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *mockCollector) GetMetrics(_ context.Context) ([]CollectedMetric, error) {
 	return nil, nil
 }
 
@@ -114,7 +115,7 @@ func TestNewCollector(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, configs, 1)
 
-			collector, err := collectorFactory.NewCollector(tc.hpa, configs[0], 0)
+			collector, err := collectorFactory.NewCollector(context.Background(), tc.hpa, configs[0], 0)
 			if tc.expectedCollector == "" {
 				require.Error(t, err)
 			} else {

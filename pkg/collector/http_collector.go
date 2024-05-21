@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"time"
@@ -26,7 +27,7 @@ func NewHTTPCollectorPlugin() (*HTTPCollectorPlugin, error) {
 	return &HTTPCollectorPlugin{}, nil
 }
 
-func (p *HTTPCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (p *HTTPCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	collector := &HTTPCollector{
 		namespace: hpa.Namespace,
 	}
@@ -78,7 +79,7 @@ type HTTPCollector struct {
 	metric        autoscalingv2.MetricIdentifier
 }
 
-func (c *HTTPCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *HTTPCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
 	metric, err := c.metricsGetter.GetMetric(*c.endpoint)
 	if err != nil {
 		return nil, err

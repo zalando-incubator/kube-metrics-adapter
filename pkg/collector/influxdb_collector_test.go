@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -38,7 +39,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 				"query-name": "range2m",
 			},
 		}
-		c, err := NewInfluxDBCollector(hpa, "http://localhost:9999", "secret", "deadbeef", m, time.Second)
+		c, err := NewInfluxDBCollector(context.Background(), hpa, "http://localhost:9999", "secret", "deadbeef", m, time.Second)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -79,7 +80,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 				"query-name": "range3m",
 			},
 		}
-		c, err := NewInfluxDBCollector(hpa, "http://localhost:8888", "secret", "deadbeef", m, time.Second)
+		c, err := NewInfluxDBCollector(context.Background(), hpa, "http://localhost:8888", "secret", "deadbeef", m, time.Second)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -149,7 +150,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 				CollectorType:  "influxdb",
 				Config:         tc.config,
 			}
-			_, err := NewInfluxDBCollector(hpa, "http://localhost:9999", "secret", "deadbeef", m, time.Second)
+			_, err := NewInfluxDBCollector(context.Background(), hpa, "http://localhost:9999", "secret", "deadbeef", m, time.Second)
 			if err == nil {
 				t.Fatal("expected error got none")
 			}

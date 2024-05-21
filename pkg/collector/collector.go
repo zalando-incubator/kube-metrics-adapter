@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -50,7 +51,7 @@ func NewCollectorFactory() *CollectorFactory {
 }
 
 type CollectorPlugin interface {
-	NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error)
+	NewCollector(ctx context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error)
 }
 
 type PluginNotFoundError struct {
@@ -120,38 +121,38 @@ func (c *CollectorFactory) RegisterExternalCollector(metrics []string, plugin Co
 	}
 }
 
-func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *CollectorFactory) NewCollector(ctx context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	switch config.Type {
 	case autoscalingv2.PodsMetricSourceType:
 		// first try to find a plugin by format
 		if plugin, ok := c.podsPlugins.Named[config.CollectorType]; ok {
-			return plugin.NewCollector(hpa, config, interval)
+			return plugin.NewCollector(ctx, hpa, config, interval)
 		}
 
 		// else try to use the default plugin if set
 		if c.podsPlugins.Any != nil {
-			return c.podsPlugins.Any.NewCollector(hpa, config, interval)
+			return c.podsPlugins.Any.NewCollector(ctx, hpa, config, interval)
 		}
 	case autoscalingv2.ObjectMetricSourceType:
 		// first try to find a plugin by kind
 		if kinds, ok := c.objectPlugins.Named[config.ObjectReference.Kind]; ok {
 			if plugin, ok := kinds.Named[config.CollectorType]; ok {
-				return plugin.NewCollector(hpa, config, interval)
+				return plugin.NewCollector(ctx, hpa, config, interval)
 			}
 
 			if kinds.Any != nil {
-				return kinds.Any.NewCollector(hpa, config, interval)
+				return kinds.Any.NewCollector(ctx, hpa, config, interval)
 			}
 			break
 		}
 
 		// else try to find a default plugin for this kind
 		if plugin, ok := c.objectPlugins.Any.Named[config.CollectorType]; ok {
-			return plugin.NewCollector(hpa, config, interval)
+			return plugin.NewCollector(ctx, hpa, config, interval)
 		}
 
 		if c.objectPlugins.Any.Any != nil {
-			return c.objectPlugins.Any.Any.NewCollector(hpa, config, interval)
+			return c.objectPlugins.Any.Any.NewCollector(ctx, hpa, config, interval)
 		}
 	case autoscalingv2.ExternalMetricSourceType:
 		// First type to get metric type from the `type` label,
@@ -169,7 +170,7 @@ func (c *CollectorFactory) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscal
 		}
 
 		if plugin, ok := c.externalPlugins[pluginKey]; ok {
-			return plugin.NewCollector(hpa, config, interval)
+			return plugin.NewCollector(ctx, hpa, config, interval)
 		}
 	}
 
@@ -189,7 +190,7 @@ type CollectedMetric struct {
 }
 
 type Collector interface {
-	GetMetrics() ([]CollectedMetric, error)
+	GetMetrics(ctx context.Context) ([]CollectedMetric, error)
 	Interval() time.Duration
 }
 

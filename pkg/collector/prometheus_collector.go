@@ -55,7 +55,7 @@ func NewPrometheusCollectorPlugin(client kubernetes.Interface, prometheusServer 
 	}, nil
 }
 
-func (p *PrometheusCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (p *PrometheusCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	return NewPrometheusCollector(p.client, p.promAPI, hpa, config, interval)
 }
 
@@ -133,9 +133,9 @@ func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa
 	return c, nil
 }
 
-func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *PrometheusCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
 	// TODO: use real context
-	value, _, err := c.promAPI.Query(context.Background(), c.query, time.Now().UTC())
+	value, _, err := c.promAPI.Query(ctx, c.query, time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (c *PrometheusCollector) GetMetrics() ([]CollectedMetric, error) {
 		// calculate an average metric instead of total.
 		// targetAverageValue will be available in Kubernetes v1.12
 		// https://github.com/kubernetes/kubernetes/pull/64097
-		replicas, err := targetRefReplicas(c.client, c.hpa)
+		replicas, err := targetRefReplicas(ctx, c.client, c.hpa)
 		if err != nil {
 			return nil, err
 		}

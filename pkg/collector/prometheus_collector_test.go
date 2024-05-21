@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -179,7 +180,7 @@ func TestNewPrometheusCollector(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, configs, 1)
 
-			collector, err := collectorFactory.NewCollector(tc.hpa, configs[0], 0)
+			collector, err := collectorFactory.NewCollector(context.Background(), tc.hpa, configs[0], 0)
 			if tc.expectedQuery != "" {
 				require.NoError(t, err)
 				c, ok := collector.(*PrometheusCollector)

@@ -49,7 +49,7 @@ func NewSkipperCollectorPlugin(client kubernetes.Interface, rgClient rginterface
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
-func (c *SkipperCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+func (c *SkipperCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
 	if strings.HasPrefix(config.Metric.Name, rpsMetricName) {
 		backend, ok := config.Config["backend"]
 		if !ok {
@@ -204,7 +204,7 @@ func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) 
 	}
 
 	config.PerReplica = false // per replica is handled outside of the prometheus collector
-	collector, err := c.plugin.NewCollector(c.hpa, &config, c.interval)
+	collector, err := c.plugin.NewCollector(ctx, c.hpa, &config, c.interval)
 	if err != nil {
 		return nil, err
 	}
@@ -213,13 +213,13 @@ func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) 
 }
 
 // GetMetrics gets skipper metrics from prometheus.
-func (c *SkipperCollector) GetMetrics() ([]CollectedMetric, error) {
-	collector, err := c.getCollector(context.TODO())
+func (c *SkipperCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
+	collector, err := c.getCollector(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	values, err := collector.GetMetrics()
+	values, err := collector.GetMetrics(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (c *SkipperCollector) GetMetrics() ([]CollectedMetric, error) {
 		// calculate an average metric instead of total.
 		// targetAverageValue will be available in Kubernetes v1.12
 		// https://github.com/kubernetes/kubernetes/pull/64097
-		replicas, err := targetRefReplicas(c.client, c.hpa)
+		replicas, err := targetRefReplicas(ctx, c.client, c.hpa)
 		if err != nil {
 			return nil, err
 		}
@@ -257,17 +257,17 @@ func (c *SkipperCollector) Interval() time.Duration {
 	return c.interval
 }
 
-func targetRefReplicas(client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (int32, error) {
+func targetRefReplicas(ctx context.Context, client kubernetes.Interface, hpa *autoscalingv2.HorizontalPodAutoscaler) (int32, error) {
 	var replicas int32
 	switch hpa.Spec.ScaleTargetRef.Kind {
 	case "Deployment":
-		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		deployment, err := client.AppsV1().Deployments(hpa.Namespace).Get(ctx, hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return 0, err
 		}
 		replicas = deployment.Status.Replicas
 	case "StatefulSet":
-		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(context.TODO(), hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		sts, err := client.AppsV1().StatefulSets(hpa.Namespace).Get(ctx, hpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return 0, err
 		}

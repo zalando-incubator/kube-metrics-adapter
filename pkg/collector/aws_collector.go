@@ -32,8 +32,8 @@ func NewAWSCollectorPlugin(configs map[string]aws.Config) *AWSCollectorPlugin {
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
-func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewAWSSQSCollector(c.configs, hpa, config, interval)
+func (c *AWSCollectorPlugin) NewCollector(ctx context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	return NewAWSSQSCollector(ctx, c.configs, hpa, config, interval)
 }
 
 type sqsiface interface {
@@ -50,7 +50,7 @@ type AWSSQSCollector struct {
 	metricType autoscalingv2.MetricSourceType
 }
 
-func NewAWSSQSCollector(configs map[string]aws.Config, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
+func NewAWSSQSCollector(ctx context.Context, configs map[string]aws.Config, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
 	if config.Metric.Selector == nil {
 		return nil, fmt.Errorf("selector for queue is not specified")
 	}
@@ -90,13 +90,13 @@ func NewAWSSQSCollector(configs map[string]aws.Config, hpa *autoscalingv2.Horizo
 	}, nil
 }
 
-func (c *AWSSQSCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *AWSSQSCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
 	params := &sqs.GetQueueAttributesInput{
 		QueueUrl:       aws.String(c.queueURL),
 		AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameApproximateNumberOfMessages},
 	}
 
-	resp, err := c.sqs.GetQueueAttributes(context.TODO(), params)
+	resp, err := c.sqs.GetQueueAttributes(ctx, params)
 	if err != nil {
 		return nil, err
 	}

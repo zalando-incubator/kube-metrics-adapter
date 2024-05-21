@@ -38,8 +38,8 @@ func NewInfluxDBCollectorPlugin(client kubernetes.Interface, address, token, org
 	}, nil
 }
 
-func (p *InfluxDBCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewInfluxDBCollector(hpa, p.address, p.token, p.org, config, interval)
+func (p *InfluxDBCollectorPlugin) NewCollector(ctx context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	return NewInfluxDBCollector(ctx, hpa, p.address, p.token, p.org, config, interval)
 }
 
 type InfluxDBCollector struct {
@@ -55,7 +55,7 @@ type InfluxDBCollector struct {
 	namespace      string
 }
 
-func NewInfluxDBCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, address string, token string, org string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
+func NewInfluxDBCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, address string, token string, org string, config *MetricConfig, interval time.Duration) (*InfluxDBCollector, error) {
 	collector := &InfluxDBCollector{
 		interval:   interval,
 		metric:     config.Metric,
@@ -107,9 +107,9 @@ type queryResult struct {
 }
 
 // getValue returns the first result gathered from an InfluxDB instance.
-func (c *InfluxDBCollector) getValue() (resource.Quantity, error) {
+func (c *InfluxDBCollector) getValue(ctx context.Context) (resource.Quantity, error) {
 	queryAPI := c.influxDBClient.QueryAPI(c.org)
-	res, err := queryAPI.Query(context.Background(), c.query)
+	res, err := queryAPI.Query(ctx, c.query)
 	if err != nil {
 		return resource.Quantity{}, err
 	}
@@ -125,8 +125,8 @@ func (c *InfluxDBCollector) getValue() (resource.Quantity, error) {
 	return resource.Quantity{}, fmt.Errorf("empty result returned")
 }
 
-func (c *InfluxDBCollector) GetMetrics() ([]CollectedMetric, error) {
-	v, err := c.getValue()
+func (c *InfluxDBCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
+	v, err := c.getValue(ctx)
 	if err != nil {
 		return nil, err
 	}

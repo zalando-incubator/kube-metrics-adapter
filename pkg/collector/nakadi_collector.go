@@ -36,8 +36,8 @@ func NewNakadiCollectorPlugin(nakadi nakadi.Nakadi) (*NakadiCollectorPlugin, err
 }
 
 // NewCollector initializes a new Nakadi collector from the specified HPA.
-func (c *NakadiCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewNakadiCollector(c.nakadi, hpa, config, interval)
+func (c *NakadiCollectorPlugin) NewCollector(ctx context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
+	return NewNakadiCollector(ctx, c.nakadi, hpa, config, interval)
 }
 
 // NakadiCollector defines a collector that is able to collect metrics from
@@ -53,7 +53,7 @@ type NakadiCollector struct {
 }
 
 // NewNakadiCollector initializes a new NakadiCollector.
-func NewNakadiCollector(nakadi nakadi.Nakadi, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*NakadiCollector, error) {
+func NewNakadiCollector(_ context.Context, nakadi nakadi.Nakadi, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*NakadiCollector, error) {
 	if config.Metric.Selector == nil {
 		return nil, fmt.Errorf("selector for nakadi is not specified")
 	}
@@ -84,17 +84,17 @@ func NewNakadiCollector(nakadi nakadi.Nakadi, hpa *autoscalingv2.HorizontalPodAu
 }
 
 // GetMetrics returns a list of collected metrics for the Nakadi subscription ID.
-func (c *NakadiCollector) GetMetrics() ([]CollectedMetric, error) {
+func (c *NakadiCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
 	var value int64
 	var err error
 	switch c.nakadiMetricType {
 	case nakadiMetricTypeConsumerLagSeconds:
-		value, err = c.nakadi.ConsumerLagSeconds(context.TODO(), c.subscriptionID)
+		value, err = c.nakadi.ConsumerLagSeconds(ctx, c.subscriptionID)
 		if err != nil {
 			return nil, err
 		}
 	case nakadiMetricTypeUnconsumedEvents:
-		value, err = c.nakadi.UnconsumedEvents(context.TODO(), c.subscriptionID)
+		value, err = c.nakadi.UnconsumedEvents(ctx, c.subscriptionID)
 		if err != nil {
 			return nil, err
 		}

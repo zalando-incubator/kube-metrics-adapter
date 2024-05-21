@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -66,9 +67,9 @@ func TestHTTPCollector(t *testing.T) {
 					Namespace: "default",
 				},
 			}
-			collector, err := plugin.NewCollector(hpa, testConfig, testInterval)
+			collector, err := plugin.NewCollector(context.Background(), hpa, testConfig, testInterval)
 			require.NoError(t, err)
-			metrics, err := collector.GetMetrics()
+			metrics, err := collector.GetMetrics(context.Background())
 			require.NoError(t, err)
 			require.NotNil(t, metrics)
 			require.Len(t, metrics, 1)
