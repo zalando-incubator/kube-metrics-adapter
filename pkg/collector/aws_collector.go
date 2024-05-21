@@ -1,14 +1,14 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,22 +22,26 @@ const (
 )
 
 type AWSCollectorPlugin struct {
-	sessions map[string]*session.Session
+	configs map[string]aws.Config
 }
 
-func NewAWSCollectorPlugin(sessions map[string]*session.Session) *AWSCollectorPlugin {
+func NewAWSCollectorPlugin(configs map[string]aws.Config) *AWSCollectorPlugin {
 	return &AWSCollectorPlugin{
-		sessions: sessions,
+		configs: configs,
 	}
 }
 
 // NewCollector initializes a new skipper collector from the specified HPA.
 func (c *AWSCollectorPlugin) NewCollector(hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewAWSSQSCollector(c.sessions, hpa, config, interval)
+	return NewAWSSQSCollector(c.configs, hpa, config, interval)
+}
+
+type sqsiface interface {
+	GetQueueAttributes(ctx context.Context, params *sqs.GetQueueAttributesInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueAttributesOutput, error)
 }
 
 type AWSSQSCollector struct {
-	sqs        sqsiface.SQSAPI
+	sqs        sqsiface
 	interval   time.Duration
 	queueURL   string
 	queueName  string
@@ -46,7 +50,7 @@ type AWSSQSCollector struct {
 	metricType autoscalingv2.MetricSourceType
 }
 
-func NewAWSSQSCollector(sessions map[string]*session.Session, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
+func NewAWSSQSCollector(configs map[string]aws.Config, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
 	if config.Metric.Selector == nil {
 		return nil, fmt.Errorf("selector for queue is not specified")
 	}
@@ -60,17 +64,17 @@ func NewAWSSQSCollector(sessions map[string]*session.Session, hpa *autoscalingv2
 		return nil, fmt.Errorf("sqs queue region is not specified on metric")
 	}
 
-	session, ok := sessions[region]
+	cfg, ok := configs[region]
 	if !ok {
 		return nil, fmt.Errorf("the metric region: %s is not configured", region)
 	}
 
-	service := sqs.New(session)
+	service := sqs.NewFromConfig(cfg)
 	params := &sqs.GetQueueUrlInput{
 		QueueName: aws.String(name),
 	}
 
-	resp, err := service.GetQueueUrl(params)
+	resp, err := service.GetQueueUrl(context.TODO(), params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queue URL for queue '%s': %v", name, err)
 	}
@@ -78,7 +82,7 @@ func NewAWSSQSCollector(sessions map[string]*session.Session, hpa *autoscalingv2
 	return &AWSSQSCollector{
 		sqs:        service,
 		interval:   interval,
-		queueURL:   aws.StringValue(resp.QueueUrl),
+		queueURL:   aws.ToString(resp.QueueUrl),
 		queueName:  name,
 		namespace:  hpa.Namespace,
 		metric:     config.Metric,
@@ -89,16 +93,16 @@ func NewAWSSQSCollector(sessions map[string]*session.Session, hpa *autoscalingv2
 func (c *AWSSQSCollector) GetMetrics() ([]CollectedMetric, error) {
 	params := &sqs.GetQueueAttributesInput{
 		QueueUrl:       aws.String(c.queueURL),
-		AttributeNames: aws.StringSlice([]string{sqs.QueueAttributeNameApproximateNumberOfMessages}),
+		AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameApproximateNumberOfMessages},
 	}
 
-	resp, err := c.sqs.GetQueueAttributes(params)
+	resp, err := c.sqs.GetQueueAttributes(context.TODO(), params)
 	if err != nil {
 		return nil, err
 	}
 
-	if v, ok := resp.Attributes[sqs.QueueAttributeNameApproximateNumberOfMessages]; ok {
-		i, err := strconv.Atoi(aws.StringValue(v))
+	if v, ok := resp.Attributes[string(types.QueueAttributeNameApproximateNumberOfMessages)]; ok {
+		i, err := strconv.Atoi(v)
 		if err != nil {
 			return nil, err
 		}

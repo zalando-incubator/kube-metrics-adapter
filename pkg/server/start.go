@@ -25,8 +25,8 @@ import (
 	"time"
 
 	argoRolloutsClient "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	rg "github.com/szuecs/routegroup-client/client/clientset/versioned"
@@ -312,20 +312,17 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		collectorFactory.RegisterExternalCollector([]string{collector.NakadiMetricType}, nakadiPlugin)
 	}
 
-	awsSessions := make(map[string]*session.Session, len(o.AWSRegions))
+	awsConfigs := make(map[string]aws.Config, len(o.AWSRegions))
 	for _, region := range o.AWSRegions {
-		awsSessions[region], err = session.NewSessionWithOptions(session.Options{
-			Config: aws.Config{
-				Region: aws.String(region),
-			},
-		})
+		cfg, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion(region))
 		if err != nil {
 			return fmt.Errorf("unabled to create aws session for region: %s", region)
 		}
+		awsConfigs[region] = cfg
 	}
 
 	if o.AWSExternalMetrics {
-		collectorFactory.RegisterExternalCollector([]string{collector.AWSSQSQueueLengthMetric}, collector.NewAWSCollectorPlugin(awsSessions))
+		collectorFactory.RegisterExternalCollector([]string{collector.AWSSQSQueueLengthMetric}, collector.NewAWSCollectorPlugin(awsConfigs))
 	}
 
 	if o.ScalingScheduleMetrics {
