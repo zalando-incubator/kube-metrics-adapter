@@ -4,7 +4,7 @@ require (
 	github.com/argoproj/argo-rollouts v1.6.6
 	github.com/aws/aws-sdk-go-v2 v1.27.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.32.2
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.32.3
 	github.com/influxdata/influxdb-client-go v1.4.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/prometheus/common v0.45.0
