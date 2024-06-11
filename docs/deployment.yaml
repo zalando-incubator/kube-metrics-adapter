@@ -25,7 +25,7 @@ spec:
         image: ghcr.io/zalando-incubator/kube-metrics-adapter:latest
         args:
         # - --v=9
-        - --prometheus-server=http://prometheus-server.infra.svc.cluster.local:9090
+       - --prometheus-server=http://prometheus.kube-system.svc.cluster.local
         - --skipper-ingress-metrics
         - --aws-external-metrics
         - --scaling-schedule
