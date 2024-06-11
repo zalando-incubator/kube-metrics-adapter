@@ -4,7 +4,7 @@ replicas: 1
 
 registry:
   image: registry.opensource.zalan.do/teapot/kube-metrics-adapter
-  imageTag: v0.2.0
+  imageTag: v0.2.2
   imagePullPolicy: IfNotPresent
 
 service:
@@ -14,15 +14,15 @@ service:
 addDirectoryHeader:
 contentionProfiling:
 profiling:
-enableCustomMetricsApi:
-enableExternalMetricsApi:
+enableCustomMetricsApi: true
+enableExternalMetricsApi: true
 credentialsDirectory:
 disregardIncompatibleHPAs:
 http2MaxStreamsPerConnection:
 listerKubeConfig:
 skipperBackendsAnnotation:
 skipperIngressMetrics:
-skipperRouteGroupMetrics:
+skipperRouteGroupMetrics: true
 token:
 vmodule:
 
@@ -95,7 +95,7 @@ resources:
     memory: 100Mi
 
 scalingSchedule:
-  enabled: false
+  enabled: true
 
 nodeSelector:
   kubernetes.io/os: linux
