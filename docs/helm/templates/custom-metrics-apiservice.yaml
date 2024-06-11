@@ -7,7 +7,7 @@ spec:
   service:
     name: kube-metrics-adapter
     namespace: {{ .Values.namespace }}
-  group: external.metrics.k8s.io
+  group: custom.metrics.k8s.io
   version: v1beta1
   insecureSkipTLSVerify: {{ .Values.tls.skipTLSVerify }}
   groupPriorityMinimum: 100
