@@ -14,7 +14,7 @@ service:
 addDirectoryHeader:
 contentionProfiling:
 profiling:
-enableCustomMetricsApi:
+enableCustomMetricsApi: true
 enableExternalMetricsApi:
 credentialsDirectory:
 disregardIncompatibleHPAs:
@@ -95,7 +95,7 @@ resources:
     memory: 100Mi
 
 scalingSchedule:
-  enabled: false
+  enabled: true
 
 nodeSelector:
   kubernetes.io/os: linux
