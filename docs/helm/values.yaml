@@ -22,7 +22,7 @@ http2MaxStreamsPerConnection:
 listerKubeConfig:
 skipperBackendsAnnotation:
 skipperIngressMetrics:
-skipperRouteGroupMetrics:
+skipperRouteGroupMetrics: true
 token:
 vmodule:
 
