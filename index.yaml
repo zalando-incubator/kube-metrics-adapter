@@ -2,6 +2,19 @@ apiVersion: v1
 entries:
   kube-metrics-adapter:
   - apiVersion: v2
+    created: "2024-06-12T05:20:00.94653267Z"
+    description: kube-metrics-adapter helm chart
+    digest: e178ed57e450b3815c193daafdb4557ea46563816f2bd31d24494b87c50931e8
+    home: https://github.com/zalando-incubator/kube-metrics-adapter
+    maintainers:
+    - email: opensource@zalando.de
+      name: The Zalando Incubator
+      url: https://github.com/zalando-incubator
+    name: kube-metrics-adapter
+    urls:
+    - https://github.com/zalando-incubator/kube-metrics-adapter/releases/download/kube-metrics-adapter-0.2.2/kube-metrics-adapter-0.2.2.tgz
+    version: 0.2.2
+  - apiVersion: v2
     created: "2023-05-12T21:24:00.545432244Z"
     description: kube-metrics-adapter helm chart
     digest: 38d0f66e2607892da21d01ead929babc13cfd77aa320932db560b8a777d70f42
@@ -14,4 +27,4 @@ entries:
     urls:
     - https://github.com/zalando-incubator/kube-metrics-adapter/releases/download/kube-metrics-adapter-0.2.0/kube-metrics-adapter-0.2.0.tgz
     version: 0.2.0
-generated: "2023-05-12T21:24:00.545438344Z"
+generated: "2024-06-12T05:20:00.946545183Z"
