@@ -42,11 +42,21 @@ $(OPENAPI): go.mod
 	go run k8s.io/kube-openapi/cmd/openapi-gen \
 		--go-header-file hack/boilerplate.go.txt \
 		--logtostderr \
-		-i k8s.io/metrics/pkg/apis/custom_metrics,k8s.io/metrics/pkg/apis/custom_metrics/v1beta1,k8s.io/metrics/pkg/apis/custom_metrics/v1beta2,k8s.io/metrics/pkg/apis/external_metrics,k8s.io/metrics/pkg/apis/external_metrics/v1beta1,k8s.io/metrics/pkg/apis/metrics,k8s.io/metrics/pkg/apis/metrics/v1beta1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/version,k8s.io/api/core/v1 \
-		-p pkg/api/generated/openapi \
-		-o . \
-		-O zz_generated.openapi \
-		-r /dev/null
+		--output-dir pkg/api/generated/openapi \
+		--output-pkg github.com/zalando-incubator/kube-metrics-adapter/pkg/api/generated/openapi \
+		--output-file zz_generated.openapi.go \
+		-r /dev/null \
+		k8s.io/metrics/pkg/apis/custom_metrics \
+		k8s.io/metrics/pkg/apis/custom_metrics/v1beta1 \
+		k8s.io/metrics/pkg/apis/custom_metrics/v1beta2 \
+		k8s.io/metrics/pkg/apis/external_metrics \
+		k8s.io/metrics/pkg/apis/external_metrics/v1beta1 \
+		k8s.io/metrics/pkg/apis/metrics \
+		k8s.io/metrics/pkg/apis/metrics/v1beta1 \
+		k8s.io/apimachinery/pkg/apis/meta/v1 \
+		k8s.io/apimachinery/pkg/api/resource \
+		k8s.io/apimachinery/pkg/version \
+		k8s.io/api/core/v1
 
 build.local: build/$(BINARY) $(GENERATED_CRDS)
 build.linux: build/linux/$(BINARY)
