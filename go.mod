@@ -1,7 +1,7 @@
 module github.com/zalando-incubator/kube-metrics-adapter
 
 require (
-	github.com/argoproj/argo-rollouts v1.7.0
+	github.com/argoproj/argo-rollouts v1.7.1
 	github.com/aws/aws-sdk-go-v2 v1.30.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.21
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.33.1
