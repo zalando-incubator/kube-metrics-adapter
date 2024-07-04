@@ -3,9 +3,7 @@ updates:
 - package-ecosystem: gomod
   directory: "/"
   schedule:
-  #   interval: monthly
-    interval: daily
-    time: "07:00"
+    interval: weekly
   open-pull-requests-limit: 10
   groups:
     all-go-mod-patch-and-minor:
