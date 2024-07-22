@@ -2,6 +2,7 @@ package annotations
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,14 +14,16 @@ const (
 	perReplicaMetricsConfKey = "per-replica"
 	intervalMetricsConfKey   = "interval"
 	minPodReadyAgeConfKey    = "min-pod-ready-age"
+	maxPodSampleSizeConfKey  = "max-pod-sample-size"
 )
 
 type AnnotationConfigs struct {
-	CollectorType  string
-	Configs        map[string]string
-	PerReplica     bool
-	Interval       time.Duration
-	MinPodReadyAge time.Duration
+	CollectorType    string
+	Configs          map[string]string
+	PerReplica       bool
+	Interval         time.Duration
+	MinPodReadyAge   time.Duration
+	MaxPodSampleSize int
 }
 
 type MetricConfigKey struct {
@@ -97,6 +100,15 @@ func (m AnnotationConfigMap) Parse(annotations map[string]string) error {
 				return fmt.Errorf("failed to parse min-pod-ready-age value %s for %s: %v", val, key, err)
 			}
 			config.MinPodReadyAge = minPodReadyAge
+			continue
+		}
+
+		if parts[1] == maxPodSampleSizeConfKey {
+			maxPodSampleSize, err := strconv.Atoi(val)
+			if err != nil {
+				return fmt.Errorf("failed to parse max-pod-sample-size value %s for %s: %v", val, key, err)
+			}
+			config.MaxPodSampleSize = maxPodSampleSize
 			continue
 		}
 

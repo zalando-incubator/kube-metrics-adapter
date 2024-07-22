@@ -42,6 +42,7 @@ type PodCollector struct {
 	metric           autoscalingv2.MetricIdentifier
 	metricType       autoscalingv2.MetricSourceType
 	minPodReadyAge   time.Duration
+	maxPodSampleSize int
 	interval         time.Duration
 	logger           *log.Entry
 }
@@ -59,6 +60,7 @@ func NewPodCollector(ctx context.Context, client kubernetes.Interface, argoRollo
 		metric:           config.Metric,
 		metricType:       config.Type,
 		minPodReadyAge:   config.MinPodReadyAge,
+		maxPodSampleSize: config.MaxPodSampleSize,
 		interval:         interval,
 		podLabelSelector: selector,
 		logger:           log.WithFields(log.Fields{"Collector": "Pod"}),
@@ -94,6 +96,7 @@ func (c *PodCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error
 	ch := make(chan CollectedMetric)
 	errCh := make(chan error)
 	skippedPodsCount := 0
+	sampledPodsCount := 0
 
 	for _, pod := range pods.Items {
 
@@ -108,6 +111,9 @@ func (c *PodCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error
 				c.logger.Warnf("Skipping metrics collection for pod %s/%s because it's ready age is %s and min-pod-ready-age is set to %s", pod.Namespace, pod.Name, podReadyAge, c.minPodReadyAge)
 			} else {
 				go c.getPodMetric(pod, ch, errCh)
+				if sampledPodsCount++; sampledPodsCount > c.maxPodSampleSize {
+					break
+				}
 			}
 		} else {
 			skippedPodsCount++
