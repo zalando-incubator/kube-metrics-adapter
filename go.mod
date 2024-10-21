@@ -3,7 +3,7 @@ module github.com/zalando-incubator/kube-metrics-adapter
 require (
 	github.com/argoproj/argo-rollouts v1.7.2
 	github.com/aws/aws-sdk-go-v2 v1.32.2
-	github.com/aws/aws-sdk-go-v2/config v1.27.43
+	github.com/aws/aws-sdk-go-v2/config v1.28.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.36.2
 	github.com/influxdata/influxdb-client-go v1.4.0
 	github.com/prometheus/client_golang v1.19.0
