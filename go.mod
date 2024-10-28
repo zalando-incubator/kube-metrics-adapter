@@ -10,22 +10,22 @@ require (
 	github.com/prometheus/common v0.52.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
-	github.com/spyzhov/ajson v0.9.4
+	github.com/spyzhov/ajson v0.9.5
 	github.com/stretchr/testify v1.9.0
 	github.com/szuecs/routegroup-client v0.28.2
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20240619093047-7853f3386b71
 	golang.org/x/net v0.30.0
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/sync v0.8.0
-	k8s.io/api v0.30.5
-	k8s.io/apimachinery v0.30.5
-	k8s.io/apiserver v0.30.5
-	k8s.io/client-go v0.30.5
-	k8s.io/code-generator v0.30.5
-	k8s.io/component-base v0.30.5
+	k8s.io/api v0.30.6
+	k8s.io/apimachinery v0.30.6
+	k8s.io/apiserver v0.30.6
+	k8s.io/client-go v0.30.6
+	k8s.io/code-generator v0.30.6
+	k8s.io/component-base v0.30.6
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20240620174524-b456828f718b
-	k8s.io/metrics v0.30.5
+	k8s.io/metrics v0.30.6
 	sigs.k8s.io/controller-tools v0.15.0
 	sigs.k8s.io/custom-metrics-apiserver v1.30.0
 )
@@ -180,7 +180,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.30.0 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kms v0.30.5 // indirect
+	k8s.io/kms v0.30.6 // indirect
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
