@@ -138,6 +138,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
 	flags.IntVar(&o.RampSteps, "scaling-schedule-ramp-steps", 10, "Number of steps used to rampup and rampdown ScalingSchedules. It's used to guarantee won't avoid reaching the max scaling due to the 10% minimum change rule.")
 	flags.StringVar(&o.DefaultTimeZone, "scaling-schedule-default-time-zone", "Europe/Berlin", "Default time zone to use for ScalingSchedules.")
+	flags.Float64Var(&o.HorizontalPodAutoscalerTolerance, "horizontal-pod-autoscaler-tolerance", 0.1, "The HPA tolerance also configured in the HPA controller.")
 	flags.StringVar(&o.ExternalRPSMetricName, "external-rps-metric-name", o.ExternalRPSMetricName, ""+
 		"The name of the metric that should be used to query prometheus for RPS per hostname.")
 	flags.BoolVar(&o.ExternalRPSMetrics, "external-rps-metrics", o.ExternalRPSMetrics, ""+
@@ -367,10 +368,25 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 			return fmt.Errorf("failed to register ScalingSchedule object collector plugin: %v", err)
 		}
 
+		scaler, err := scheduledscaling.NewHPATargetScaler(ctx, client, clientConfig)
+		if err != nil {
+			return fmt.Errorf("unable to create HPA target scaler: %w", err)
+		}
+
 		// setup ScheduledScaling controller to continuously update
 		// status of ScalingSchedule and ClusterScalingSchedule
 		// resources.
-		scheduledScalingController := scheduledscaling.NewController(scalingScheduleClient.ZalandoV1(), scalingSchedulesStore, clusterScalingSchedulesStore, time.Now, o.DefaultScheduledScalingWindow, o.DefaultTimeZone)
+		scheduledScalingController := scheduledscaling.NewController(
+			scalingScheduleClient.ZalandoV1(),
+			client,
+			scaler,
+			scalingSchedulesStore,
+			clusterScalingSchedulesStore,
+			time.Now,
+			o.DefaultScheduledScalingWindow,
+			o.DefaultTimeZone,
+			o.HorizontalPodAutoscalerTolerance,
+		)
 
 		go scheduledScalingController.Run(ctx)
 	}
@@ -501,6 +517,9 @@ type AdapterServerOptions struct {
 	RampSteps int
 	// Default time zone to use for ScalingSchedules.
 	DefaultTimeZone string
+	// The HPA tolerance also configured in the HPA controller.
+	// kube-controller-manager flag: --horizontal-pod-autoscaler-tolerance=
+	HorizontalPodAutoscalerTolerance float64
 	// Feature flag to enable external rps metric collector
 	ExternalRPSMetrics bool
 	// Name of the Prometheus metric that stores RPS by hostname for external RPS metrics.
