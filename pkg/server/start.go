@@ -397,7 +397,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 	if err != nil {
 		return err
 	}
-	return server.GenericAPIServer.PrepareRun().Run(ctx.Done())
+	return server.GenericAPIServer.PrepareRun().RunWithContext(ctx)
 }
 
 // newInstrumentedOauth2HTTPClient creates an HTTP client with automatic oauth2
