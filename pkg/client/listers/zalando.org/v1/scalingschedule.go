@@ -20,8 +20,8 @@ package v1
 
 import (
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -38,25 +38,17 @@ type ScalingScheduleLister interface {
 
 // scalingScheduleLister implements the ScalingScheduleLister interface.
 type scalingScheduleLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*v1.ScalingSchedule]
 }
 
 // NewScalingScheduleLister returns a new ScalingScheduleLister.
 func NewScalingScheduleLister(indexer cache.Indexer) ScalingScheduleLister {
-	return &scalingScheduleLister{indexer: indexer}
-}
-
-// List lists all ScalingSchedules in the indexer.
-func (s *scalingScheduleLister) List(selector labels.Selector) (ret []*v1.ScalingSchedule, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.ScalingSchedule))
-	})
-	return ret, err
+	return &scalingScheduleLister{listers.New[*v1.ScalingSchedule](indexer, v1.Resource("scalingschedule"))}
 }
 
 // ScalingSchedules returns an object that can list and get ScalingSchedules.
 func (s *scalingScheduleLister) ScalingSchedules(namespace string) ScalingScheduleNamespaceLister {
-	return scalingScheduleNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return scalingScheduleNamespaceLister{listers.NewNamespaced[*v1.ScalingSchedule](s.ResourceIndexer, namespace)}
 }
 
 // ScalingScheduleNamespaceLister helps list and get ScalingSchedules.
@@ -74,26 +66,5 @@ type ScalingScheduleNamespaceLister interface {
 // scalingScheduleNamespaceLister implements the ScalingScheduleNamespaceLister
 // interface.
 type scalingScheduleNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all ScalingSchedules in the indexer for a given namespace.
-func (s scalingScheduleNamespaceLister) List(selector labels.Selector) (ret []*v1.ScalingSchedule, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.ScalingSchedule))
-	})
-	return ret, err
-}
-
-// Get retrieves the ScalingSchedule from the indexer for a given namespace and name.
-func (s scalingScheduleNamespaceLister) Get(name string) (*v1.ScalingSchedule, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1.Resource("scalingschedule"), name)
-	}
-	return obj.(*v1.ScalingSchedule), nil
+	listers.ResourceIndexer[*v1.ScalingSchedule]
 }

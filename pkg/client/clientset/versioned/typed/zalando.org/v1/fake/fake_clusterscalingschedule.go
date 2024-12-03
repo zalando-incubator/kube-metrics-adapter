@@ -40,20 +40,22 @@ var clusterscalingschedulesKind = v1.SchemeGroupVersion.WithKind("ClusterScaling
 
 // Get takes name of the clusterScalingSchedule, and returns the corresponding clusterScalingSchedule object, and an error if there is any.
 func (c *FakeClusterScalingSchedules) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ClusterScalingSchedule, err error) {
+	emptyResult := &v1.ClusterScalingSchedule{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(clusterscalingschedulesResource, name), &v1.ClusterScalingSchedule{})
+		Invokes(testing.NewRootGetActionWithOptions(clusterscalingschedulesResource, name, options), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1.ClusterScalingSchedule), err
 }
 
 // List takes label and field selectors, and returns the list of ClusterScalingSchedules that match those selectors.
 func (c *FakeClusterScalingSchedules) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ClusterScalingScheduleList, err error) {
+	emptyResult := &v1.ClusterScalingScheduleList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterscalingschedulesResource, clusterscalingschedulesKind, opts), &v1.ClusterScalingScheduleList{})
+		Invokes(testing.NewRootListActionWithOptions(clusterscalingschedulesResource, clusterscalingschedulesKind, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -72,36 +74,39 @@ func (c *FakeClusterScalingSchedules) List(ctx context.Context, opts metav1.List
 // Watch returns a watch.Interface that watches the requested clusterScalingSchedules.
 func (c *FakeClusterScalingSchedules) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(clusterscalingschedulesResource, opts))
+		InvokesWatch(testing.NewRootWatchActionWithOptions(clusterscalingschedulesResource, opts))
 }
 
 // Create takes the representation of a clusterScalingSchedule and creates it.  Returns the server's representation of the clusterScalingSchedule, and an error, if there is any.
 func (c *FakeClusterScalingSchedules) Create(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.CreateOptions) (result *v1.ClusterScalingSchedule, err error) {
+	emptyResult := &v1.ClusterScalingSchedule{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterscalingschedulesResource, clusterScalingSchedule), &v1.ClusterScalingSchedule{})
+		Invokes(testing.NewRootCreateActionWithOptions(clusterscalingschedulesResource, clusterScalingSchedule, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1.ClusterScalingSchedule), err
 }
 
 // Update takes the representation of a clusterScalingSchedule and updates it. Returns the server's representation of the clusterScalingSchedule, and an error, if there is any.
 func (c *FakeClusterScalingSchedules) Update(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (result *v1.ClusterScalingSchedule, err error) {
+	emptyResult := &v1.ClusterScalingSchedule{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterscalingschedulesResource, clusterScalingSchedule), &v1.ClusterScalingSchedule{})
+		Invokes(testing.NewRootUpdateActionWithOptions(clusterscalingschedulesResource, clusterScalingSchedule, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1.ClusterScalingSchedule), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeClusterScalingSchedules) UpdateStatus(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (*v1.ClusterScalingSchedule, error) {
+func (c *FakeClusterScalingSchedules) UpdateStatus(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (result *v1.ClusterScalingSchedule, err error) {
+	emptyResult := &v1.ClusterScalingSchedule{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(clusterscalingschedulesResource, "status", clusterScalingSchedule), &v1.ClusterScalingSchedule{})
+		Invokes(testing.NewRootUpdateSubresourceActionWithOptions(clusterscalingschedulesResource, "status", clusterScalingSchedule, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1.ClusterScalingSchedule), err
 }
@@ -115,7 +120,7 @@ func (c *FakeClusterScalingSchedules) Delete(ctx context.Context, name string, o
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeClusterScalingSchedules) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(clusterscalingschedulesResource, listOpts)
+	action := testing.NewRootDeleteCollectionActionWithOptions(clusterscalingschedulesResource, opts, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1.ClusterScalingScheduleList{})
 	return err
@@ -123,10 +128,11 @@ func (c *FakeClusterScalingSchedules) DeleteCollection(ctx context.Context, opts
 
 // Patch applies the patch and returns the patched clusterScalingSchedule.
 func (c *FakeClusterScalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterScalingSchedule, err error) {
+	emptyResult := &v1.ClusterScalingSchedule{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(clusterscalingschedulesResource, name, pt, data, subresources...), &v1.ClusterScalingSchedule{})
+		Invokes(testing.NewRootPatchSubresourceActionWithOptions(clusterscalingschedulesResource, name, pt, data, opts, subresources...), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1.ClusterScalingSchedule), err
 }

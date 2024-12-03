@@ -20,8 +20,8 @@ package v1
 
 import (
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -39,30 +39,10 @@ type ClusterScalingScheduleLister interface {
 
 // clusterScalingScheduleLister implements the ClusterScalingScheduleLister interface.
 type clusterScalingScheduleLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*v1.ClusterScalingSchedule]
 }
 
 // NewClusterScalingScheduleLister returns a new ClusterScalingScheduleLister.
 func NewClusterScalingScheduleLister(indexer cache.Indexer) ClusterScalingScheduleLister {
-	return &clusterScalingScheduleLister{indexer: indexer}
-}
-
-// List lists all ClusterScalingSchedules in the indexer.
-func (s *clusterScalingScheduleLister) List(selector labels.Selector) (ret []*v1.ClusterScalingSchedule, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.ClusterScalingSchedule))
-	})
-	return ret, err
-}
-
-// Get retrieves the ClusterScalingSchedule from the index for a given name.
-func (s *clusterScalingScheduleLister) Get(name string) (*v1.ClusterScalingSchedule, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1.Resource("clusterscalingschedule"), name)
-	}
-	return obj.(*v1.ClusterScalingSchedule), nil
+	return &clusterScalingScheduleLister{listers.New[*v1.ClusterScalingSchedule](indexer, v1.Resource("clusterscalingschedule"))}
 }

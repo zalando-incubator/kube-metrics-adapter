@@ -20,14 +20,13 @@ package v1
 
 import (
 	"context"
-	"time"
 
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
 	scheme "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // ScalingSchedulesGetter has a method to return a ScalingScheduleInterface.
@@ -40,6 +39,7 @@ type ScalingSchedulesGetter interface {
 type ScalingScheduleInterface interface {
 	Create(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.CreateOptions) (*v1.ScalingSchedule, error)
 	Update(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (*v1.ScalingSchedule, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 	UpdateStatus(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (*v1.ScalingSchedule, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
@@ -52,144 +52,18 @@ type ScalingScheduleInterface interface {
 
 // scalingSchedules implements ScalingScheduleInterface
 type scalingSchedules struct {
-	client rest.Interface
-	ns     string
+	*gentype.ClientWithList[*v1.ScalingSchedule, *v1.ScalingScheduleList]
 }
 
 // newScalingSchedules returns a ScalingSchedules
 func newScalingSchedules(c *ZalandoV1Client, namespace string) *scalingSchedules {
 	return &scalingSchedules{
-		client: c.RESTClient(),
-		ns:     namespace,
+		gentype.NewClientWithList[*v1.ScalingSchedule, *v1.ScalingScheduleList](
+			"scalingschedules",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			namespace,
+			func() *v1.ScalingSchedule { return &v1.ScalingSchedule{} },
+			func() *v1.ScalingScheduleList { return &v1.ScalingScheduleList{} }),
 	}
-}
-
-// Get takes name of the scalingSchedule, and returns the corresponding scalingSchedule object, and an error if there is any.
-func (c *scalingSchedules) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ScalingSchedule, err error) {
-	result = &v1.ScalingSchedule{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ScalingSchedules that match those selectors.
-func (c *scalingSchedules) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ScalingScheduleList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1.ScalingScheduleList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested scalingSchedules.
-func (c *scalingSchedules) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a scalingSchedule and creates it.  Returns the server's representation of the scalingSchedule, and an error, if there is any.
-func (c *scalingSchedules) Create(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.CreateOptions) (result *v1.ScalingSchedule, err error) {
-	result = &v1.ScalingSchedule{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(scalingSchedule).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a scalingSchedule and updates it. Returns the server's representation of the scalingSchedule, and an error, if there is any.
-func (c *scalingSchedules) Update(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (result *v1.ScalingSchedule, err error) {
-	result = &v1.ScalingSchedule{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		Name(scalingSchedule.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(scalingSchedule).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *scalingSchedules) UpdateStatus(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (result *v1.ScalingSchedule, err error) {
-	result = &v1.ScalingSchedule{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		Name(scalingSchedule.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(scalingSchedule).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the scalingSchedule and deletes it. Returns an error if one occurs.
-func (c *scalingSchedules) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *scalingSchedules) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched scalingSchedule.
-func (c *scalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ScalingSchedule, err error) {
-	result = &v1.ScalingSchedule{}
-	err = c.client.Patch(pt).
-		Namespace(c.ns).
-		Resource("scalingschedules").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }
