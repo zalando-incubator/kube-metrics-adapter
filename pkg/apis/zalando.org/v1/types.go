@@ -6,6 +6,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ScalingScheduler is an interface that represents a ScalingSchedule resource,
+// namespaced or cluster wide.
+type ScalingScheduler interface {
+	Identifier() string
+	ResourceSpec() ScalingScheduleSpec
+}
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
@@ -23,6 +30,17 @@ type ScalingSchedule struct {
 	Spec ScalingScheduleSpec `json:"spec"`
 	// +optional
 	Status ScalingScheduleStatus `json:"status"`
+}
+
+// Identifier returns the namespaced scalingScale Identifier in the format
+// `<namespace>/<name>`.
+func (s *ScalingSchedule) Identifier() string {
+	return s.ObjectMeta.Namespace + "/" + s.ObjectMeta.Name
+}
+
+// ResourceSpec returns the ScalingScheduleSpec of the ScalingSchedule.
+func (s *ScalingSchedule) ResourceSpec() ScalingScheduleSpec {
+	return s.Spec
 }
 
 // +genclient
@@ -44,6 +62,17 @@ type ClusterScalingSchedule struct {
 	Spec ScalingScheduleSpec `json:"spec"`
 	// +optional
 	Status ScalingScheduleStatus `json:"status"`
+}
+
+// Identifier returns the cluster scalingScale Identifier in the format
+// `<name>`.
+func (s *ClusterScalingSchedule) Identifier() string {
+	return s.ObjectMeta.Name
+}
+
+// ResourceSpec returns the ScalingScheduleSpec of the ClusterScalingSchedule.
+func (s *ClusterScalingSchedule) ResourceSpec() ScalingScheduleSpec {
+	return s.Spec
 }
 
 // ScalingScheduleSpec is the spec part of the ScalingSchedule.
