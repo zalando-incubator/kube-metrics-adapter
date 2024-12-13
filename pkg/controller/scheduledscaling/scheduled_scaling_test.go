@@ -350,6 +350,12 @@ func TestAdjustScaling(t *testing.T) {
 			desiredReplicas: 90,
 			targetValue:     10, // 1000/10 = 100
 		},
+		{
+			msg:             "invalid HPA should not do any adjustment",
+			currentReplicas: 95,
+			desiredReplicas: 95,
+			targetValue:     0, // this is treated as invalid in the test, thus the HPA is ingored and no adjustment happens.
+		},
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
@@ -419,13 +425,16 @@ func TestAdjustScaling(t *testing.T) {
 									Name:       "schedule-1",
 								},
 								Target: v2.MetricTarget{
-									Type:         v2.AverageValueMetricType,
-									AverageValue: resource.NewQuantity(tc.targetValue, resource.DecimalSI),
+									Type: v2.AverageValueMetricType,
 								},
 							},
 						},
 					},
 				},
+			}
+
+			if tc.targetValue != 0 {
+				hpa.Spec.Metrics[0].Object.Target.AverageValue = resource.NewQuantity(tc.targetValue, resource.DecimalSI)
 			}
 
 			hpa, err = kubeClient.AutoscalingV2().HorizontalPodAutoscalers("default").Create(context.Background(), hpa, metav1.CreateOptions{})

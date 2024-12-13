@@ -320,6 +320,10 @@ func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSch
 
 		scheduleName := metric.Object.DescribedObject.Name
 
+		if metric.Object.Target.AverageValue == nil {
+			continue
+		}
+
 		target := int64(metric.Object.Target.AverageValue.MilliValue() / 1000)
 		if target == 0 {
 			continue
