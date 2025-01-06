@@ -4,7 +4,7 @@ require (
 	github.com/argoproj/argo-rollouts v1.7.2
 	github.com/aws/aws-sdk-go-v2 v1.32.7
 	github.com/aws/aws-sdk-go-v2/config v1.28.7
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.3
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.4
 	github.com/influxdata/influxdb-client-go v1.4.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.61.0
@@ -15,7 +15,7 @@ require (
 	github.com/szuecs/routegroup-client v0.28.2
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20240619093047-7853f3386b71
 	golang.org/x/net v0.33.0
-	golang.org/x/oauth2 v0.24.0
+	golang.org/x/oauth2 v0.25.0
 	golang.org/x/sync v0.10.0
 	k8s.io/api v0.31.4
 	k8s.io/apimachinery v0.31.4
