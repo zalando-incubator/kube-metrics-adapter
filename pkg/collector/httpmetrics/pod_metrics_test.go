@@ -86,6 +86,17 @@ func TestNewPodJSONPathMetricsGetter(t *testing.T) {
 		port:         9090,
 		rawQuery:     "foo=bar&baz=bop",
 	}, getterWithRawQuery)
+
+	configErrorMixedPathEval := map[string]string{
+		"json-key": "{}",
+		"json-eval": "avg($.values)",
+		"scheme":   "http",
+		"path":     "/metrics",
+		"port":     "9090",
+	}
+
+	_, err6 := NewPodMetricsJSONPathGetter(configErrorMixedPathEval)
+	require.Error(t, err6)
 }
 
 func TestBuildMetricsURL(t *testing.T) {

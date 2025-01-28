@@ -62,7 +62,7 @@ func (p *HTTPCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2
 			return nil, err
 		}
 	}
-	jsonPathGetter, err := httpmetrics.NewJSONPathMetricsGetter(httpmetrics.DefaultMetricsHTTPClient(), aggFunc, jsonPath)
+	jsonPathGetter, err := httpmetrics.NewJSONPathMetricsGetter(httpmetrics.DefaultMetricsHTTPClient(), aggFunc, jsonPath, "")
 	if err != nil {
 		return nil, err
 	}

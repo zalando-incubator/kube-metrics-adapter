@@ -26,6 +26,7 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 		name         string
 		jsonResponse []byte
 		jsonPath     string
+		jsonEval     string
 		result       float64
 		aggregator   AggregatorFunc
 		err          error
@@ -59,6 +60,19 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 			aggregator:   Average,
 		},
 		{
+			name:         "evaluated script",
+			jsonResponse: []byte(`{"active processes":1,"total processes":10}`),
+			jsonEval:     "ceil($['active processes'] / $['total processes'] * 100)",
+			result:       10,
+			aggregator:   Average,
+		},
+		{
+			name:         "invalid script should error",
+			jsonResponse: []byte(`{"active processes":1,"total processes":10}`),
+			jsonEval:     "ceil($['active processes'] ) $['total processes'] * 100)",
+			err:          errors.New("wrong request: formula has no left parentheses"),
+		},
+		{
 			name:         "json path not resulting in array or number should lead to error",
 			jsonResponse: []byte(`{"metric.value":5}`),
 			jsonPath:     "$['invalid.metric.values']",
@@ -74,7 +88,7 @@ func TestJSONPathMetricsGetter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server := makeTestHTTPServer(t, tc.jsonResponse)
 			defer server.Close()
-			getter, err := NewJSONPathMetricsGetter(DefaultMetricsHTTPClient(), tc.aggregator, tc.jsonPath)
+			getter, err := NewJSONPathMetricsGetter(DefaultMetricsHTTPClient(), tc.aggregator, tc.jsonPath, tc.jsonEval)
 			require.NoError(t, err)
 			url, err := url.Parse(fmt.Sprintf("%s/metrics", server.URL))
 			require.NoError(t, err)
