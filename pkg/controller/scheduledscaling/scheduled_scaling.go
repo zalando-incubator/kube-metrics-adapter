@@ -266,13 +266,13 @@ func (c *Controller) adjustHPAScaling(ctx context.Context, hpa *autoscalingv2.Ho
 		return nil
 	}
 
-	highestExpected, highestObject := highestActiveSchedule(hpa, activeSchedules)
+	highestExpected, usageRatio, highestObject := highestActiveSchedule(hpa, activeSchedules, current)
 
 	highestExpected = int64(math.Min(float64(highestExpected), float64(hpa.Spec.MaxReplicas)))
 
 	var change float64
 	if highestExpected > current {
-		change = (float64(highestExpected) - float64(current)) / float64(current)
+		change = math.Abs(1.0 - usageRatio)
 	}
 
 	if change > 0 && change <= c.hpaTolerance {
@@ -304,8 +304,9 @@ func (c *Controller) adjustHPAScaling(ctx context.Context, hpa *autoscalingv2.Ho
 
 // highestActiveSchedule returns the highest active schedule value and
 // corresponding object.
-func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSchedules map[string]int64) (int64, autoscalingv2.CrossVersionObjectReference) {
+func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSchedules map[string]int64, currentReplicas int64) (int64, float64, autoscalingv2.CrossVersionObjectReference) {
 	var highestExpected int64
+	var usageRatio float64
 	var highestObject autoscalingv2.CrossVersionObjectReference
 	for _, metric := range hpa.Spec.Metrics {
 		if metric.Type != autoscalingv2.ObjectMetricSourceType {
@@ -340,11 +341,12 @@ func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSch
 		expected := int64(math.Ceil(float64(value) / float64(target)))
 		if expected > highestExpected {
 			highestExpected = expected
+			usageRatio = float64(value) / (float64(target) * float64(currentReplicas))
 			highestObject = metric.Object.DescribedObject
 		}
 	}
 
-	return highestExpected, highestObject
+	return highestExpected, usageRatio, highestObject
 }
 
 func (c *Controller) adjustScaling(ctx context.Context, schedules []v1.ScalingScheduler) error {
