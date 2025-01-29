@@ -19,6 +19,7 @@ const (
 	HTTPMetricNameLegacy      = "http"
 	HTTPEndpointAnnotationKey = "endpoint"
 	HTTPJsonPathAnnotationKey = "json-key"
+	HTTPJsonEvalAnnotationKey = "json-eval"
 )
 
 type HTTPCollectorPlugin struct{}
@@ -31,14 +32,27 @@ func (p *HTTPCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2
 	collector := &HTTPCollector{
 		namespace: hpa.Namespace,
 	}
+
 	var (
 		value string
 		ok    bool
+
+		jsonPath string
+		jsonEval string
 	)
-	if value, ok = config.Config[HTTPJsonPathAnnotationKey]; !ok {
-		return nil, fmt.Errorf("config value %s not found", HTTPJsonPathAnnotationKey)
+
+	if value, ok = config.Config[HTTPJsonPathAnnotationKey]; ok {
+		jsonPath = value
 	}
-	jsonPath := value
+	if value, ok = config.Config[HTTPJsonEvalAnnotationKey]; ok {
+		jsonEval = value
+	}
+	if jsonPath == "" && jsonEval == "" {
+		return nil, fmt.Errorf("config value %s or %s not found", HTTPJsonPathAnnotationKey, HTTPJsonEvalAnnotationKey)
+	}
+	if jsonPath != "" && jsonEval != "" {
+		return nil, fmt.Errorf("config value %s and %s cannot be used together", HTTPJsonPathAnnotationKey, HTTPJsonEvalAnnotationKey)
+	}
 
 	if value, ok = config.Config[HTTPEndpointAnnotationKey]; !ok {
 		return nil, fmt.Errorf("config value %s not found", HTTPEndpointAnnotationKey)
@@ -62,7 +76,7 @@ func (p *HTTPCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2
 			return nil, err
 		}
 	}
-	jsonPathGetter, err := httpmetrics.NewJSONPathMetricsGetter(httpmetrics.DefaultMetricsHTTPClient(), aggFunc, jsonPath, "")
+	jsonPathGetter, err := httpmetrics.NewJSONPathMetricsGetter(httpmetrics.DefaultMetricsHTTPClient(), aggFunc, jsonPath, jsonEval)
 	if err != nil {
 		return nil, err
 	}
