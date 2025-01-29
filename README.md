@@ -116,6 +116,7 @@ metadata:
   annotations:
     # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.pods.requests-per-second.json-path/json-key: "$.http_server.rps"
+    metric-config.pods.requests-per-second.json-path/json-eval: "ceil($['active processes'] / $['total processes'] * 100)" # cannot use both json-eval and json-key
     metric-config.pods.requests-per-second.json-path/path: /metrics
     metric-config.pods.requests-per-second.json-path/port: "9090"
     metric-config.pods.requests-per-second.json-path/scheme: "https"
@@ -157,6 +158,10 @@ The json-path query support depends on the
 [github.com/spyzhov/ajson](https://github.com/spyzhov/ajson) library.
 See the README for possible queries. It's expected that the metric you query
 returns something that can be turned into a `float64`.
+
+The `json-eval` configuration option allows for more complex calculations to be
+performed on the extracted metric. The `json-eval` expression is evaluated using
+ajson's script engine.
 
 The other configuration options `path`, `port` and `scheme` specify where the metrics
 endpoint is exposed on the pod. The `path` and `port` options do not have default values
@@ -825,6 +830,7 @@ metadata:
   annotations:
     # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.external.unique-metric-name.json-path/json-key: "$.some-metric.value"
+    metric-config.external.unique-metric-name.json-path/json-eval: ceil($['active processes'] / $['total processes'] * 100) # cannot use both json-eval and json-key
     metric-config.external.unique-metric-name.json-path/endpoint: "http://metric-source.app-namespace:8080/metrics"
     metric-config.external.unique-metric-name.json-path/aggregator: "max"
     metric-config.external.unique-metric-name.json-path/interval: "60s" # optional
@@ -852,6 +858,8 @@ The HTTP collector similar to the Pod Metrics collector. The following
 configuration values are supported:
 
 - `json-key` to specify the JSON path of the metric to be queried
+- `json-eval` to specify an evaluate string to [evaluate on the script engine](https://github.com/spyzhov/ajson?tab=readme-ov-file#script-engine), 
+    cannot be used in conjunction with `json-key`
 - `endpoint` the fully formed path to query for the metric. In the above example a Kubernetes _Service_
     in the namespace `app-namespace` is called.
 - `aggregator` is only required if the metric is an array of values and specifies how the values
