@@ -161,7 +161,7 @@ returns something that can be turned into a `float64`.
 
 The `json-eval` configuration option allows for more complex calculations to be
 performed on the extracted metric. The `json-eval` expression is evaluated using
-ajson's script engine.
+[ajson's script engine](https://github.com/spyzhov/ajson?tab=readme-ov-file#script-engine).
 
 The other configuration options `path`, `port` and `scheme` specify where the metrics
 endpoint is exposed on the pod. The `path` and `port` options do not have default values
