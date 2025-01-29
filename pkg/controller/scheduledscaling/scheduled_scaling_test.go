@@ -337,24 +337,35 @@ func TestAdjustScaling(t *testing.T) {
 		currentReplicas int32
 		desiredReplicas int32
 		targetValue     int64
+		scheduleTarget  int64
 	}{
+		{
+			msg:             "current less than 10%% below desired (target 10000)",
+			currentReplicas: 28, // 7.1% increase to desired
+			desiredReplicas: 31,
+			targetValue:     333, // 10000/333 ~= 31
+			scheduleTarget:  10000,
+		},
 		{
 			msg:             "current less than 10%% below desired",
 			currentReplicas: 95, // 5.3% increase to desired
 			desiredReplicas: 100,
 			targetValue:     10, // 1000/10 = 100
+			scheduleTarget:  1000,
 		},
 		{
 			msg:             "current more than 10%% below desired, no adjustment",
 			currentReplicas: 90, // 11% increase to desired
 			desiredReplicas: 90,
 			targetValue:     10, // 1000/10 = 100
+			scheduleTarget:  1000,
 		},
 		{
 			msg:             "invalid HPA should not do any adjustment",
 			currentReplicas: 95,
 			desiredReplicas: 95,
 			targetValue:     0, // this is treated as invalid in the test, thus the HPA is ingored and no adjustment happens.
+			scheduleTarget:  1000,
 		},
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
@@ -384,7 +395,7 @@ func TestAdjustScaling(t *testing.T) {
 								Type:            v1.OneTimeSchedule,
 								Date:            &scheduleDate,
 								DurationMinutes: 15,
-								Value:           1000,
+								Value:           tc.scheduleTarget,
 							},
 						},
 					},
