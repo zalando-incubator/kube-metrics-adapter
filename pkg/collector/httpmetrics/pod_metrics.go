@@ -33,12 +33,23 @@ func NewPodMetricsJSONPathGetter(config map[string]string) (*PodMetricsJSONPathG
 	getter := PodMetricsJSONPathGetter{}
 	var (
 		jsonPath   string
+		jsonEval   string
 		aggregator AggregatorFunc
 		err        error
 	)
 
 	if v, ok := config["json-key"]; ok {
 		jsonPath = v
+	}
+
+	if v, ok := config["json-eval"]; ok {
+		jsonEval = v
+	}
+
+	if jsonPath == "" && jsonEval == "" {
+		return nil, fmt.Errorf("config value json-key or json-eval must be set")
+	} else if jsonPath != "" && jsonEval != "" {
+		return nil, fmt.Errorf("config value json-key and json-eval are mutually exclusive")
 	}
 
 	if v, ok := config["scheme"]; ok {
@@ -93,7 +104,7 @@ func NewPodMetricsJSONPathGetter(config map[string]string) (*PodMetricsJSONPathG
 		connectTimeout = d
 	}
 
-	jsonPathGetter, err := NewJSONPathMetricsGetter(CustomMetricsHTTPClient(requestTimeout, connectTimeout), aggregator, jsonPath)
+	jsonPathGetter, err := NewJSONPathMetricsGetter(CustomMetricsHTTPClient(requestTimeout, connectTimeout), aggregator, jsonPath, jsonEval)
 	if err != nil {
 		return nil, err
 	}

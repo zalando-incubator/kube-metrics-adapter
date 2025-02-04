@@ -16,18 +16,22 @@ import (
 // the json path query.
 type JSONPathMetricsGetter struct {
 	jsonPath   string
+	jsonEval   string
 	aggregator AggregatorFunc
 	client     *http.Client
 }
 
 // NewJSONPathMetricsGetter initializes a new JSONPathMetricsGetter.
-func NewJSONPathMetricsGetter(httpClient *http.Client, aggregatorFunc AggregatorFunc, jsonPath string) (*JSONPathMetricsGetter, error) {
+func NewJSONPathMetricsGetter(httpClient *http.Client, aggregatorFunc AggregatorFunc, jsonPath string, jsonEval string) (*JSONPathMetricsGetter, error) {
 	// check that jsonPath parses
-	_, err := ajson.ParseJSONPath(jsonPath)
-	if err != nil {
-		return nil, err
+	if jsonPath != "" {
+		_, err := ajson.ParseJSONPath(jsonPath)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return &JSONPathMetricsGetter{client: httpClient, aggregator: aggregatorFunc, jsonPath: jsonPath}, nil
+
+	return &JSONPathMetricsGetter{client: httpClient, aggregator: aggregatorFunc, jsonPath: jsonPath, jsonEval: jsonEval}, nil
 }
 
 var DefaultRequestTimeout = 15 * time.Second
@@ -67,9 +71,19 @@ func (g *JSONPathMetricsGetter) GetMetric(metricsURL url.URL) (float64, error) {
 		return 0, err
 	}
 
-	nodes, err := root.JSONPath(g.jsonPath)
-	if err != nil {
-		return 0, err
+	var nodes []*ajson.Node
+	if g.jsonPath != "" {
+		nodes, err = root.JSONPath(g.jsonPath)
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		result, err := ajson.Eval(root, g.jsonEval)
+		nodes = append(nodes, result)
+
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	if len(nodes) == 0 {
