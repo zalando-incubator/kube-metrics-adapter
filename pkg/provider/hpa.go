@@ -25,6 +25,10 @@ import (
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
 )
 
+const (
+	kubectlLastAppliedAnnotation = "kubectl.kubernetes.io/last-applied-configuration"
+)
+
 var (
 	// CollectionSuccesses is the total number of successful collections.
 	CollectionSuccesses = promauto.NewCounter(prometheus.CounterOpts{
@@ -120,7 +124,7 @@ func (p *HPAProvider) Run(ctx context.Context) {
 // updateHPAs discovers all HPA resources and sets up metric collectors for new
 // HPAs.
 func (p *HPAProvider) updateHPAs() error {
-	p.logger.Info("Looking for HPAs")
+	p.logger.Debug("Looking for HPAs")
 
 	hpas, err := p.client.AutoscalingV2().HorizontalPodAutoscalers(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -144,7 +148,7 @@ func (p *HPAProvider) updateHPAs() error {
 			// if the hpa has changed then remove the previous
 			// scheduled collector.
 			if hpaUpdated {
-				p.logger.Infof("Removing previously scheduled metrics collector: %s", resourceRef)
+				p.logger.Infof("Removing previously scheduled metrics collector as HPA changed: %s", resourceRef)
 				p.collectorScheduler.Remove(resourceRef)
 			}
 
@@ -197,7 +201,12 @@ func (p *HPAProvider) updateHPAs() error {
 		p.collectorScheduler.Remove(ref)
 	}
 
-	p.logger.Infof("Found %d new/updated HPA(s)", newHPAs)
+	if newHPAs > 0 {
+		p.logger.Infof("Found %d new/updated HPA(s)", newHPAs)
+	} else {
+		p.logger.Debug("No new/updated HPAs found")
+	}
+
 	p.hpaCache = newHPACache
 
 	return nil
@@ -205,12 +214,38 @@ func (p *HPAProvider) updateHPAs() error {
 
 // equalHPA returns true if two HPAs are identical (apart from their status).
 func equalHPA(a, b autoscalingv2.HorizontalPodAutoscaler) bool {
-	// reset resource version to not compare it since this will change
-	// whenever the status of the object is updated. We only want to
-	// compare the metadata and the spec.
-	a.ObjectMeta.ResourceVersion = ""
-	b.ObjectMeta.ResourceVersion = ""
-	return reflect.DeepEqual(a.ObjectMeta, b.ObjectMeta) && reflect.DeepEqual(a.Spec, b.Spec)
+	return annotationsUpToDate(a.ObjectMeta, b.ObjectMeta, kubectlLastAppliedAnnotation) && reflect.DeepEqual(a.Spec, b.Spec)
+}
+
+// annotationsUpToDate checks whether the annotations of the existing and
+// updated resource are up to date.
+func annotationsUpToDate(updated, existing metav1.ObjectMeta, ignoredAnnotations ...string) bool {
+	if len(updated.Annotations) != len(existing.Annotations) {
+		return false
+	}
+
+	for k, v := range updated.Annotations {
+		isIgnored := false
+		for _, ignored := range ignoredAnnotations {
+			if k == ignored {
+				isIgnored = true
+				break
+			}
+		}
+
+		if isIgnored {
+			continue
+		}
+
+		existingValue, ok := existing.GetAnnotations()[k]
+		if ok && existingValue == v {
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }
 
 // collectMetrics collects all metrics from collectors and manages a central
