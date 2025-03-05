@@ -193,3 +193,172 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 	// we expect an event when disregardIncompatibleHPAs=false
 	require.Len(t, eventRecorder.Events, 1)
 }
+
+func TestEqualHPA(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		hpa1  autoscaling.HorizontalPodAutoscaler
+		hpa2  autoscaling.HorizontalPodAutoscaler
+		equal bool
+	}{
+		{
+			name: "Identical HPAs are equal",
+			hpa1: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			hpa2: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			equal: true,
+		},
+		{
+			name: "Only kubectl-last-applied diff on HPAs are equal",
+			hpa1: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+					Annotations: map[string]string{
+						kubectlLastAppliedAnnotation: "old value",
+					},
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			hpa2: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+					Annotations: map[string]string{
+						kubectlLastAppliedAnnotation: "new value",
+					},
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			equal: true,
+		},
+		{
+			name: "diff in annotations are not equal",
+			hpa1: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+					Annotations: map[string]string{
+						"annotation": "old value",
+					},
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			hpa2: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+					Annotations: map[string]string{
+						"annotation": "new value",
+					},
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			equal: false,
+		},
+		{
+			name: "diff in labels are equal",
+			hpa1: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+					Labels: map[string]string{
+						"label": "old-value",
+					},
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			hpa2: autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "hpa1",
+					Namespace: "default",
+					Labels: map[string]string{
+						"label": "new-value",
+					},
+				},
+				Spec: autoscaling.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+						Kind:       "Deployment",
+						Name:       "app",
+						APIVersion: "apps/v1",
+					},
+					MinReplicas: &[]int32{1}[0],
+					MaxReplicas: 10,
+				},
+			},
+			equal: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.equal, equalHPA(tc.hpa1, tc.hpa2))
+		})
+
+	}
+}
