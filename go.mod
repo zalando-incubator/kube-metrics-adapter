@@ -14,7 +14,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/szuecs/routegroup-client v0.28.2
 	github.com/zalando-incubator/cluster-lifecycle-manager v0.0.0-20240619093047-7853f3386b71
-	golang.org/x/net v0.35.0
+	golang.org/x/net v0.36.0
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.11.0
 	k8s.io/api v0.31.6
@@ -160,7 +160,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
