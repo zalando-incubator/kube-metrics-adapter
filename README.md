@@ -751,12 +751,12 @@ spec:
   - type: External
     external:
       metric:
-          name: my-nakadi-consumer
-          selector:
-            matchLabels:
-              type: nakadi
-              subscription-id: "708095f6-cece-4d02-840e-ee488d710b29"
-              metric-type: "consumer-lag-seconds|unconsumed-events"
+        name: my-nakadi-consumer
+        selector:
+          matchLabels:
+            type: nakadi
+            subscription-id: "708095f6-cece-4d02-840e-ee488d710b29"
+            metric-type: "consumer-lag-seconds|unconsumed-events"
       target:
         # value is compatible with the consumer-lag-seconds metric type.
         # It describes the amount of consumer lag in seconds before scaling
@@ -805,6 +805,27 @@ with more consumers.
 For this case you should also account for the average time for processing an
 event when defining the target.
 
+Alternative to defining `subscription-id` you can also filter based on
+`owning_application`, `event-types` and `consumer-group`:
+
+```yaml
+metrics:
+- type: External
+  external:
+    metric:
+      name: my-nakadi-consumer
+      selector:
+        matchLabels:
+          type: nakadi
+          owning-application: "example-app"
+          # comma separated list of event types
+          event-types: "example-event-type,example-event-type2"
+          consumer-group: "abcd1234"
+          metric-type: "consumer-lag-seconds|unconsumed-events"
+```
+
+This is useful in dynamic environments where the subscription ID might not be
+known at deployment time.
 
 ## HTTP Collector
 

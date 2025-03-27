@@ -140,7 +140,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 		labelsKey = hashLabelMap(selector.MatchLabels)
 	}
 
-	metric := metricName(value.Metric.Name)
+	metric := metricName(strings.ToLower(value.Metric.Name))
 	namespace := objectNamespace(value.DescribedObject.Namespace)
 	object := objectName(value.DescribedObject.Name)
 
@@ -203,7 +203,7 @@ func (s *MetricStore) insertExternalMetric(namespace objectNamespace, metric ext
 
 	labelsKey := hashLabelMap(metric.MetricLabels)
 
-	metricName := metricName(metric.MetricName)
+	metricName := metricName(strings.ToLower(metric.MetricName))
 
 	if metrics, ok := s.externalMetricsStore[namespace]; ok {
 		if labels, ok := metrics[metricName]; ok {
@@ -259,7 +259,7 @@ func (s *MetricStore) GetMetricsBySelector(_ context.Context, namespace objectNa
 	s.RLock()
 	defer s.RUnlock()
 
-	group2namespace, ok := s.customMetricsStore[metricName(info.Metric)]
+	group2namespace, ok := s.customMetricsStore[metricName(strings.ToLower(info.Metric))]
 	if !ok {
 		return &custom_metrics.MetricValueList{}
 	}
@@ -368,7 +368,7 @@ func (s *MetricStore) GetExternalMetric(_ context.Context, namespace objectNames
 	defer s.RUnlock()
 
 	if metrics, ok := s.externalMetricsStore[namespace]; ok {
-		if selectors, ok := metrics[metricName(info.Metric)]; ok {
+		if selectors, ok := metrics[metricName(strings.ToLower(info.Metric))]; ok {
 			for _, sel := range selectors {
 				if selector.Matches(labels.Set(sel.Value.MetricLabels)) {
 					matchedMetrics = append(matchedMetrics, sel.Value)
