@@ -825,7 +825,7 @@ metrics:
 ```
 
 This is useful in dynamic environments where the subscription ID might not be
-known at deployment time.
+known before deployment time (e.g. because it's created by the same deployment).
 
 ## HTTP Collector
 
