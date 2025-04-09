@@ -13,6 +13,9 @@ spec:
     kind: ScalingSchedule
     listKind: ScalingScheduleList
     plural: scalingschedules
+    shortNames:
+    - sched
+    - schedule
     singular: scalingschedule
   scope: Namespaced
   versions:
