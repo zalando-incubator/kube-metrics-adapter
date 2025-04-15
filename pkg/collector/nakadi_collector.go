@@ -93,8 +93,8 @@ func NewNakadiCollector(_ context.Context, nakadiClient nakadi.Nakadi, hpa *auto
 		subscriptionFilter.ConsumerGroup = consumerGroup
 	}
 
-	if subscriptionFilter.SubscriptionID == "" && (subscriptionFilter.OwningApplication == "" && len(subscriptionFilter.EventTypes) == 0 && subscriptionFilter.ConsumerGroup == "") {
-		return nil, fmt.Errorf("either subscription-id or one of [owning-application, event-types, consumer-group] must be specified on the metric")
+	if subscriptionFilter.SubscriptionID == "" && (subscriptionFilter.OwningApplication == "" || len(subscriptionFilter.EventTypes) == 0 || subscriptionFilter.ConsumerGroup == "") {
+		return nil, fmt.Errorf("either subscription-id or all of [owning-application, event-types, consumer-group] must be specified on the metric")
 	}
 
 	return &NakadiCollector{
