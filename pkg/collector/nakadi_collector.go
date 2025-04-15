@@ -73,7 +73,8 @@ func NewNakadiCollector(_ context.Context, nakadiClient nakadi.Nakadi, hpa *auto
 
 	// Either subscription-id or filtering via owning-application,
 	// event-types, and consumer-group is supported. If all are defined
-	// then subscription-id is used.
+	// then only subscription-id is used and the rest of the fields are
+	// ignored.
 	subscriptionFilter := &nakadi.SubscriptionFilter{}
 	if subscriptionID, ok := config.Config[nakadiSubscriptionIDKey]; ok {
 		subscriptionFilter.SubscriptionID = subscriptionID
@@ -93,7 +94,7 @@ func NewNakadiCollector(_ context.Context, nakadiClient nakadi.Nakadi, hpa *auto
 	}
 
 	if subscriptionFilter.SubscriptionID == "" && (subscriptionFilter.OwningApplication == "" && len(subscriptionFilter.EventTypes) == 0 && subscriptionFilter.ConsumerGroup == "") {
-		return nil, fmt.Errorf("subscription-id or owning-application, event-types, and consumer-group must be specified on the metric")
+		return nil, fmt.Errorf("either subscription-id or one of [owning-application, event-types, consumer-group] must be specified on the metric")
 	}
 
 	return &NakadiCollector{

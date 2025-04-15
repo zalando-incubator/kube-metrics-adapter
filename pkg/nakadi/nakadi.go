@@ -78,7 +78,7 @@ func (c *Client) subscriptions(ctx context.Context, filter *SubscriptionFilter, 
 	if href != "" {
 		endpoint, err = url.Parse(c.nakadiEndpoint + href)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse URL with href: %w", err)
+			return nil, fmt.Errorf("[nakadi subscriptions] failed to parse URL with href: %w", err)
 		}
 	} else {
 		endpoint.Path = "/subscriptions"
@@ -97,12 +97,12 @@ func (c *Client) subscriptions(ctx context.Context, filter *SubscriptionFilter, 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("[nakadi subscriptions] failed to create request: %w", err)
 	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		return nil, fmt.Errorf("[nakadi subscriptions] failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -138,7 +138,7 @@ func (c *Client) subscriptions(ctx context.Context, filter *SubscriptionFilter, 
 	if subscriptionsResp.Links.Next.Href != "" {
 		nextSubscriptions, err := c.subscriptions(ctx, nil, subscriptionsResp.Links.Next.Href)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[nakadi subscriptions] failed to get next subscriptions: %w", err)
 		}
 		subscriptions = append(subscriptions, nextSubscriptions...)
 	}
@@ -164,7 +164,9 @@ type statsPartition struct {
 	AssignmentType     string `json:"assignment_type"`
 }
 
-// stats returns the Nakadi stats for a given subscription ID.
+// stats returns the Nakadi stats for a given a subscription filter which can
+// include the subscription ID or a filter combination of [owning-applicaiton,
+// event-types, consumer-group]..
 //
 // https://nakadi.io/manual.html#/subscriptions/subscription_id/stats_get
 func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]statsEventType, error) {
@@ -172,7 +174,7 @@ func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]stats
 	if filter.SubscriptionID == "" {
 		subscriptions, err := c.subscriptions(ctx, filter, "")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[nakadi stats] failed to get subscriptions: %w", err)
 		}
 		subscriptionIDs = subscriptions
 	} else {
@@ -181,7 +183,7 @@ func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]stats
 
 	endpoint, err := url.Parse(c.nakadiEndpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[nakadi stats] failed to parse URL %q: %w", c.nakadiEndpoint, err)
 	}
 
 	var stats []statsEventType
@@ -194,12 +196,12 @@ func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]stats
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return nil, fmt.Errorf("[nakadi stats] failed to create request: %w", err)
 		}
 
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("failed to make request: %w", err)
+			return nil, fmt.Errorf("[nakadi stats] failed to make request: %w", err)
 		}
 		defer resp.Body.Close()
 
@@ -219,7 +221,7 @@ func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]stats
 		}
 
 		if len(result.Items) == 0 {
-			return nil, errors.New("expected at least 1 event-type, 0 returned")
+			return nil, errors.New("[nakadi stats] expected at least 1 event-type, 0 returned")
 		}
 
 		stats = append(stats, result.Items...)
