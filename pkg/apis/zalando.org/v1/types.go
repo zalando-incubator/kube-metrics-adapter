@@ -51,7 +51,7 @@ func (s *ScalingSchedule) ResourceSpec() ScalingScheduleSpec {
 // ClusterScalingSchedule describes a cluster scoped time based metric
 // to be used in autoscaling operations.
 // +k8s:deepcopy-gen=true
-// +kubebuilder:resource:categories=all,scope=Cluster,shortName=css;clustersched;clusterschedule
+// +kubebuilder:resource:scope=Cluster,shortName=css;clustersched;clusterschedule
 // +kubebuilder:printcolumn:name="Active",type=boolean,JSONPath=`.status.active`,description="Whether one or more schedules are currently active."
 // +kubebuilder:subresource:status
 type ClusterScalingSchedule struct {
