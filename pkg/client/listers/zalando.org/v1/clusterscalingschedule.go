@@ -19,10 +19,10 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers"
-	"k8s.io/client-go/tools/cache"
+	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // ClusterScalingScheduleLister helps list ClusterScalingSchedules.
@@ -30,19 +30,19 @@ import (
 type ClusterScalingScheduleLister interface {
 	// List lists all ClusterScalingSchedules in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.ClusterScalingSchedule, err error)
+	List(selector labels.Selector) (ret []*zalandoorgv1.ClusterScalingSchedule, err error)
 	// Get retrieves the ClusterScalingSchedule from the index for a given name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1.ClusterScalingSchedule, error)
+	Get(name string) (*zalandoorgv1.ClusterScalingSchedule, error)
 	ClusterScalingScheduleListerExpansion
 }
 
 // clusterScalingScheduleLister implements the ClusterScalingScheduleLister interface.
 type clusterScalingScheduleLister struct {
-	listers.ResourceIndexer[*v1.ClusterScalingSchedule]
+	listers.ResourceIndexer[*zalandoorgv1.ClusterScalingSchedule]
 }
 
 // NewClusterScalingScheduleLister returns a new ClusterScalingScheduleLister.
 func NewClusterScalingScheduleLister(indexer cache.Indexer) ClusterScalingScheduleLister {
-	return &clusterScalingScheduleLister{listers.New[*v1.ClusterScalingSchedule](indexer, v1.Resource("clusterscalingschedule"))}
+	return &clusterScalingScheduleLister{listers.New[*zalandoorgv1.ClusterScalingSchedule](indexer, zalandoorgv1.Resource("clusterscalingschedule"))}
 }

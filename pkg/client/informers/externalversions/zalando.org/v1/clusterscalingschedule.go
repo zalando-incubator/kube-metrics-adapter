@@ -19,13 +19,13 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
+	apiszalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
 	versioned "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/informers/externalversions/internalinterfaces"
-	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/listers/zalando.org/v1"
+	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/listers/zalando.org/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -36,7 +36,7 @@ import (
 // ClusterScalingSchedules.
 type ClusterScalingScheduleInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.ClusterScalingScheduleLister
+	Lister() zalandoorgv1.ClusterScalingScheduleLister
 }
 
 type clusterScalingScheduleInformer struct {
@@ -70,7 +70,7 @@ func NewFilteredClusterScalingScheduleInformer(client versioned.Interface, resyn
 				return client.ZalandoV1().ClusterScalingSchedules().Watch(context.TODO(), options)
 			},
 		},
-		&zalandoorgv1.ClusterScalingSchedule{},
+		&apiszalandoorgv1.ClusterScalingSchedule{},
 		resyncPeriod,
 		indexers,
 	)
@@ -81,9 +81,9 @@ func (f *clusterScalingScheduleInformer) defaultInformer(client versioned.Interf
 }
 
 func (f *clusterScalingScheduleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&zalandoorgv1.ClusterScalingSchedule{}, f.defaultInformer)
+	return f.factory.InformerFor(&apiszalandoorgv1.ClusterScalingSchedule{}, f.defaultInformer)
 }
 
-func (f *clusterScalingScheduleInformer) Lister() v1.ClusterScalingScheduleLister {
-	return v1.NewClusterScalingScheduleLister(f.Informer().GetIndexer())
+func (f *clusterScalingScheduleInformer) Lister() zalandoorgv1.ClusterScalingScheduleLister {
+	return zalandoorgv1.NewClusterScalingScheduleLister(f.Informer().GetIndexer())
 }

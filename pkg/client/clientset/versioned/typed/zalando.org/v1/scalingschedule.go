@@ -19,9 +19,9 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
+	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
 	scheme "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -37,33 +37,34 @@ type ScalingSchedulesGetter interface {
 
 // ScalingScheduleInterface has methods to work with ScalingSchedule resources.
 type ScalingScheduleInterface interface {
-	Create(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.CreateOptions) (*v1.ScalingSchedule, error)
-	Update(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (*v1.ScalingSchedule, error)
+	Create(ctx context.Context, scalingSchedule *zalandoorgv1.ScalingSchedule, opts metav1.CreateOptions) (*zalandoorgv1.ScalingSchedule, error)
+	Update(ctx context.Context, scalingSchedule *zalandoorgv1.ScalingSchedule, opts metav1.UpdateOptions) (*zalandoorgv1.ScalingSchedule, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (*v1.ScalingSchedule, error)
+	UpdateStatus(ctx context.Context, scalingSchedule *zalandoorgv1.ScalingSchedule, opts metav1.UpdateOptions) (*zalandoorgv1.ScalingSchedule, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ScalingSchedule, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ScalingScheduleList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*zalandoorgv1.ScalingSchedule, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*zalandoorgv1.ScalingScheduleList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ScalingSchedule, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *zalandoorgv1.ScalingSchedule, err error)
 	ScalingScheduleExpansion
 }
 
 // scalingSchedules implements ScalingScheduleInterface
 type scalingSchedules struct {
-	*gentype.ClientWithList[*v1.ScalingSchedule, *v1.ScalingScheduleList]
+	*gentype.ClientWithList[*zalandoorgv1.ScalingSchedule, *zalandoorgv1.ScalingScheduleList]
 }
 
 // newScalingSchedules returns a ScalingSchedules
 func newScalingSchedules(c *ZalandoV1Client, namespace string) *scalingSchedules {
 	return &scalingSchedules{
-		gentype.NewClientWithList[*v1.ScalingSchedule, *v1.ScalingScheduleList](
+		gentype.NewClientWithList[*zalandoorgv1.ScalingSchedule, *zalandoorgv1.ScalingScheduleList](
 			"scalingschedules",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1.ScalingSchedule { return &v1.ScalingSchedule{} },
-			func() *v1.ScalingScheduleList { return &v1.ScalingScheduleList{} }),
+			func() *zalandoorgv1.ScalingSchedule { return &zalandoorgv1.ScalingSchedule{} },
+			func() *zalandoorgv1.ScalingScheduleList { return &zalandoorgv1.ScalingScheduleList{} },
+		),
 	}
 }

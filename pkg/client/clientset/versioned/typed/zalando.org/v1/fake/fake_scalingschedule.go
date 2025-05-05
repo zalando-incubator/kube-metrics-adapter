@@ -19,129 +19,32 @@ limitations under the License.
 package fake
 
 import (
-	"context"
-
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/typed/zalando.org/v1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeScalingSchedules implements ScalingScheduleInterface
-type FakeScalingSchedules struct {
+// fakeScalingSchedules implements ScalingScheduleInterface
+type fakeScalingSchedules struct {
+	*gentype.FakeClientWithList[*v1.ScalingSchedule, *v1.ScalingScheduleList]
 	Fake *FakeZalandoV1
-	ns   string
 }
 
-var scalingschedulesResource = v1.SchemeGroupVersion.WithResource("scalingschedules")
-
-var scalingschedulesKind = v1.SchemeGroupVersion.WithKind("ScalingSchedule")
-
-// Get takes name of the scalingSchedule, and returns the corresponding scalingSchedule object, and an error if there is any.
-func (c *FakeScalingSchedules) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ScalingSchedule, err error) {
-	emptyResult := &v1.ScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewGetActionWithOptions(scalingschedulesResource, c.ns, name, options), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
+func newFakeScalingSchedules(fake *FakeZalandoV1, namespace string) zalandoorgv1.ScalingScheduleInterface {
+	return &fakeScalingSchedules{
+		gentype.NewFakeClientWithList[*v1.ScalingSchedule, *v1.ScalingScheduleList](
+			fake.Fake,
+			namespace,
+			v1.SchemeGroupVersion.WithResource("scalingschedules"),
+			v1.SchemeGroupVersion.WithKind("ScalingSchedule"),
+			func() *v1.ScalingSchedule { return &v1.ScalingSchedule{} },
+			func() *v1.ScalingScheduleList { return &v1.ScalingScheduleList{} },
+			func(dst, src *v1.ScalingScheduleList) { dst.ListMeta = src.ListMeta },
+			func(list *v1.ScalingScheduleList) []*v1.ScalingSchedule { return gentype.ToPointerSlice(list.Items) },
+			func(list *v1.ScalingScheduleList, items []*v1.ScalingSchedule) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1.ScalingSchedule), err
-}
-
-// List takes label and field selectors, and returns the list of ScalingSchedules that match those selectors.
-func (c *FakeScalingSchedules) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ScalingScheduleList, err error) {
-	emptyResult := &v1.ScalingScheduleList{}
-	obj, err := c.Fake.
-		Invokes(testing.NewListActionWithOptions(scalingschedulesResource, scalingschedulesKind, c.ns, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1.ScalingScheduleList{ListMeta: obj.(*v1.ScalingScheduleList).ListMeta}
-	for _, item := range obj.(*v1.ScalingScheduleList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested scalingSchedules.
-func (c *FakeScalingSchedules) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewWatchActionWithOptions(scalingschedulesResource, c.ns, opts))
-
-}
-
-// Create takes the representation of a scalingSchedule and creates it.  Returns the server's representation of the scalingSchedule, and an error, if there is any.
-func (c *FakeScalingSchedules) Create(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.CreateOptions) (result *v1.ScalingSchedule, err error) {
-	emptyResult := &v1.ScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateActionWithOptions(scalingschedulesResource, c.ns, scalingSchedule, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ScalingSchedule), err
-}
-
-// Update takes the representation of a scalingSchedule and updates it. Returns the server's representation of the scalingSchedule, and an error, if there is any.
-func (c *FakeScalingSchedules) Update(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (result *v1.ScalingSchedule, err error) {
-	emptyResult := &v1.ScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateActionWithOptions(scalingschedulesResource, c.ns, scalingSchedule, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ScalingSchedule), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeScalingSchedules) UpdateStatus(ctx context.Context, scalingSchedule *v1.ScalingSchedule, opts metav1.UpdateOptions) (result *v1.ScalingSchedule, err error) {
-	emptyResult := &v1.ScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceActionWithOptions(scalingschedulesResource, "status", c.ns, scalingSchedule, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ScalingSchedule), err
-}
-
-// Delete takes name of the scalingSchedule and deletes it. Returns an error if one occurs.
-func (c *FakeScalingSchedules) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(scalingschedulesResource, c.ns, name, opts), &v1.ScalingSchedule{})
-
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeScalingSchedules) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	action := testing.NewDeleteCollectionActionWithOptions(scalingschedulesResource, c.ns, opts, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1.ScalingScheduleList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched scalingSchedule.
-func (c *FakeScalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ScalingSchedule, err error) {
-	emptyResult := &v1.ScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(scalingschedulesResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ScalingSchedule), err
 }
