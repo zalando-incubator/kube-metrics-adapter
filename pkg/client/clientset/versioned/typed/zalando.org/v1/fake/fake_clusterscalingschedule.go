@@ -19,120 +19,34 @@ limitations under the License.
 package fake
 
 import (
-	"context"
-
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/typed/zalando.org/v1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeClusterScalingSchedules implements ClusterScalingScheduleInterface
-type FakeClusterScalingSchedules struct {
+// fakeClusterScalingSchedules implements ClusterScalingScheduleInterface
+type fakeClusterScalingSchedules struct {
+	*gentype.FakeClientWithList[*v1.ClusterScalingSchedule, *v1.ClusterScalingScheduleList]
 	Fake *FakeZalandoV1
 }
 
-var clusterscalingschedulesResource = v1.SchemeGroupVersion.WithResource("clusterscalingschedules")
-
-var clusterscalingschedulesKind = v1.SchemeGroupVersion.WithKind("ClusterScalingSchedule")
-
-// Get takes name of the clusterScalingSchedule, and returns the corresponding clusterScalingSchedule object, and an error if there is any.
-func (c *FakeClusterScalingSchedules) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ClusterScalingSchedule, err error) {
-	emptyResult := &v1.ClusterScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewRootGetActionWithOptions(clusterscalingschedulesResource, name, options), emptyResult)
-	if obj == nil {
-		return emptyResult, err
+func newFakeClusterScalingSchedules(fake *FakeZalandoV1) zalandoorgv1.ClusterScalingScheduleInterface {
+	return &fakeClusterScalingSchedules{
+		gentype.NewFakeClientWithList[*v1.ClusterScalingSchedule, *v1.ClusterScalingScheduleList](
+			fake.Fake,
+			"",
+			v1.SchemeGroupVersion.WithResource("clusterscalingschedules"),
+			v1.SchemeGroupVersion.WithKind("ClusterScalingSchedule"),
+			func() *v1.ClusterScalingSchedule { return &v1.ClusterScalingSchedule{} },
+			func() *v1.ClusterScalingScheduleList { return &v1.ClusterScalingScheduleList{} },
+			func(dst, src *v1.ClusterScalingScheduleList) { dst.ListMeta = src.ListMeta },
+			func(list *v1.ClusterScalingScheduleList) []*v1.ClusterScalingSchedule {
+				return gentype.ToPointerSlice(list.Items)
+			},
+			func(list *v1.ClusterScalingScheduleList, items []*v1.ClusterScalingSchedule) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1.ClusterScalingSchedule), err
-}
-
-// List takes label and field selectors, and returns the list of ClusterScalingSchedules that match those selectors.
-func (c *FakeClusterScalingSchedules) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ClusterScalingScheduleList, err error) {
-	emptyResult := &v1.ClusterScalingScheduleList{}
-	obj, err := c.Fake.
-		Invokes(testing.NewRootListActionWithOptions(clusterscalingschedulesResource, clusterscalingschedulesKind, opts), emptyResult)
-	if obj == nil {
-		return emptyResult, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1.ClusterScalingScheduleList{ListMeta: obj.(*v1.ClusterScalingScheduleList).ListMeta}
-	for _, item := range obj.(*v1.ClusterScalingScheduleList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested clusterScalingSchedules.
-func (c *FakeClusterScalingSchedules) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewRootWatchActionWithOptions(clusterscalingschedulesResource, opts))
-}
-
-// Create takes the representation of a clusterScalingSchedule and creates it.  Returns the server's representation of the clusterScalingSchedule, and an error, if there is any.
-func (c *FakeClusterScalingSchedules) Create(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.CreateOptions) (result *v1.ClusterScalingSchedule, err error) {
-	emptyResult := &v1.ClusterScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateActionWithOptions(clusterscalingschedulesResource, clusterScalingSchedule, opts), emptyResult)
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ClusterScalingSchedule), err
-}
-
-// Update takes the representation of a clusterScalingSchedule and updates it. Returns the server's representation of the clusterScalingSchedule, and an error, if there is any.
-func (c *FakeClusterScalingSchedules) Update(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (result *v1.ClusterScalingSchedule, err error) {
-	emptyResult := &v1.ClusterScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateActionWithOptions(clusterscalingschedulesResource, clusterScalingSchedule, opts), emptyResult)
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ClusterScalingSchedule), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeClusterScalingSchedules) UpdateStatus(ctx context.Context, clusterScalingSchedule *v1.ClusterScalingSchedule, opts metav1.UpdateOptions) (result *v1.ClusterScalingSchedule, err error) {
-	emptyResult := &v1.ClusterScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceActionWithOptions(clusterscalingschedulesResource, "status", clusterScalingSchedule, opts), emptyResult)
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ClusterScalingSchedule), err
-}
-
-// Delete takes name of the clusterScalingSchedule and deletes it. Returns an error if one occurs.
-func (c *FakeClusterScalingSchedules) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteActionWithOptions(clusterscalingschedulesResource, name, opts), &v1.ClusterScalingSchedule{})
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeClusterScalingSchedules) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionActionWithOptions(clusterscalingschedulesResource, opts, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1.ClusterScalingScheduleList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched clusterScalingSchedule.
-func (c *FakeClusterScalingSchedules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterScalingSchedule, err error) {
-	emptyResult := &v1.ClusterScalingSchedule{}
-	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceActionWithOptions(clusterscalingschedulesResource, name, pt, data, opts, subresources...), emptyResult)
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1.ClusterScalingSchedule), err
 }

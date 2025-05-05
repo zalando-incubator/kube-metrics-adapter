@@ -19,10 +19,10 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers"
-	"k8s.io/client-go/tools/cache"
+	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // ScalingScheduleLister helps list ScalingSchedules.
@@ -30,7 +30,7 @@ import (
 type ScalingScheduleLister interface {
 	// List lists all ScalingSchedules in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.ScalingSchedule, err error)
+	List(selector labels.Selector) (ret []*zalandoorgv1.ScalingSchedule, err error)
 	// ScalingSchedules returns an object that can list and get ScalingSchedules.
 	ScalingSchedules(namespace string) ScalingScheduleNamespaceLister
 	ScalingScheduleListerExpansion
@@ -38,17 +38,17 @@ type ScalingScheduleLister interface {
 
 // scalingScheduleLister implements the ScalingScheduleLister interface.
 type scalingScheduleLister struct {
-	listers.ResourceIndexer[*v1.ScalingSchedule]
+	listers.ResourceIndexer[*zalandoorgv1.ScalingSchedule]
 }
 
 // NewScalingScheduleLister returns a new ScalingScheduleLister.
 func NewScalingScheduleLister(indexer cache.Indexer) ScalingScheduleLister {
-	return &scalingScheduleLister{listers.New[*v1.ScalingSchedule](indexer, v1.Resource("scalingschedule"))}
+	return &scalingScheduleLister{listers.New[*zalandoorgv1.ScalingSchedule](indexer, zalandoorgv1.Resource("scalingschedule"))}
 }
 
 // ScalingSchedules returns an object that can list and get ScalingSchedules.
 func (s *scalingScheduleLister) ScalingSchedules(namespace string) ScalingScheduleNamespaceLister {
-	return scalingScheduleNamespaceLister{listers.NewNamespaced[*v1.ScalingSchedule](s.ResourceIndexer, namespace)}
+	return scalingScheduleNamespaceLister{listers.NewNamespaced[*zalandoorgv1.ScalingSchedule](s.ResourceIndexer, namespace)}
 }
 
 // ScalingScheduleNamespaceLister helps list and get ScalingSchedules.
@@ -56,15 +56,15 @@ func (s *scalingScheduleLister) ScalingSchedules(namespace string) ScalingSchedu
 type ScalingScheduleNamespaceLister interface {
 	// List lists all ScalingSchedules in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1.ScalingSchedule, err error)
+	List(selector labels.Selector) (ret []*zalandoorgv1.ScalingSchedule, err error)
 	// Get retrieves the ScalingSchedule from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1.ScalingSchedule, error)
+	Get(name string) (*zalandoorgv1.ScalingSchedule, error)
 	ScalingScheduleNamespaceListerExpansion
 }
 
 // scalingScheduleNamespaceLister implements the ScalingScheduleNamespaceLister
 // interface.
 type scalingScheduleNamespaceLister struct {
-	listers.ResourceIndexer[*v1.ScalingSchedule]
+	listers.ResourceIndexer[*zalandoorgv1.ScalingSchedule]
 }

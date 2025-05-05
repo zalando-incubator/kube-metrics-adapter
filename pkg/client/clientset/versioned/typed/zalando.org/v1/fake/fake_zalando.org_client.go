@@ -29,11 +29,11 @@ type FakeZalandoV1 struct {
 }
 
 func (c *FakeZalandoV1) ClusterScalingSchedules() v1.ClusterScalingScheduleInterface {
-	return &FakeClusterScalingSchedules{c}
+	return newFakeClusterScalingSchedules(c)
 }
 
 func (c *FakeZalandoV1) ScalingSchedules(namespace string) v1.ScalingScheduleInterface {
-	return &FakeScalingSchedules{c, namespace}
+	return newFakeScalingSchedules(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate
