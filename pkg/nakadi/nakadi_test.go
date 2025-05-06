@@ -142,7 +142,7 @@ func TestQuery(tt *testing.T) {
 			subscriptionIDResponseBody: `{
 					  "items": []
 				       }`,
-			err: errors.New("expected at least 1 event-type, 0 returned"),
+			err: errors.New("[nakadi stats] expected at least 1 event-type, 0 returned"),
 		},
 		{
 			msg:                "test filtering by owning_application and event_type",
