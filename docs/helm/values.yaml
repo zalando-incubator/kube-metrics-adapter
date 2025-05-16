@@ -3,7 +3,7 @@ namespace: kube-system
 replicas: 1
 
 registry:
-  image: registry.opensource.zalan.do/teapot/kube-metrics-adapter
+  image: ghcr.io/zalando-incubator/kube-metrics-adapter
   imageTag: v0.2.3
   imagePullPolicy: IfNotPresent
 
