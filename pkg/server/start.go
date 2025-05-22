@@ -133,6 +133,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"disregard failing to create collectors for incompatible HPAs")
 	flags.DurationVar(&o.MetricsTTL, "metrics-ttl", 15*time.Minute, "TTL for metrics that are stored in in-memory cache.")
 	flags.DurationVar(&o.GCInterval, "garbage-collector-interval", 10*time.Minute, "Interval to clean up metrics that are stored in in-memory cache.")
+	flags.DurationVar(&o.CollectionInterval, "default-collection-interval", 60*time.Second, "Default interval used for collecting metrics.")
+	flags.DurationVar(&o.ResourceUpdateInterval, "resource-update-interval", 30*time.Second, "Interval at which HPA resources get updated.")
 	flags.BoolVar(&o.ScalingScheduleMetrics, "scaling-schedule", o.ScalingScheduleMetrics, ""+
 		"whether to enable time-based ScalingSchedule metrics")
 	flags.DurationVar(&o.DefaultScheduledScalingWindow, "scaling-schedule-default-scaling-window", 10*time.Minute, "Default rampup and rampdown window duration for ScalingSchedules")
@@ -391,7 +393,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 		go scheduledScalingController.Run(ctx)
 	}
 
-	hpaProvider := provider.NewHPAProvider(client, 30*time.Second, 1*time.Minute, collectorFactory, o.DisregardIncompatibleHPAs, o.MetricsTTL, o.GCInterval)
+	hpaProvider := provider.NewHPAProvider(client, o.ResourceUpdateInterval, o.CollectionInterval, collectorFactory, o.DisregardIncompatibleHPAs, o.MetricsTTL, o.GCInterval)
 
 	go hpaProvider.Run(ctx)
 
@@ -509,6 +511,10 @@ type AdapterServerOptions struct {
 	MetricsTTL time.Duration
 	// Interval to clean up metrics that are stored in in-memory cache
 	GCInterval time.Duration
+	// Default interval used for collecting metrics
+	CollectionInterval time.Duration
+	// Interval at which HPA resources get updated
+	ResourceUpdateInterval time.Duration
 	// Time-based scaling based on the CRDs ScheduleScaling and ClusterScheduleScaling.
 	ScalingScheduleMetrics bool
 	// Default ramp-up/ramp-down window duration for scheduled metrics
