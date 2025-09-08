@@ -101,6 +101,14 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"whether to enable External Metrics API")
 	flags.StringVar(&o.PrometheusServer, "prometheus-server", o.PrometheusServer, ""+
 		"url of prometheus server to query")
+	flags.StringVar(&o.PrometheusServerTokenFile, "prometheus-server-token-file", o.PrometheusServerTokenFile, ""+
+		"path to file containing bearer token for prometheus server authentication")
+	flags.StringToStringVar(&o.AdditionalPrometheusServers, "additional-prometheus-server", o.AdditionalPrometheusServers, ""+
+		"additional prometheus servers that can be used using the 'prometheus-server-alias' annotation. "+
+		"Format is <name>=<url> (e.g. internal=http://prometheus-internal:9090), can be repeated")
+	flags.StringToStringVar(&o.AdditionalPrometheusServerTokenFiles, "additional-prometheus-server-token-file", o.AdditionalPrometheusServerTokenFiles, ""+
+		"token files for additional prometheus servers. Format is <name>=<path>"+
+		"(e.g. internal=/var/run/secrets/tokens/name-token), can be repeated")
 	flags.StringVar(&o.InfluxDBAddress, "influxdb-address", o.InfluxDBAddress, ""+
 		"address of InfluxDB 2.x server to query (e.g. http://localhost:9999)")
 	flags.StringVar(&o.InfluxDBToken, "influxdb-token", o.InfluxDBToken, ""+
@@ -210,7 +218,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 	collectorFactory := collector.NewCollectorFactory()
 
 	if o.PrometheusServer != "" {
-		promPlugin, err := collector.NewPrometheusCollectorPlugin(client, o.PrometheusServer)
+		promPlugin, err := collector.NewPrometheusCollectorPlugin(client, o.PrometheusServer, o.PrometheusServerTokenFile, o.AdditionalPrometheusServers, o.AdditionalPrometheusServerTokenFiles)
 		if err != nil {
 			return fmt.Errorf("failed to initialize prometheus collector plugin: %v", err)
 		}
@@ -466,9 +474,17 @@ type AdapterServerOptions struct {
 	EnableCustomMetricsAPI bool
 	// EnableExternalMetricsAPI switches on sample apiserver for External Metrics API
 	EnableExternalMetricsAPI bool
-	// PrometheusServer enables prometheus queries to the specified
-	// server
+	// PrometheusServer enables prometheus queries to the specified server
 	PrometheusServer string
+	// PrometheusServerTokenFile specifies the path to a file containing bearer token
+	// for prometheus server authentication
+	PrometheusServerTokenFile string
+	// AdditionalPrometheusServers allows defining additional prometheus servers
+	// that can be used on a per-metric basis using the "prometheus-server-alias" annotation.
+	AdditionalPrometheusServers map[string]string
+	// AdditionalPrometheusServerTokenFiles allows defining token files for the
+	// additional prometheus servers.
+	AdditionalPrometheusServerTokenFiles map[string]string
 	// InfluxDBAddress enables Flux queries to the specified InfluxDB instance
 	InfluxDBAddress string
 	// InfluxDBToken is the token used for querying InfluxDB

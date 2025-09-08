@@ -63,6 +63,9 @@ log:
 
 prometheus:
   server: http://prometheus.kube-system.svc.cluster.local
+  serverTokenFile:
+  additionalServers: {}
+  additionalServerTokenFiles: {}
   metricsAddress:
 
 requestHeader:
@@ -109,3 +112,7 @@ priorityClassName: ""
 podAnnotations: {}
 
 serviceAccountAnnotations: {}
+
+volumes: []
+
+volumeMounts: []
