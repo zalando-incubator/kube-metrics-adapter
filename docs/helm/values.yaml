@@ -4,7 +4,7 @@ replicas: 1
 
 registry:
   image: ghcr.io/zalando-incubator/kube-metrics-adapter
-  imageTag: v0.2.3
+  imageTag: v0.2.5
   imagePullPolicy: IfNotPresent
 
 service:
