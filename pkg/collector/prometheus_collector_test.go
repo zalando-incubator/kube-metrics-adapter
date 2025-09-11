@@ -173,7 +173,7 @@ func TestNewPrometheusCollector(t *testing.T) {
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
 			collectorFactory := NewCollectorFactory()
-			promPlugin, err := NewPrometheusCollectorPlugin(nil, "http://prometheus")
+			promPlugin, err := NewPrometheusCollectorPlugin(nil, "http://prometheus", "", map[string]string{}, map[string]string{})
 			require.NoError(t, err)
 			collectorFactory.RegisterExternalCollector([]string{PrometheusMetricType, PrometheusMetricNameLegacy}, promPlugin)
 			configs, err := ParseHPAMetrics(tc.hpa)

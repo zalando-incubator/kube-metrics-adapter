@@ -9,6 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	promconfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -19,10 +20,11 @@ import (
 )
 
 const (
-	PrometheusMetricType          = "prometheus"
-	PrometheusMetricNameLegacy    = "prometheus-query"
-	prometheusQueryNameLabelKey   = "query-name"
-	prometheusServerAnnotationKey = "prometheus-server"
+	PrometheusMetricType               = "prometheus"
+	PrometheusMetricNameLegacy         = "prometheus-query"
+	prometheusQueryNameLabelKey        = "query-name"
+	prometheusServerAnnotationKey      = "prometheus-server"
+	prometheusServerAliasAnnotationKey = "prometheus-server-alias"
 )
 
 type NoResultError struct {
@@ -34,14 +36,26 @@ func (r NoResultError) Error() string {
 }
 
 type PrometheusCollectorPlugin struct {
-	promAPI promv1.API
-	client  kubernetes.Interface
+	promAPI           promv1.API
+	client             kubernetes.Interface
+	additionalPromAPIs map[string]promv1.API
 }
 
-func NewPrometheusCollectorPlugin(client kubernetes.Interface, prometheusServer string) (*PrometheusCollectorPlugin, error) {
+func getPrometheusAPI(prometheusServer, tokenFile string) (promv1.API, error) {
+	roundTripper := http.DefaultTransport
+
+	// If a token file is specified, use it for authentication.
+	if tokenFile != "" {
+		roundTripper = promconfig.NewAuthorizationCredentialsRoundTripper(
+			"Bearer",
+			promconfig.NewFileSecret(tokenFile),
+			roundTripper,
+		)
+	}
+
 	cfg := api.Config{
 		Address:      prometheusServer,
-		RoundTripper: http.DefaultTransport,
+		RoundTripper: roundTripper,
 	}
 
 	promClient, err := api.NewClient(cfg)
@@ -49,14 +63,33 @@ func NewPrometheusCollectorPlugin(client kubernetes.Interface, prometheusServer 
 		return nil, err
 	}
 
+	return promv1.NewAPI(promClient), nil
+}
+
+func NewPrometheusCollectorPlugin(client kubernetes.Interface, prometheusServer, tokenFile string, additionalServers, additionalServerTokenFiles map[string]string) (*PrometheusCollectorPlugin, error) {
+	promAPI, err := getPrometheusAPI(prometheusServer, tokenFile)
+	if err != nil {
+		return nil, err
+	}
+
+	additionalPromAPIs := make(map[string]promv1.API)
+
+	for alias, server := range additionalServers {
+		additionalPromAPIs[alias], err = getPrometheusAPI(server, additionalServerTokenFiles[alias])
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &PrometheusCollectorPlugin{
-		client:  client,
-		promAPI: promv1.NewAPI(promClient),
+		client:             client,
+		promAPI:            promAPI,
+		additionalPromAPIs: additionalPromAPIs,
 	}, nil
 }
 
 func (p *PrometheusCollectorPlugin) NewCollector(_ context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (Collector, error) {
-	return NewPrometheusCollector(p.client, p.promAPI, hpa, config, interval)
+	return NewPrometheusCollector(p.client, p.promAPI, p.additionalPromAPIs, hpa, config, interval)
 }
 
 type PrometheusCollector struct {
@@ -71,7 +104,7 @@ type PrometheusCollector struct {
 	hpa             *autoscalingv2.HorizontalPodAutoscaler
 }
 
-func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PrometheusCollector, error) {
+func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, additionalPromAPIs map[string]promv1.API, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*PrometheusCollector, error) {
 	c := &PrometheusCollector{
 		client:     client,
 		promAPI:    promAPI,
@@ -127,6 +160,12 @@ func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, hpa
 				return nil, err
 			}
 			c.promAPI = promv1.NewAPI(promClient)
+		} else if promServerAlias, ok := config.Config[prometheusServerAliasAnnotationKey]; ok {
+			if promAPI, ok := additionalPromAPIs[promServerAlias]; ok {
+				c.promAPI = promAPI
+			} else {
+				return nil, fmt.Errorf("no additional prometheus server found for alias %s", promServerAlias)
+			}
 		}
 	}
 

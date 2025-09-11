@@ -243,6 +243,10 @@ metadata:
     # If specified, then this prometheus server is used,
     # instead of the prometheus server specified as the CLI argument `--prometheus-server`.
     metric-config.external.processed-events-per-second.prometheus/prometheus-server: http://prometheus.my-namespace.svc
+    # This annotation is optional.
+    # If specified, this will use one of the additional prometheus servers configured via the
+    # --additional-prometheus-server <name>=<url>,<name>=<url>,... CLI argument.
+    metric-config.external.processed-events-per-second.prometheus/prometheus-server-alias: external-prometheus
     # metric-config.<metricType>.<metricName>.<collectorType>/<configKey>
     metric-config.external.processed-events-per-second.prometheus/query: |
       scalar(sum(rate(event-service_events_count{application="event-service",processed="true"}[1m])))

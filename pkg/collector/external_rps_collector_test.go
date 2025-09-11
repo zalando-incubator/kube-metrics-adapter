@@ -279,7 +279,7 @@ func TestExternalRPSPrometheusCollectorInteraction(t *testing.T) {
 	}
 
 	factory := NewCollectorFactory()
-	promPlugin, err := NewPrometheusCollectorPlugin(nil, "http://prometheus")
+	promPlugin, err := NewPrometheusCollectorPlugin(nil, "http://prometheus", "", map[string]string{}, map[string]string{})
 	require.NoError(t, err)
 	factory.RegisterExternalCollector([]string{PrometheusMetricType, PrometheusMetricNameLegacy}, promPlugin)
 	hostnamePlugin, err := NewExternalRPSCollectorPlugin(promPlugin, "a_metric")

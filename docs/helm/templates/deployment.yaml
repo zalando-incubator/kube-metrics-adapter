@@ -39,170 +39,179 @@ spec:
           args:
             {{- if .Values.addDirectoryHeader }}
             - --add_dir_header={{ .Values.addDirectoryHeader }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.alsoToStderr }}
             - --alsologtostderr={{ .Values.log.alsoToStderr }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authentication.kubeConfig }}
             - --authentication-kubeconfig={{ .Values.authentication.kubeConfig }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authentication.skipLookup }}
             - --authentication-skip-lookup={{ .Values.authentication.skipLookup }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authentication.tokenWebhookCacheTtl }}
             - --authentication-token-webhook-cache-ttl={{ .Values.authentication.tokenWebhookCacheTtl }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authentication.tolerateLookupFailure }}
             - --authentication-tolerate-lookup-failure={{ .Values.authentication.tolerateLookupFailure }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authorization.alwaysAllowPaths }}
             - --authorization-always-allow-paths={{ .Values.authorization.alwaysAllowPaths }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authorization.kubeConfig }}
             - --authorization-kubeconfig={{ .Values.authorization.kubeConfig }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authorization.webhookCache.authorizedTtl }}
             - --authorization-webhook-cache-authorized-ttl={{ .Values.authorization.webhookCache.authorizedTtl }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.authorization.webhookCache.unauthorizedTtl }}
             - --authorization-webhook-cache-unauthorized-ttl={{ .Values.authorization.webhookCache.unauthorizedTtl }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.aws.externalMetrics }}
             - --aws-external-metrics={{ .Values.aws.externalMetrics }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.aws.region }}
             - --aws-region={{ .Values.aws.region }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.tls.certificateDirectory }}
             - --cert-dir={{ .Values.tls.certificateDirectory }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.tls.clientCaFile }}
             - --client-ca-file={{ .Values.tls.clientCaFile }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.contentionProfiling }}
             - --contention-profiling={{ .Values.contentionProfiling }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.credentialsDirectory }}
             - --credentials-dir={{ .Values.credentialsDirectory }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.disregardIncompatibleHPAs }}
             - --disregard-incompatible-hpas={{ .Values.disregardIncompatibleHPAs }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.enableCustomMetricsApi }}
             - --enable-custom-metrics-api={{ .Values.enableCustomMetricsApi }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.enableExternalMetricsApi }}
             - --enable-external-metrics-api={{ .Values.enableExternalMetricsApi }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.http2MaxStreamsPerConnection }}
             - --http2-max-streams-per-connection={{ .Values.http2MaxStreamsPerConnection }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.influxDB.address }}
             - --influxdb-address={{ .Values.influxDB.address }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.influxDB.organization }}
             - --influxdb-org={{ .Values.influxDB.organization }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.influxDB.token }}
             - --influxdb-token={{ .Values.influxDB.token }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.listerKubeConfig }}
             - --lister-kubeconfig={{ .Values.listerKubeConfig }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.flushFrequency }}
             - --log-flush-frequency={{ .Values.log.flushFrequency }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.backtraceAtTraceLocation }}
             - --log_backtrace_at={{ .Values.log.backtraceAtTraceLocation }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.directory }}
             - --log_dir={{ .Values.log.directory }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.file }}
             - --log_file={{ .Values.log.file }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.fileMaxSize }}
             - --log_file_max_size={{ .Values.log.fileMaxSize }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.toStderr }}
             - --logtostderr={{ .Values.log.toStderr }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.prometheus.metricsAddress }}
             - --metrics-address={{ .Values.prometheus.metricsAddress }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.profiling }}
             - --profiling={{ .Values.profiling }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.prometheus.server }}
             - --prometheus-server={{ .Values.prometheus.server }}
-            {{- end}}
+            {{- end }}
+            {{- if .Values.prometheus.serverTokenFile }}
+            - --prometheus-server-token-file={{ .Values.prometheus.serverTokenFile }}
+            {{- end }}
+            {{- range $name, $url := .Values.prometheus.additionalServers }}
+            - --additional-prometheus-server={{ $name }}={{ $url }}
+            {{- end }}
+            {{- range $name, $path := .Values.prometheus.additionalServerTokenFiles }}
+            - --additional-prometheus-server-token-file={{ $name }}={{ $path }}
+            {{- end }}
             {{- if .Values.requestHeader.allowedNames }}
             - --requestheader-allowed-names={{ .Values.requestHeader.allowedNames }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.requestHeader.clientCaFile }}
             - --requestheader-client-ca-file={{ .Values.requestHeader.clientCaFile }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.requestHeader.extraHeadersPrefix }}
             - --requestheader-extra-headers-prefix={{ .Values.requestHeader.extraHeadersPrefix }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.requestHeader.groupHeaders }}
             - --requestheader-group-headers={{ .Values.requestHeader.groupHeaders }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.requestHeader.usernameHeaders }}
             - --requestheader-username-headers={{ .Values.requestHeader.usernameHeaders }}
-            {{- end}}
+            {{- end }}
             - --secure-port={{ .Values.service.internalPort }}
             {{- if .Values.log.skipHeaders }}
             - --skip_headers={{ .Values.log.skipHeaders }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.skipLogHeaders }}
             - --skip_log_headers={{ .Values.log.skipLogHeaders }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.skipperBackendsAnnotation }}
             - --skipper-backends-annotation={{ .Values.skipperBackendsAnnotation }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.skipperIngressMetrics }}
             - --skipper-ingress-metrics={{ .Values.skipperIngressMetrics }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.skipperRouteGroupMetrics }}
             - --skipper-routegroup-metrics={{ .Values.skipperRouteGroupMetrics }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.stderrThreshold }}
             - --stderrthreshold={{ .Values.log.stderrThreshold }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.tls.certFile }}
             - --tls-cert-file={{ .Values.tls.certFile }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.tls.cipherSuites }}
             - --tls-cipher-suites={{ .Values.tls.cipherSuites }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.tls.minVersion }}
             - --tls-min-version={{ .Values.tls.minVersion }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.tls.privateKeyFile }}
             - --tls-private-key-file={{ .Values.tls.privateKeyFile }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.tls.sniCertKey }}
             - --tls-sni-cert-key={{ .Values.tls.sniCertKey }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.token }}
             - --token={{ .Values.token }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.log.level }}
             - --v={{ .Values.log.level }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.vmodule }}
             - --vmodule={{ .Values.vmodule }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.zmon.kariosdbEndpoint }}
             - --zmon-kariosdb-endpoint={{ .Values.zmon.kariosdbEndpoint }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.zmon.tokenName }}
             - --zmon-token-name={{ .Values.zmon.tokenName }}
-            {{- end}}
+            {{- end }}
             {{- if .Values.scalingSchedule.enabled }}
             - --scaling-schedule
-            {{- end}}
+            {{- end }}
           resources:
             limits:
               cpu: {{ .Values.resources.limits.cpu }}
@@ -210,3 +219,9 @@ spec:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
               memory: {{ .Values.resources.requests.memory }}
+          {{- if .Values.volumeMounts }}
+          volumeMounts: {{- toYaml .Values.volumeMounts | nindent 12 }}
+          {{- end }}
+      {{- if .Values.volumes }}
+      volumes: {{- toYaml .Values.volumes | nindent 8 }}
+      {{- end }}
