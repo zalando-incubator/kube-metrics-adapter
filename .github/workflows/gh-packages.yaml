@@ -33,7 +33,7 @@ jobs:
           go-version: '^1.25'
 
       - name: Login to Github Container Registry
-        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
