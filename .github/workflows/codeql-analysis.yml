@@ -38,12 +38,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: setup go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.0.0
       with:
-        go-version: '1.22'
+        go-version: '1.25'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
