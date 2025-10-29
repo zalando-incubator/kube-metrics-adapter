@@ -31,14 +31,14 @@ APIS_PKG="${GOPKG}/pkg/apis"
 GROUPS_WITH_VERSIONS="${CUSTOM_RESOURCE_NAME}:${CUSTOM_RESOURCE_VERSION}"
 
 echo "Generating deepcopy funcs"
-go run k8s.io/code-generator/cmd/deepcopy-gen \
+go tool deepcopy-gen \
   --output-file zz_generated.deepcopy.go \
   --bounding-dirs "${APIS_PKG}" \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
   "${APIS_PKG}/${CUSTOM_RESOURCE_NAME}/${CUSTOM_RESOURCE_VERSION}"
 
 echo "Generating clientset for ${GROUPS_WITH_VERSIONS} at ${OUTPUT_PKG}/${CLIENTSET_PKG_NAME:-clientset}"
-go run k8s.io/code-generator/cmd/client-gen \
+go tool client-gen \
   --clientset-name versioned \
   --input-base "" \
   --input "${APIS_PKG}/${CUSTOM_RESOURCE_NAME}/${CUSTOM_RESOURCE_VERSION}" \
@@ -47,14 +47,14 @@ go run k8s.io/code-generator/cmd/client-gen \
   --output-dir "${OUTPUT_DIR}/clientset"
 
 echo "Generating listers for ${GROUPS_WITH_VERSIONS} at ${OUTPUT_PKG}/listers"
-go run k8s.io/code-generator/cmd/lister-gen \
+go tool lister-gen \
   --output-pkg "${OUTPUT_PKG}/listers" \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
   --output-dir "${OUTPUT_DIR}/listers" \
   "${APIS_PKG}/${CUSTOM_RESOURCE_NAME}/${CUSTOM_RESOURCE_VERSION}"
 
 echo "Generating informers for ${GROUPS_WITH_VERSIONS} at ${OUTPUT_PKG}/informers"
-go run k8s.io/code-generator/cmd/informer-gen \
+go tool informer-gen \
   --versioned-clientset-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME:-clientset}/${CLIENTSET_NAME_VERSIONED:-versioned}" \
   --listers-package "${OUTPUT_PKG}/listers" \
   --output-pkg "${OUTPUT_PKG}/informers" \
