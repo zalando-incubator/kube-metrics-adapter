@@ -1,13 +1,13 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/zmon"
-	"golang.org/x/net/context"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

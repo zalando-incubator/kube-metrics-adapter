@@ -1,6 +1,7 @@
 package scheduledscaling
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -10,7 +11,6 @@ import (
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
 	zalandov1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/typed/zalando.org/v1"
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/recorder"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
