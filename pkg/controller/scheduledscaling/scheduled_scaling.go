@@ -57,7 +57,7 @@ var (
 type now func() time.Time
 
 type scalingScheduleStore interface {
-	List() []interface{}
+	List() []any
 }
 
 type Controller struct {
@@ -325,7 +325,7 @@ func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSch
 			continue
 		}
 
-		target := int64(metric.Object.Target.AverageValue.MilliValue() / 1000)
+		target := float64(metric.Object.Target.AverageValue.MilliValue()) / 1000.0
 		if target == 0 {
 			continue
 		}
@@ -338,10 +338,10 @@ func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSch
 			value = activeSchedules[scheduleName]
 		}
 
-		expected := int64(math.Ceil(float64(value) / float64(target)))
+		expected := int64(math.Ceil(float64(value) / target))
 		if expected > highestExpected {
 			highestExpected = expected
-			usageRatio = float64(value) / (float64(target) * float64(currentReplicas))
+			usageRatio = float64(value) / (target * float64(currentReplicas))
 			highestObject = metric.Object.DescribedObject
 		}
 	}

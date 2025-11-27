@@ -336,35 +336,42 @@ func TestAdjustScaling(t *testing.T) {
 		msg             string
 		currentReplicas int32
 		desiredReplicas int32
-		targetValue     int64
+		targetValue     string
 		scheduleTarget  int64
 	}{
 		{
 			msg:             "current less than 10%% below desired (target 10000)",
 			currentReplicas: 28, // 7.1% increase to desired
 			desiredReplicas: 31,
-			targetValue:     333, // 10000/333 ~= 31
+			targetValue:     "333", // 10000/333 ~= 31
 			scheduleTarget:  10000,
 		},
 		{
 			msg:             "current less than 10%% below desired",
 			currentReplicas: 95, // 5.3% increase to desired
 			desiredReplicas: 100,
-			targetValue:     10, // 1000/10 = 100
+			targetValue:     "10", // 1000/10 = 100
 			scheduleTarget:  1000,
 		},
 		{
 			msg:             "current more than 10%% below desired, no adjustment",
 			currentReplicas: 90, // 11% increase to desired
 			desiredReplicas: 90,
-			targetValue:     10, // 1000/10 = 100
+			targetValue:     "10", // 1000/10 = 100
 			scheduleTarget:  1000,
 		},
 		{
 			msg:             "invalid HPA should not do any adjustment",
 			currentReplicas: 95,
 			desiredReplicas: 95,
-			targetValue:     0, // this is treated as invalid in the test, thus the HPA is ingored and no adjustment happens.
+			targetValue:     "", // this is treated as invalid in the test, thus the HPA is ingored and no adjustment happens.
+			scheduleTarget:  1000,
+		},
+		{
+			msg:             "handle milivalue as targetValue",
+			currentReplicas: 90, // 5.8% increase to desired
+			desiredReplicas: 96,
+			targetValue:     "10500m", // 1000/10.5 ~= 96
 			scheduleTarget:  1000,
 		},
 	} {
@@ -444,8 +451,11 @@ func TestAdjustScaling(t *testing.T) {
 				},
 			}
 
-			if tc.targetValue != 0 {
-				hpa.Spec.Metrics[0].Object.Target.AverageValue = resource.NewQuantity(tc.targetValue, resource.DecimalSI)
+			if tc.targetValue != "" {
+				quantity, err := resource.ParseQuantity(tc.targetValue)
+				require.NoError(t, err)
+
+				hpa.Spec.Metrics[0].Object.Target.AverageValue = &quantity
 			}
 
 			hpa, err = kubeClient.AutoscalingV2().HorizontalPodAutoscalers("default").Create(context.Background(), hpa, metav1.CreateOptions{})
