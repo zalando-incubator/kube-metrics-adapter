@@ -1,10 +1,10 @@
 package scheduledscaling
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"golang.org/x/net/context"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"

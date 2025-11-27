@@ -1,9 +1,9 @@
 package collector
 
 import (
+	"context"
 	"time"
 
-	"golang.org/x/net/context"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
