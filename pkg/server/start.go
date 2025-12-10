@@ -70,6 +70,8 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		NakadiTokenName:                   "nakadi",
 		CredentialsDir:                    "/meta/credentials",
 		ExternalRPSMetricName:             "skipper_serve_host_duration_seconds_count",
+		KubeClientQPS:                     0.0, // 0.0 will use the 5.0 default in client-go
+		KubeClientBurst:                   0,   // 0 will use the 10 default in client-go
 	}
 
 	cmd := &cobra.Command{
@@ -153,6 +155,10 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"The name of the metric that should be used to query prometheus for RPS per hostname.")
 	flags.BoolVar(&o.ExternalRPSMetrics, "external-rps-metrics", o.ExternalRPSMetrics, ""+
 		"whether to enable external RPS metric collector or not")
+	flags.Float64Var(&o.KubeClientQPS, "kube-client-qps", o.KubeClientQPS, ""+
+		"maximum queries per second (QPS) to the Kubernetes API server (increase for large clusters), defaults to 5")
+	flags.IntVar(&o.KubeClientBurst, "kube-client-burst", o.KubeClientBurst, ""+
+		"maximum burst for throttle to the Kubernetes API server (increase for large clusters, defaults to 10)")
 	return cmd
 }
 
@@ -199,6 +205,8 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 	}()
 
 	clientConfig.Timeout = defaultClientGOTimeout
+	clientConfig.QPS = float32(o.KubeClientQPS)
+	clientConfig.Burst = o.KubeClientBurst
 
 	client, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
@@ -546,4 +554,8 @@ type AdapterServerOptions struct {
 	ExternalRPSMetrics bool
 	// Name of the Prometheus metric that stores RPS by hostname for external RPS metrics.
 	ExternalRPSMetricName string
+	// KubeClientQPS configures the maximum QPS to the Kubernetes API server
+	KubeClientQPS float64
+	// KubeClientBurst configures the maximum burst for throttle to the Kubernetes API server
+	KubeClientBurst int
 }
