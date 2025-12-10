@@ -37,6 +37,7 @@ func main() {
 
 	cmd := server.NewCommandStartAdapterServer(wait.NeverStop)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
+
 	if err := cmd.Execute(); err != nil {
 		panic(err)
 	}
