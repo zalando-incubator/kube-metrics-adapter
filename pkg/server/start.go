@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	rg "github.com/szuecs/routegroup-client/client/clientset/versioned"
 	"github.com/zalando-incubator/cluster-lifecycle-manager/pkg/credentials-loader/platformiam"
@@ -70,6 +71,7 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		NakadiTokenName:                   "nakadi",
 		CredentialsDir:                    "/meta/credentials",
 		ExternalRPSMetricName:             "skipper_serve_host_duration_seconds_count",
+		LogLevel:                          "info",
 	}
 
 	cmd := &cobra.Command{
@@ -153,10 +155,20 @@ func NewCommandStartAdapterServer(stopCh <-chan struct{}) *cobra.Command {
 		"The name of the metric that should be used to query prometheus for RPS per hostname.")
 	flags.BoolVar(&o.ExternalRPSMetrics, "external-rps-metrics", o.ExternalRPSMetrics, ""+
 		"whether to enable external RPS metric collector or not")
+	flags.StringVar(&o.LogLevel, "log-level", o.LogLevel, ""+
+		"log level (debug, info, warn, error, fatal, panic)")
+
 	return cmd
 }
 
 func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct{}) error {
+	level, logErr := log.ParseLevel(o.LogLevel)
+	if logErr != nil {
+		log.Warnf("Invalid log level '%s', defaulting to info", o.LogLevel)
+		level = log.InfoLevel
+	}
+	log.SetLevel(level)
+
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		klog.Fatal(http.ListenAndServe(o.MetricsAddress, nil))
@@ -546,4 +558,6 @@ type AdapterServerOptions struct {
 	ExternalRPSMetrics bool
 	// Name of the Prometheus metric that stores RPS by hostname for external RPS metrics.
 	ExternalRPSMetricName string
+	// LogLevel sets the log level (debug, info, warn, error, fatal, panic)
+	LogLevel string
 }
