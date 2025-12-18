@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -375,18 +376,18 @@ func (t *CollectorScheduler) Add(resourceRef resourceReference, typeName collect
 	collectors[typeName] = cancel
 
 	// start runner for new collector
-	go collectorRunner(ctx, metricCollector, t.metricSink)
+	go collectorRunner(ctx, typeName, metricCollector, t.metricSink)
 }
 
 // collectorRunner runs a collector at the desirec interval. If the passed
 // context is canceled the collection will be stopped.
-func collectorRunner(ctx context.Context, collector collector.Collector, metricsc chan<- metricCollection) {
+func collectorRunner(ctx context.Context, typeName collector.MetricTypeName, collector collector.Collector, metricsc chan<- metricCollection) {
 	for {
 		values, err := collector.GetMetrics(ctx)
 
 		metricsc <- metricCollection{
 			Values: values,
-			Error:  err,
+			Error:  fmt.Errorf("getting metrics for %s failed: %w", typeName, err),
 		}
 
 		select {
