@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -180,6 +181,25 @@ func (c *CollectorFactory) NewCollector(ctx context.Context, hpa *autoscalingv2.
 type MetricTypeName struct {
 	Type   autoscalingv2.MetricSourceType
 	Metric autoscalingv2.MetricIdentifier
+}
+
+func (m MetricTypeName) String() string {
+	str := fmt.Sprintf("%s/%s", m.Type, m.Metric.Name)
+	if len(m.Metric.Selector.MatchLabels) > 0 {
+		str += " " + mapToString(m.Metric.Selector.MatchLabels)
+	}
+	return str
+}
+
+func mapToString(m map[string]string) string {
+	str := "{"
+	keyVals := make([]string, 0, len(m))
+	for k, v := range m {
+		keyVals = append(keyVals, fmt.Sprintf("%s=%s", k, v))
+	}
+	str += strings.Join(keyVals, ",")
+	str += "}"
+	return str
 }
 
 type CollectedMetric struct {
