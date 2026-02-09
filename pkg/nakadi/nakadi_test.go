@@ -5,8 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/cenkalti/backoff/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -210,11 +212,70 @@ func TestQuery(tt *testing.T) {
 
 			nakadiClient := NewNakadiClient(ts.URL, client)
 			consumerLagSeconds, err := nakadiClient.ConsumerLagSeconds(context.Background(), ti.subscriptionFilter)
-			assert.Equal(t, ti.err, err)
+			assertErrorMessage(t, ti.err, err)
 			assert.Equal(t, ti.consumerLagSeconds, consumerLagSeconds)
 			unconsumedEvents, err := nakadiClient.UnconsumedEvents(context.Background(), ti.subscriptionFilter)
-			assert.Equal(t, ti.err, err)
+			assertErrorMessage(t, ti.err, err)
 			assert.Equal(t, ti.unconsumedEvents, unconsumedEvents)
 		})
+	}
+}
+
+func Test_checkResponseStatus(tt *testing.T) {
+	for _, ti := range []struct {
+		msg      string
+		resp     *http.Response
+		errCheck func(error) bool
+	}{
+		{
+			msg:  "nil when 200",
+			resp: &http.Response{StatusCode: http.StatusOK},
+		},
+		{
+			msg:  "backoff.Permanent when 4xx",
+			resp: &http.Response{StatusCode: http.StatusBadRequest},
+			errCheck: func(err error) bool {
+				var permanentErr *backoff.PermanentError
+				return errors.As(err, &permanentErr)
+			},
+		},
+		{
+			msg:  "unexpected error when 422 without Retry-After header",
+			resp: &http.Response{StatusCode: http.StatusTooManyRequests},
+			errCheck: func(err error) bool {
+				return strings.Contains(err.Error(), "unexpected response code")
+			},
+		},
+		{
+			msg: "backoff.RetryAfter when 422 with Retry-After header",
+			resp: &http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Header: http.Header{
+					"Retry-After": []string{"120"},
+				},
+			},
+			errCheck: func(err error) bool {
+				var retryAfterErr *backoff.RetryAfterError
+				return errors.As(err, &retryAfterErr)
+			},
+		},
+	} {
+		tt.Run(ti.msg, func(t *testing.T) {
+			err := checkResponseStatus(ti.resp, nil)
+			if ti.errCheck == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.True(t, ti.errCheck(err))
+			}
+		})
+	}
+}
+
+func assertErrorMessage(t *testing.T, expected, actual error) {
+	t.Helper()
+	if expected != nil {
+		assert.EqualError(t, actual, expected.Error())
+	} else {
+		assert.NoError(t, actual)
 	}
 }
