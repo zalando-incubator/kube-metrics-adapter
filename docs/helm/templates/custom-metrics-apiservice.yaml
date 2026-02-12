@@ -3,6 +3,13 @@ apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
   name: v1beta1.custom.metrics.k8s.io
+  {{- with .Values.customMetricsApi.annotations }}
+  annotations:
+    {{- range $k, $v := . }}
+      {{- $value := $v | quote }}
+      {{- printf "%s: %s" (tpl $k $) (tpl $value $) | nindent 4 }}
+    {{- end }}
+  {{- end }}
 spec:
   service:
     name: kube-metrics-adapter
@@ -13,3 +20,4 @@ spec:
   groupPriorityMinimum: 100
   versionPriority: 100
 {{- end}}
+""
