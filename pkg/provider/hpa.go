@@ -385,10 +385,11 @@ func collectorRunner(ctx context.Context, typeName collector.MetricTypeName, col
 	for {
 		values, err := collector.GetMetrics(ctx)
 
-		metricsc <- metricCollection{
-			Values: values,
-			Error:  fmt.Errorf("getting metrics for %s failed: %w", typeName, err),
+		mc := metricCollection{Values: values}
+		if err != nil {
+			mc.Error = fmt.Errorf("getting metrics for %s failed: %w", typeName, err)
 		}
+		metricsc <- mc
 
 		select {
 		case <-time.After(collector.Interval()):

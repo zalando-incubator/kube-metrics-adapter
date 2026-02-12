@@ -8,6 +8,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/cenkalti/backoff/v5"
 )
 
 // Nakadi defines an interface for talking to the Nakadi API.
@@ -95,24 +99,38 @@ func (c *Client) subscriptions(ctx context.Context, filter *SubscriptionFilter, 
 		endpoint.RawQuery = q.Encode()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("[nakadi subscriptions] failed to create request: %w", err)
+	op := func() ([]byte, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("[nakadi subscriptions] failed to create request: %w", err)
+		}
+
+		resp, err := c.http.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("[nakadi subscriptions] failed to make request: %w", err)
+		}
+		defer resp.Body.Close()
+
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := checkResponseStatus(resp, b); err != nil {
+			return nil, fmt.Errorf("[nakadi subscriptions] %w", err)
+		}
+
+		return b, nil
 	}
 
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("[nakadi subscriptions] failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	d, err := io.ReadAll(resp.Body)
+	d, err := backoff.Retry(
+		ctx,
+		op,
+		backoff.WithBackOff(exponentialBackoff()),
+		backoff.WithMaxTries(3),
+	)
 	if err != nil {
 		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("[nakadi subscriptions] unexpected response code: %d (%s)", resp.StatusCode, string(d))
 	}
 
 	var subscriptionsResp struct {
@@ -194,24 +212,38 @@ func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]stats
 		q.Set("show_time_lag", "true")
 		endpoint.RawQuery = q.Encode()
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
-		if err != nil {
-			return nil, fmt.Errorf("[nakadi stats] failed to create request: %w", err)
+		op := func() ([]byte, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+			if err != nil {
+				return nil, fmt.Errorf("[nakadi stats] failed to create request: %w", err)
+			}
+
+			resp, err := c.http.Do(req)
+			if err != nil {
+				return nil, fmt.Errorf("[nakadi stats] failed to make request: %w", err)
+			}
+			defer resp.Body.Close()
+
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := checkResponseStatus(resp, b); err != nil {
+				return nil, fmt.Errorf("[nakadi stats] %w", err)
+			}
+
+			return b, nil
 		}
 
-		resp, err := c.http.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("[nakadi stats] failed to make request: %w", err)
-		}
-		defer resp.Body.Close()
-
-		d, err := io.ReadAll(resp.Body)
+		d, err := backoff.Retry(
+			ctx,
+			op,
+			backoff.WithBackOff(exponentialBackoff()),
+			backoff.WithMaxTries(3),
+		)
 		if err != nil {
 			return nil, err
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("[nakadi stats] unexpected response code: %d (%s)", resp.StatusCode, string(d))
 		}
 
 		var result statsResp
@@ -228,4 +260,36 @@ func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]stats
 	}
 
 	return stats, nil
+}
+
+func checkResponseStatus(resp *http.Response, b []byte) error {
+	if resp.StatusCode == http.StatusTooManyRequests {
+		h := resp.Header.Get("Retry-After")
+		if h == "" {
+			return fmt.Errorf("unexpected response code: %d (%s)", resp.StatusCode, string(b))
+
+		}
+		sec, err := strconv.ParseInt(h, 10, 32)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
+		return backoff.RetryAfter(int(sec))
+	}
+	if resp.StatusCode >= http.StatusBadRequest &&
+		resp.StatusCode < http.StatusInternalServerError {
+		return backoff.Permanent(
+			fmt.Errorf("non-retryable response code: %d (%s)", resp.StatusCode, string(b)),
+		)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected response code: %d (%s)", resp.StatusCode, string(b))
+	}
+	return nil
+}
+
+func exponentialBackoff() backoff.BackOff {
+	b := backoff.NewExponentialBackOff()
+	b.MaxInterval = time.Second * 30
+	b.InitialInterval = time.Millisecond * 100
+	return b
 }
