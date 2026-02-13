@@ -15,7 +15,19 @@ addDirectoryHeader:
 contentionProfiling:
 profiling:
 enableCustomMetricsApi: true
+
+# -- add annotations to the custom metrics apiservice resource, e.g.
+# cert-manager.io/inject-ca-from: {{.Release.Namespace}}/kube-metrics-adapter to inject the CA certificate form a cert-manager-issued cert used for the deployment
+customMetricsApi:
+  annotations: {}
+
 enableExternalMetricsApi: true
+
+# -- add annotations to the custom metrics apiservice resource, e.g.
+# cert-manager.io/inject-ca-from: {{.Release.Namespace}}/kube-metrics-adapter to inject the CA certificate form a cert-manager-issued cert used for the deployment
+externalMetricsApi:
+  annotations: {}
+
 credentialsDirectory:
 disregardIncompatibleHPAs:
 http2MaxStreamsPerConnection:
