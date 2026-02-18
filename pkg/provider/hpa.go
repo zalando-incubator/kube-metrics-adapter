@@ -384,14 +384,13 @@ func (t *CollectorScheduler) Add(resourceRef resourceReference, typeName collect
 func collectorRunner(ctx context.Context, typeName collector.MetricTypeName, collector collector.Collector, metricsc chan<- metricCollection) {
 	for {
 		values, err := collector.GetMetrics(ctx)
-
 		if err != nil {
 			err = fmt.Errorf("getting metrics for %s failed: %w", typeName, err)
 		}
 
 		metricsc <- metricCollection{
 			Values: values,
-			Error: err,
+			Error:  err,
 		}
 
 		select {
