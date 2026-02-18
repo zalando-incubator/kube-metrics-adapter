@@ -346,7 +346,7 @@ type CollectorScheduler struct {
 	sync.RWMutex
 }
 
-// NewCollectorScheudler initializes a new CollectorScheduler.
+// NewCollectorScheduler initializes a new CollectorScheduler.
 func NewCollectorScheduler(ctx context.Context, metricsc chan<- metricCollection) *CollectorScheduler {
 	return &CollectorScheduler{
 		ctx:        ctx,
@@ -385,9 +385,13 @@ func collectorRunner(ctx context.Context, typeName collector.MetricTypeName, col
 	for {
 		values, err := collector.GetMetrics(ctx)
 
+		if err != nil {
+			err = fmt.Errorf("getting metrics for %s failed: %w", typeName, err)
+		}
+
 		metricsc <- metricCollection{
 			Values: values,
-			Error:  fmt.Errorf("getting metrics for %s failed: %w", typeName, err),
+			Error: err,
 		}
 
 		select {
