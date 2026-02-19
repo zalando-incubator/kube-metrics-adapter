@@ -30,6 +30,88 @@ func (c *mockCollector) Interval() time.Duration {
 	return 0
 }
 
+func TestMetricTypeName_String(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		metricType    autoscalingv2.MetricSourceType
+		metricName    string
+		selector      *metav1.LabelSelector
+		expectedStr   string
+		shouldContain []string
+	}{
+		{
+			name:        "nil selector with PodsMetricSourceType",
+			metricType:  autoscalingv2.PodsMetricSourceType,
+			metricName:  "metric-name",
+			selector:    nil,
+			expectedStr: "Pods/metric-name",
+		},
+		{
+			name:        "nil selector with ObjectMetricSourceType",
+			metricType:  autoscalingv2.ObjectMetricSourceType,
+			metricName:  "metric-name",
+			selector:    nil,
+			expectedStr: "Object/metric-name",
+		},
+		{
+			name:        "nil selector with ExternalMetricSourceType",
+			metricType:  autoscalingv2.ExternalMetricSourceType,
+			metricName:  "metric-name",
+			selector:    nil,
+			expectedStr: "External/metric-name",
+		},
+		{
+			name:       "empty selector (non-nil but empty MatchLabels)",
+			metricType: autoscalingv2.ExternalMetricSourceType,
+			metricName: "metric-name",
+			selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{},
+			},
+			expectedStr: "External/metric-name",
+		},
+		{
+			name:       "selector with single MatchLabel",
+			metricType: autoscalingv2.ExternalMetricSourceType,
+			metricName: "metric-name",
+			selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"key": "value"},
+			},
+			shouldContain: []string{"External/metric-name", "key=value"},
+		},
+		{
+			name:       "selector with multiple MatchLabels",
+			metricType: autoscalingv2.ExternalMetricSourceType,
+			metricName: "metric-name",
+			selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"key1": "val1", "key2": "val2"},
+			},
+			shouldContain: []string{"External/metric-name", "key1=val1", "key2=val2"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mtn := MetricTypeName{
+				Type: tc.metricType,
+				Metric: autoscalingv2.MetricIdentifier{
+					Name:     tc.metricName,
+					Selector: tc.selector,
+				},
+			}
+
+			result := mtn.String()
+
+			if tc.expectedStr != "" {
+				require.Equal(t, tc.expectedStr, result)
+			}
+
+			if len(tc.shouldContain) > 0 {
+				for _, substring := range tc.shouldContain {
+					require.Contains(t, result, substring, "result should contain %q", substring)
+				}
+			}
+		})
+	}
+}
+
 func TestNewCollector(t *testing.T) {
 	for _, tc := range []struct {
 		msg               string

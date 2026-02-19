@@ -185,7 +185,7 @@ type MetricTypeName struct {
 
 func (m MetricTypeName) String() string {
 	str := fmt.Sprintf("%s/%s", m.Type, m.Metric.Name)
-	if len(m.Metric.Selector.MatchLabels) > 0 {
+	if m.Metric.Selector != nil && len(m.Metric.Selector.MatchLabels) > 0 {
 		str += " " + mapToString(m.Metric.Selector.MatchLabels)
 	}
 	return str
