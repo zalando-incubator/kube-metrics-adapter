@@ -20,4 +20,3 @@ spec:
   groupPriorityMinimum: 100
   versionPriority: 100
 {{- end}}
-""
