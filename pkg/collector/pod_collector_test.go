@@ -44,7 +44,7 @@ func TestPodCollector(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := fake.NewSimpleClientset()
+			client := fake.NewClientset()
 			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
 			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
@@ -83,7 +83,7 @@ func TestPodCollectorWithMinPodReadyAge(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := fake.NewSimpleClientset()
+			client := fake.NewClientset()
 			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
 			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
@@ -124,7 +124,7 @@ func TestPodCollectorWithPodCondition(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := fake.NewSimpleClientset()
+			client := fake.NewClientset()
 			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
 			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
@@ -164,7 +164,7 @@ func TestPodCollectorWithPodTerminatingCondition(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := fake.NewSimpleClientset()
+			client := fake.NewClientset()
 			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
 			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 			makeTestDeployment(t, client)
@@ -204,7 +204,7 @@ func TestPodCollectorWithRollout(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := fake.NewSimpleClientset()
+			client := fake.NewClientset()
 			argoRolloutsClient := argorolloutsfake.NewSimpleClientset()
 			plugin := NewPodCollectorPlugin(client, argoRolloutsClient)
 
