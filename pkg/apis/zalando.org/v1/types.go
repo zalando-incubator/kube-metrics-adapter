@@ -1,5 +1,7 @@
 package v1
 
+// +k8s:openapi-gen=true
+
 import (
 	"time"
 

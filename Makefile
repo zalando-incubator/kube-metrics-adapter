@@ -46,6 +46,7 @@ $(OPENAPI): go.mod
 		--output-pkg github.com/zalando-incubator/kube-metrics-adapter/pkg/api/generated/openapi \
 		--output-file zz_generated.openapi.go \
 		-r /dev/null \
+		github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1 \
 		k8s.io/metrics/pkg/apis/custom_metrics \
 		k8s.io/metrics/pkg/apis/custom_metrics/v1beta1 \
 		k8s.io/metrics/pkg/apis/custom_metrics/v1beta2 \

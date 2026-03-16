@@ -36,7 +36,15 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		v1.AWSElasticBlockStoreVolumeSource{}.OpenAPIModelName():            schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ClusterScalingSchedule":     schema_pkg_apis_zalandoorg_v1_ClusterScalingSchedule(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ClusterScalingScheduleList": schema_pkg_apis_zalandoorg_v1_ClusterScalingScheduleList(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingSchedule":            schema_pkg_apis_zalandoorg_v1_ScalingSchedule(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleList":        schema_pkg_apis_zalandoorg_v1_ScalingScheduleList(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleSpec":        schema_pkg_apis_zalandoorg_v1_ScalingScheduleSpec(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleStatus":      schema_pkg_apis_zalandoorg_v1_ScalingScheduleStatus(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.Schedule":                   schema_pkg_apis_zalandoorg_v1_Schedule(ref),
+		"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.SchedulePeriod":             schema_pkg_apis_zalandoorg_v1_SchedulePeriod(ref),
+		v1.AWSElasticBlockStoreVolumeSource{}.OpenAPIModelName():                                               schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		v1.Affinity{}.OpenAPIModelName():                                    schema_k8sio_api_core_v1_Affinity(ref),
 		v1.AppArmorProfile{}.OpenAPIModelName():                             schema_k8sio_api_core_v1_AppArmorProfile(ref),
 		v1.AttachedVolume{}.OpenAPIModelName():                              schema_k8sio_api_core_v1_AttachedVolume(ref),
@@ -338,6 +346,370 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		metricsv1beta1.NodeMetricsList{}.OpenAPIModelName():                 schema_pkg_apis_metrics_v1beta1_NodeMetricsList(ref),
 		metricsv1beta1.PodMetrics{}.OpenAPIModelName():                      schema_pkg_apis_metrics_v1beta1_PodMetrics(ref),
 		metricsv1beta1.PodMetricsList{}.OpenAPIModelName():                  schema_pkg_apis_metrics_v1beta1_PodMetricsList(ref),
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_ClusterScalingSchedule(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterScalingSchedule describes a cluster scoped time based metric to be used in autoscaling operations.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleStatus"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleSpec", "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleStatus", metav1.ObjectMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_ClusterScalingScheduleList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterScalingScheduleList is a list of cluster scoped scaling schedules.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ClusterScalingSchedule"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ClusterScalingSchedule", metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_ScalingSchedule(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ScalingSchedule describes a namespaced time based metric to be used in autoscaling operations.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleStatus"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleSpec", "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingScheduleStatus", metav1.ObjectMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_ScalingScheduleList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ScalingScheduleList is a list of namespaced scaling schedules.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingSchedule"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.ScalingSchedule", metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_ScalingScheduleSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ScalingScheduleSpec is the spec part of the ScalingSchedule.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"scalingWindowDurationMinutes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Fade the scheduled values in and out over this many minutes. If unset, the default per-cluster value will be used.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"schedules": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Schedules is the list of schedules for this ScalingSchedule resource. All the schedules defined here will result on the value to the same metric. New metrics require a new ScalingSchedule resource.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.Schedule"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"schedules"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.Schedule"},
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_ScalingScheduleStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ScalingScheduleStatus is the status section of the ScalingSchedule.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"active": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Active is true if at least one of the schedules defined in the scaling schedule is currently active.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_Schedule(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Schedule is the schedule details to be used inside a ScalingSchedule.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"period": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines the details of a Repeating schedule.",
+							Ref:         ref("github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.SchedulePeriod"),
+						},
+					},
+					"date": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines the starting date of a OneTime schedule. It has to be a RFC3339 formatted date.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"endDate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines the ending date of a OneTime schedule. It must be a RFC3339 formatted date.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"durationMinutes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The duration in minutes (default 0) that the configured value will be returned for the defined schedule.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"value": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The metric value that will be returned for the defined schedule.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+				Required: []string{"type", "value"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1.SchedulePeriod"},
+	}
+}
+
+func schema_pkg_apis_zalandoorg_v1_SchedulePeriod(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SchedulePeriod is the details to be used for a Schedule of the Repeating type.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"startTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The startTime has the format HH:MM",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"endTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The endTime has the format HH:MM",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"days": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The days that this schedule will be active.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"timezone": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The location name corresponding to a file in the IANA Time Zone database, like Europe/Berlin.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"startTime", "days", "timezone"},
+			},
+		},
 	}
 }
 

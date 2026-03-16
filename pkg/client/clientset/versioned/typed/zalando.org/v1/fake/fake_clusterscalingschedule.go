@@ -20,19 +20,20 @@ package fake
 
 import (
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/typed/zalando.org/v1"
+	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/applyconfiguration/zalando.org/v1"
+	typedzalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/typed/zalando.org/v1"
 	gentype "k8s.io/client-go/gentype"
 )
 
 // fakeClusterScalingSchedules implements ClusterScalingScheduleInterface
 type fakeClusterScalingSchedules struct {
-	*gentype.FakeClientWithList[*v1.ClusterScalingSchedule, *v1.ClusterScalingScheduleList]
+	*gentype.FakeClientWithListAndApply[*v1.ClusterScalingSchedule, *v1.ClusterScalingScheduleList, *zalandoorgv1.ClusterScalingScheduleApplyConfiguration]
 	Fake *FakeZalandoV1
 }
 
-func newFakeClusterScalingSchedules(fake *FakeZalandoV1) zalandoorgv1.ClusterScalingScheduleInterface {
+func newFakeClusterScalingSchedules(fake *FakeZalandoV1) typedzalandoorgv1.ClusterScalingScheduleInterface {
 	return &fakeClusterScalingSchedules{
-		gentype.NewFakeClientWithList[*v1.ClusterScalingSchedule, *v1.ClusterScalingScheduleList](
+		gentype.NewFakeClientWithListAndApply[*v1.ClusterScalingSchedule, *v1.ClusterScalingScheduleList, *zalandoorgv1.ClusterScalingScheduleApplyConfiguration](
 			fake.Fake,
 			"",
 			v1.SchemeGroupVersion.WithResource("clusterscalingschedules"),

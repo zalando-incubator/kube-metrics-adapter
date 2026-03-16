@@ -217,7 +217,7 @@ func TestRunOnce(t *testing.T) {
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
 			// setup fake client and cache
-			client := scalingschedulefake.NewSimpleClientset()
+			client := scalingschedulefake.NewClientset()
 
 			clusterScalingSchedulesStore := fakeClusterScalingScheduleStore{
 				client: client.ZalandoV1(),
@@ -231,7 +231,7 @@ func TestRunOnce(t *testing.T) {
 			err := applySchedules(client.ZalandoV1(), tc.schedules)
 			require.NoError(t, err)
 
-			controller := NewController(client.ZalandoV1(), fake.NewSimpleClientset(), nil, scalingSchedulesStore, clusterScalingSchedulesStore, now, 0, "Europe/Berlin", 0.10)
+			controller := NewController(client.ZalandoV1(), fake.NewClientset(), nil, scalingSchedulesStore, clusterScalingSchedulesStore, now, 0, "Europe/Berlin", 0.10)
 
 			err = controller.runOnce(context.Background())
 			require.NoError(t, err)
@@ -376,8 +376,8 @@ func TestAdjustScaling(t *testing.T) {
 		},
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
-			kubeClient := fake.NewSimpleClientset()
-			scalingScheduleClient := zfake.NewSimpleClientset()
+			kubeClient := fake.NewClientset()
+			scalingScheduleClient := zfake.NewClientset()
 			controller := NewController(
 				scalingScheduleClient.ZalandoV1(),
 				kubeClient,

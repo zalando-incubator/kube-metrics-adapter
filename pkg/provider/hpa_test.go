@@ -96,7 +96,7 @@ func TestUpdateHPAs(t *testing.T) {
 		},
 	}
 
-	fakeClient := fake.NewSimpleClientset()
+	fakeClient := fake.NewClientset()
 
 	var err error
 	hpa, err = fakeClient.AutoscalingV2().HorizontalPodAutoscalers("default").Create(context.TODO(), hpa, metav1.CreateOptions{})
@@ -160,7 +160,7 @@ func TestUpdateHPAsDisregardingIncompatibleHPA(t *testing.T) {
 		},
 	}
 
-	fakeClient := fake.NewSimpleClientset()
+	fakeClient := fake.NewClientset()
 
 	var err error
 	_, err = fakeClient.AutoscalingV2().HorizontalPodAutoscalers("default").Create(context.TODO(), hpa, metav1.CreateOptions{})

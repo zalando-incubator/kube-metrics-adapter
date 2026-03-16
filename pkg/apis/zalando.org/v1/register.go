@@ -1,5 +1,6 @@
 // Package v1 contains API Schema definitions for the zalando v1 API group
 // +kubebuilder:object:generate=true
+// +k8s:openapi-gen=true
 // +groupName=zalando.org
 package v1
 

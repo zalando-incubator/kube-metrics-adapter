@@ -212,7 +212,9 @@ require (
 )
 
 tool (
+	github.com/zalando-incubator/kube-metrics-adapter/pkg/api/generated/openapi/cmd/models-schema
 	k8s.io/code-generator
+	k8s.io/code-generator/cmd/applyconfiguration-gen
 	k8s.io/code-generator/cmd/client-gen
 	k8s.io/code-generator/cmd/deepcopy-gen
 	k8s.io/code-generator/cmd/informer-gen

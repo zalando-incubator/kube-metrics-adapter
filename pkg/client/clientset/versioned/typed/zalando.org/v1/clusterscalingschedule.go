@@ -22,6 +22,7 @@ import (
 	context "context"
 
 	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
+	applyconfigurationzalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/applyconfiguration/zalando.org/v1"
 	scheme "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -47,18 +48,21 @@ type ClusterScalingScheduleInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*zalandoorgv1.ClusterScalingScheduleList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *zalandoorgv1.ClusterScalingSchedule, err error)
+	Apply(ctx context.Context, clusterScalingSchedule *applyconfigurationzalandoorgv1.ClusterScalingScheduleApplyConfiguration, opts metav1.ApplyOptions) (result *zalandoorgv1.ClusterScalingSchedule, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+	ApplyStatus(ctx context.Context, clusterScalingSchedule *applyconfigurationzalandoorgv1.ClusterScalingScheduleApplyConfiguration, opts metav1.ApplyOptions) (result *zalandoorgv1.ClusterScalingSchedule, err error)
 	ClusterScalingScheduleExpansion
 }
 
 // clusterScalingSchedules implements ClusterScalingScheduleInterface
 type clusterScalingSchedules struct {
-	*gentype.ClientWithList[*zalandoorgv1.ClusterScalingSchedule, *zalandoorgv1.ClusterScalingScheduleList]
+	*gentype.ClientWithListAndApply[*zalandoorgv1.ClusterScalingSchedule, *zalandoorgv1.ClusterScalingScheduleList, *applyconfigurationzalandoorgv1.ClusterScalingScheduleApplyConfiguration]
 }
 
 // newClusterScalingSchedules returns a ClusterScalingSchedules
 func newClusterScalingSchedules(c *ZalandoV1Client) *clusterScalingSchedules {
 	return &clusterScalingSchedules{
-		gentype.NewClientWithList[*zalandoorgv1.ClusterScalingSchedule, *zalandoorgv1.ClusterScalingScheduleList](
+		gentype.NewClientWithListAndApply[*zalandoorgv1.ClusterScalingSchedule, *zalandoorgv1.ClusterScalingScheduleList, *applyconfigurationzalandoorgv1.ClusterScalingScheduleApplyConfiguration](
 			"clusterscalingschedules",
 			c.RESTClient(),
 			scheme.ParameterCodec,

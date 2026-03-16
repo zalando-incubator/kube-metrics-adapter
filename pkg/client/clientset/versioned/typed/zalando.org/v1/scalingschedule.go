@@ -22,6 +22,7 @@ import (
 	context "context"
 
 	zalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
+	applyconfigurationzalandoorgv1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/applyconfiguration/zalando.org/v1"
 	scheme "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -47,18 +48,21 @@ type ScalingScheduleInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*zalandoorgv1.ScalingScheduleList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *zalandoorgv1.ScalingSchedule, err error)
+	Apply(ctx context.Context, scalingSchedule *applyconfigurationzalandoorgv1.ScalingScheduleApplyConfiguration, opts metav1.ApplyOptions) (result *zalandoorgv1.ScalingSchedule, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+	ApplyStatus(ctx context.Context, scalingSchedule *applyconfigurationzalandoorgv1.ScalingScheduleApplyConfiguration, opts metav1.ApplyOptions) (result *zalandoorgv1.ScalingSchedule, err error)
 	ScalingScheduleExpansion
 }
 
 // scalingSchedules implements ScalingScheduleInterface
 type scalingSchedules struct {
-	*gentype.ClientWithList[*zalandoorgv1.ScalingSchedule, *zalandoorgv1.ScalingScheduleList]
+	*gentype.ClientWithListAndApply[*zalandoorgv1.ScalingSchedule, *zalandoorgv1.ScalingScheduleList, *applyconfigurationzalandoorgv1.ScalingScheduleApplyConfiguration]
 }
 
 // newScalingSchedules returns a ScalingSchedules
 func newScalingSchedules(c *ZalandoV1Client, namespace string) *scalingSchedules {
 	return &scalingSchedules{
-		gentype.NewClientWithList[*zalandoorgv1.ScalingSchedule, *zalandoorgv1.ScalingScheduleList](
+		gentype.NewClientWithListAndApply[*zalandoorgv1.ScalingSchedule, *zalandoorgv1.ScalingScheduleList, *applyconfigurationzalandoorgv1.ScalingScheduleApplyConfiguration](
 			"scalingschedules",
 			c.RESTClient(),
 			scheme.ParameterCodec,

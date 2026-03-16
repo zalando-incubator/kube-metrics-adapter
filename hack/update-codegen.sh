@@ -37,6 +37,23 @@ go tool deepcopy-gen \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
   "${APIS_PKG}/${CUSTOM_RESOURCE_NAME}/${CUSTOM_RESOURCE_VERSION}"
 
+APPLYCONFIG_PKG="${OUTPUT_PKG}/applyconfiguration"
+
+echo "Generating apply configurations for ${GROUPS_WITH_VERSIONS} at ${APPLYCONFIG_PKG}"
+
+# Generate the OpenAPI schema JSON to use for applyconfiguration-gen
+OPENAPI_SCHEMA_FILE=$(mktemp -t "openapi-schema-XXXXXX.json")
+trap 'rm -f ${OPENAPI_SCHEMA_FILE}' EXIT
+echo "Extracting OpenAPI schema to ${OPENAPI_SCHEMA_FILE}"
+go tool models-schema >"${OPENAPI_SCHEMA_FILE}"
+
+go tool applyconfiguration-gen \
+  --output-pkg "${APPLYCONFIG_PKG}" \
+  --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
+  --output-dir "${OUTPUT_DIR}/applyconfiguration" \
+  --openapi-schema "${OPENAPI_SCHEMA_FILE}" \
+  "${APIS_PKG}/${CUSTOM_RESOURCE_NAME}/${CUSTOM_RESOURCE_VERSION}"
+
 echo "Generating clientset for ${GROUPS_WITH_VERSIONS} at ${OUTPUT_PKG}/${CLIENTSET_PKG_NAME:-clientset}"
 go tool client-gen \
   --clientset-name versioned \
@@ -44,7 +61,8 @@ go tool client-gen \
   --input "${APIS_PKG}/${CUSTOM_RESOURCE_NAME}/${CUSTOM_RESOURCE_VERSION}" \
   --output-pkg "${OUTPUT_PKG}/clientset" \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
-  --output-dir "${OUTPUT_DIR}/clientset"
+  --output-dir "${OUTPUT_DIR}/clientset" \
+  --apply-configuration-package "${APPLYCONFIG_PKG}"
 
 echo "Generating listers for ${GROUPS_WITH_VERSIONS} at ${OUTPUT_PKG}/listers"
 go tool lister-gen \

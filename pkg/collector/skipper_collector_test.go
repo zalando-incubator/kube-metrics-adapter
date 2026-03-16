@@ -27,7 +27,7 @@ const (
 )
 
 func TestTargetRefReplicasDeployments(t *testing.T) {
-	client := fake.NewSimpleClientset()
+	client := fake.NewClientset()
 	name := "some-app"
 	defaultNamespace := "default"
 	deployment, err := newDeployment(client, defaultNamespace, name, 2, 1)
@@ -44,7 +44,7 @@ func TestTargetRefReplicasDeployments(t *testing.T) {
 }
 
 func TestTargetRefReplicasStatefulSets(t *testing.T) {
-	client := fake.NewSimpleClientset()
+	client := fake.NewClientset()
 	name := "some-app"
 	defaultNamespace := "default"
 	statefulSet, err := newStatefulSet(client, defaultNamespace, name)
@@ -330,7 +330,7 @@ func TestSkipperCollectorIngress(t *testing.T) {
 		},
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
-			client := fake.NewSimpleClientset()
+			client := fake.NewClientset()
 			err := makeIngress(client, tc.namespace, tc.resourceName, tc.backend, tc.hostnames, tc.backendWeights)
 			require.NoError(t, err)
 			hpa := makeIngressHPA(tc.namespace, tc.resourceName, tc.backend)
@@ -502,7 +502,7 @@ func TestSkipperCollector(t *testing.T) {
 		},
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
-			client := fake.NewSimpleClientset()
+			client := fake.NewClientset()
 			backendWeights := make(map[string]map[string]float64)
 			if len(tc.backendWeights) > 0 {
 				backendWeights = map[string]map[string]float64{testBackendWeightsAnnotation: tc.backendWeights}
