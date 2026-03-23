@@ -35,7 +35,7 @@ type ScalingSchedule struct {
 // Identifier returns the namespaced scalingScale Identifier in the format
 // `<namespace>/<name>`.
 func (s *ScalingSchedule) Identifier() string {
-	return s.ObjectMeta.Namespace + "/" + s.ObjectMeta.Name
+	return s.Namespace + "/" + s.Name
 }
 
 // ResourceSpec returns the ScalingScheduleSpec of the ScalingSchedule.
@@ -66,7 +66,7 @@ type ClusterScalingSchedule struct {
 // Identifier returns the cluster scalingScale Identifier in the format
 // `<name>`.
 func (s *ClusterScalingSchedule) Identifier() string {
-	return s.ObjectMeta.Name
+	return s.Name
 }
 
 // ResourceSpec returns the ScalingScheduleSpec of the ClusterScalingSchedule.

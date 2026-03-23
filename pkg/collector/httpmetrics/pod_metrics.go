@@ -88,7 +88,7 @@ func NewPodMetricsJSONPathGetter(config map[string]string) (*PodMetricsJSONPathG
 			return nil, err
 		}
 		if d < 0 {
-			return nil, fmt.Errorf("Invalid request-timeout config value: %s", v)
+			return nil, fmt.Errorf("invalid request-timeout config value: %s", v)
 		}
 		requestTimeout = d
 	}
@@ -99,7 +99,7 @@ func NewPodMetricsJSONPathGetter(config map[string]string) (*PodMetricsJSONPathG
 			return nil, err
 		}
 		if d < 0 {
-			return nil, fmt.Errorf("Invalid connect-timeout config value: %s", v)
+			return nil, fmt.Errorf("invalid connect-timeout config value: %s", v)
 		}
 		connectTimeout = d
 	}

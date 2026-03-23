@@ -8,12 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	v1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/apis/zalando.org/v1"
-	scalingschedulefake "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/fake"
 	zfake "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/fake"
 	zalandov1 "github.com/zalando-incubator/kube-metrics-adapter/pkg/client/clientset/versioned/typed/zalando.org/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
-	v2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -217,7 +215,7 @@ func TestRunOnce(t *testing.T) {
 	} {
 		t.Run(tc.msg, func(t *testing.T) {
 			// setup fake client and cache
-			client := scalingschedulefake.NewSimpleClientset()
+			client := zfake.NewSimpleClientset()
 
 			clusterScalingSchedulesStore := fakeClusterScalingScheduleStore{
 				client: client.ZalandoV1(),
@@ -425,25 +423,25 @@ func TestAdjustScaling(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hpa-1",
 				},
-				Spec: v2.HorizontalPodAutoscalerSpec{
-					ScaleTargetRef: v2.CrossVersionObjectReference{
+				Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 						APIVersion: "apps/v1",
 						Kind:       "Deployment",
 						Name:       "deployment-1",
 					},
 					MinReplicas: ptr.To(int32(1)),
 					MaxReplicas: 1000,
-					Metrics: []v2.MetricSpec{
+					Metrics: []autoscalingv2.MetricSpec{
 						{
-							Type: v2.ObjectMetricSourceType,
-							Object: &v2.ObjectMetricSource{
-								DescribedObject: v2.CrossVersionObjectReference{
+							Type: autoscalingv2.ObjectMetricSourceType,
+							Object: &autoscalingv2.ObjectMetricSource{
+								DescribedObject: autoscalingv2.CrossVersionObjectReference{
 									APIVersion: "zalando.org/v1",
 									Kind:       "ClusterScalingSchedule",
 									Name:       "schedule-1",
 								},
-								Target: v2.MetricTarget{
-									Type: v2.AverageValueMetricType,
+								Target: autoscalingv2.MetricTarget{
+									Type: autoscalingv2.AverageValueMetricType,
 								},
 							},
 						},

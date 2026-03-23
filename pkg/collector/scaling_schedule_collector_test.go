@@ -654,7 +654,7 @@ func TestScalingScheduleCollector(t *testing.T) {
 					require.EqualValues(t, namespace, collected[0].Custom.DescribedObject.Namespace)
 					require.EqualValues(t, "zalando.org/v1", collected[0].Custom.DescribedObject.APIVersion)
 					require.EqualValues(t, resourceType, collected[0].Custom.DescribedObject.Kind)
-					require.EqualValues(t, uTCNowRFC3339, collected[0].Custom.Timestamp.Time.Format(time.RFC3339))
+					require.EqualValues(t, uTCNowRFC3339, collected[0].Custom.Timestamp.Format(time.RFC3339))
 					require.EqualValues(t, collected[0].Custom.Metric.Name, scalingScheduleName)
 					require.EqualValues(t, namespace, collected[0].Namespace)
 				}

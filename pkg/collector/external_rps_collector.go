@@ -63,7 +63,7 @@ func (p *ExternalRPSCollectorPlugin) NewCollector(
 	confCopy := *config
 
 	if _, ok := config.Config["hostnames"]; !ok {
-		return nil, fmt.Errorf("Hostname is not specified, unable to create collector")
+		return nil, fmt.Errorf("hostname is not specified, unable to create collector")
 	}
 
 	hostnames := strings.Split(config.Config["hostnames"], ",")
