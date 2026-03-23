@@ -26,7 +26,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260319004828-5883c5ee87b9
 	k8s.io/metrics v0.35.3
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
-	sigs.k8s.io/custom-metrics-apiserver v1.34.0
+	sigs.k8s.io/custom-metrics-apiserver v1.35.0
 )
 
 require (
