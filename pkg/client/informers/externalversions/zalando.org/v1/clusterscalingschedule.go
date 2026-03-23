@@ -56,7 +56,7 @@ func NewClusterScalingScheduleInformer(client versioned.Interface, resyncPeriod 
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredClusterScalingScheduleInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
@@ -81,7 +81,7 @@ func NewFilteredClusterScalingScheduleInformer(client versioned.Interface, resyn
 				}
 				return client.ZalandoV1().ClusterScalingSchedules().Watch(ctx, options)
 			},
-		},
+		}, client),
 		&apiszalandoorgv1.ClusterScalingSchedule{},
 		resyncPeriod,
 		indexers,
