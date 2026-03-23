@@ -135,7 +135,7 @@ func (c *PodCollector) Interval() time.Duration {
 func (c *PodCollector) getPodMetric(pod corev1.Pod, ch chan CollectedMetric, errCh chan error) {
 	value, err := c.Getter.GetMetric(&pod)
 	if err != nil {
-		errCh <- fmt.Errorf("Failed to get metrics from pod '%s/%s': %v", pod.Namespace, pod.Name, err)
+		errCh <- fmt.Errorf("failed to get metrics from pod '%s/%s': %v", pod.Namespace, pod.Name, err)
 		return
 	}
 

@@ -289,9 +289,9 @@ func makeTestPods(t *testing.T, testServer string, metricName string, port strin
 		}
 
 		if podDeletionTimestamp.IsZero() {
-			testPod.ObjectMeta.DeletionTimestamp = nil
+			testPod.DeletionTimestamp = nil
 		} else {
-			testPod.ObjectMeta.DeletionTimestamp = &v1.Time{Time: podDeletionTimestamp}
+			testPod.DeletionTimestamp = &v1.Time{Time: podDeletionTimestamp}
 		}
 		_, err := client.CoreV1().Pods(testNamespace).Create(context.Background(), testPod, v1.CreateOptions{})
 		require.NoError(t, err)

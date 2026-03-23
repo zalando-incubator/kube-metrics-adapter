@@ -8,7 +8,6 @@ import (
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestInfluxDBCollector_New(t *testing.T) {
@@ -24,7 +23,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 				Metric: autoscalingv2.MetricIdentifier{
 					Name: "flux-query",
 					// This is actually useless, because the selector should be flattened in Config when parsing.
-					Selector: &v1.LabelSelector{
+					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"query-name": "range2m",
 						},
@@ -62,7 +61,7 @@ func TestInfluxDBCollector_New(t *testing.T) {
 				Type: autoscalingv2.ExternalMetricSourceType,
 				Metric: autoscalingv2.MetricIdentifier{
 					Name: "flux-query",
-					Selector: &v1.LabelSelector{
+					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"query-name": "range2m",
 						},

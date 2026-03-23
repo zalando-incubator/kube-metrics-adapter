@@ -173,7 +173,7 @@ func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) 
 		}
 
 		for _, rule := range ingress.Spec.Rules {
-			escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.Replace(rule.Host, ".", "_", -1)))
+			escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.ReplaceAll(rule.Host, ".", "_")))
 		}
 	case "RouteGroup":
 		routegroup, err := c.rgClient.ZalandoV1().RouteGroups(c.objectReference.Namespace).Get(ctx, c.objectReference.Name, metav1.GetOptions{})
@@ -187,7 +187,7 @@ func (c *SkipperCollector) getCollector(ctx context.Context) (Collector, error) 
 		}
 
 		for _, host := range routegroup.Spec.Hosts {
-			escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.Replace(host, ".", "_", -1)))
+			escapedHostnames = append(escapedHostnames, regexp.QuoteMeta(strings.ReplaceAll(host, ".", "_")))
 		}
 	default:
 		return nil, fmt.Errorf("unknown skipper resource kind %s for resource %s/%s", c.objectReference.Kind, c.objectReference.Namespace, c.objectReference.Name)

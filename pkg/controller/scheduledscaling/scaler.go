@@ -16,7 +16,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/scale"
 	scaleclient "k8s.io/client-go/scale"
 )
 
@@ -41,8 +40,8 @@ func NewHPATargetScaler(ctx context.Context, kubeClient kubernetes.Interface, cf
 		restMapper.Reset()
 	}, 30*time.Second, ctx.Done())
 
-	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(kubeClient.Discovery())
-	scaleClient, err := scale.NewForConfig(cfg, restMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
+	scaleKindResolver := scaleclient.NewDiscoveryScaleKindResolver(kubeClient.Discovery())
+	scaleClient, err := scaleclient.NewForConfig(cfg, restMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create scale client: %w", err)
 	}

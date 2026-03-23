@@ -184,7 +184,7 @@ func (o AdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct
 
 	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
 	serverConfig.ClientConfig = clientConfig
-	err = o.CustomMetricsAdapterServerOptions.ApplyTo(serverConfig)
+	err = o.ApplyTo(serverConfig)
 	if err != nil {
 		return err
 	}
