@@ -2,6 +2,7 @@ package httpmetrics
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strconv"
 	"time"
@@ -122,7 +123,7 @@ func (g *PodMetricsJSONPathGetter) buildMetricsURL(podIP string) url.URL {
 
 	return url.URL{
 		Scheme:   scheme,
-		Host:     fmt.Sprintf("%s:%d", podIP, g.port),
+		Host:     net.JoinHostPort(podIP, strconv.Itoa(g.port)),
 		Path:     g.path,
 		RawQuery: g.rawQuery,
 	}
