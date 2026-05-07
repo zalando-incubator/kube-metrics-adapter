@@ -1,7 +1,9 @@
-FROM registry.opensource.zalan.do/library/alpine-3:latest
+FROM gcr.io/distroless/static-debian12:latest
 LABEL maintainer="Team Teapot @ Zalando SE <team-teapot@zalando.de>"
 
+ARG TARGETARCH
+
 # add binary
-ADD build/linux/custom-metrics-consumer /
+ADD build/linux/${TARGETARCH}/custom-metrics-consumer /
 
 ENTRYPOINT ["/custom-metrics-consumer"]

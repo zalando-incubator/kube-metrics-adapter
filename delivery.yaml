@@ -15,21 +15,6 @@ pipeline:
   - desc: test
     cmd: |
       make test
-  - desc: build
-    cmd: |
-      make build.docker
-  - desc: push
-    cmd: |
-      if [[ $CDP_TARGET_BRANCH == master && ! $CDP_PULL_REQUEST_NUMBER ]]; then
-        IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter
-        VERSION=$(git describe --tags --always)
-      else
-        IMAGE=registry-write.opensource.zalan.do/teapot/kube-metrics-adapter-test
-        VERSION=$CDP_BUILD_VERSION
-      fi
-      IMAGE=$IMAGE VERSION=$VERSION make build.docker
-      git diff --stat --exit-code
-      IMAGE=$IMAGE VERSION=$VERSION make build.push
   - desc: Build and push image to Zalando's registry
     cmd: |
       if [[ $CDP_TARGET_BRANCH == master && ! $CDP_PULL_REQUEST_NUMBER ]]; then

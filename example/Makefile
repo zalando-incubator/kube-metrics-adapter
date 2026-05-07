@@ -32,11 +32,14 @@ build/$(BINARY): $(SOURCES)
 build/linux/$(BINARY): $(SOURCES)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/linux/$(BINARY) -ldflags "$(LDFLAGS)" .
 
+build/linux/amd64/$(BINARY): $(SOURCES)
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/linux/amd64/$(BINARY) -ldflags "$(LDFLAGS)" .
+
+build/linux/arm64/$(BINARY): $(SOURCES)
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/linux/arm64/$(BINARY) -ldflags "$(LDFLAGS)" .
+
 build/osx/$(BINARY): $(SOURCES)
 	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o build/osx/$(BINARY) -ldflags "$(LDFLAGS)" .
 
-build.docker: build.linux
-	docker build --rm -t "$(IMAGE):$(TAG)" -f $(DOCKERFILE) .
-
-build.push: build.docker
-	docker push "$(IMAGE):$(TAG)"
+build.push: build/linux/amd64/$(BINARY) build/linux/arm64/$(BINARY)
+	docker buildx build --rm --build-arg -t "$(IMAGE):$(TAG)" --platform linux/amd64,linux/arm64 --push .
