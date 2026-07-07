@@ -33,7 +33,6 @@ GROUPS_WITH_VERSIONS="${CUSTOM_RESOURCE_NAME}:${CUSTOM_RESOURCE_VERSION}"
 echo "Generating deepcopy funcs"
 go tool deepcopy-gen \
   --output-file zz_generated.deepcopy.go \
-  --bounding-dirs "${APIS_PKG}" \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
   "${APIS_PKG}/${CUSTOM_RESOURCE_NAME}/${CUSTOM_RESOURCE_VERSION}"
 
