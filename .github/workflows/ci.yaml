@@ -15,11 +15,18 @@ jobs:
       with:
         go-version: '^1.26'
     - run: go version
-    - run: go install github.com/mattn/goveralls@latest
+    - run: go install github.com/t-yuki/gocover-cobertura@latest
     - run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
     - run: make build.docker
     - run: make test
     - run: make check
-    - run: goveralls -coverprofile=profile.cov -service=github
-      env:
-        COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Convert coverage to Cobertura XML
+      if: ${{ hashFiles('profile.cov') != '' }}
+      run: gocover-cobertura < profile.cov > coverage.xml
+    - name: Upload coverage report
+      if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && hashFiles('coverage.xml') != '' }}
+      uses: actions/upload-code-coverage@v1
+      with:
+        file: coverage.xml
+        language: go
+        label: code-coverage/go-test
