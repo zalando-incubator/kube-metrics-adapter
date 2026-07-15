@@ -85,7 +85,14 @@ func NewNakadiCollector(_ context.Context, nakadiClient nakadi.Nakadi, hpa *auto
 	}
 
 	if nakadiEventTypes, ok := config.Config[nakadiEventTypesKey]; ok {
-		eventTypes := strings.Split(nakadiEventTypes, ",")
+		eventTypes := make([]string, 0)
+		for _, eventType := range strings.Split(nakadiEventTypes, ",") {
+			eventType = strings.TrimSpace(eventType)
+			if eventType == "" {
+				continue
+			}
+			eventTypes = append(eventTypes, eventType)
+		}
 		subscriptionFilter.EventTypes = eventTypes
 	}
 
