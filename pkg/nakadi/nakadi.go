@@ -253,10 +253,20 @@ func (c *Client) stats(ctx context.Context, filter *SubscriptionFilter) ([]stats
 		}
 
 		if len(result.Items) == 0 {
-			return nil, errors.New("[nakadi stats] expected at least 1 event-type, 0 returned")
+			// Filtering mode can resolve multiple subscriptions. Some of them may
+			// temporarily return no event-type stats, so continue collecting from
+			// the remaining subscriptions and fail only if none yield data.
+			if filter.SubscriptionID != "" {
+				return nil, errors.New("[nakadi stats] expected at least 1 event-type, 0 returned")
+			}
+			continue
 		}
 
 		stats = append(stats, result.Items...)
+	}
+
+	if len(stats) == 0 {
+		return nil, errors.New("[nakadi stats] expected at least 1 event-type, 0 returned")
 	}
 
 	return stats, nil

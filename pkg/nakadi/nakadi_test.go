@@ -40,6 +40,8 @@ func TestQuery(tt *testing.T) {
 		msg                        string
 		status                     int
 		subscriptionIDResponseBody string
+		subscriptionIDResponseByID map[string]string
+		subscriptionIDStatusByID   map[string]int
 		subscriptionFilter         *SubscriptionFilter
 		err                        error
 		unconsumedEvents           int64
@@ -178,6 +180,35 @@ func TestQuery(tt *testing.T) {
 			unconsumedEvents:   18,
 			consumerLagSeconds: 2,
 		},
+		{
+			msg:                "test filtering ignores subscriptions with empty stats response",
+			status:             http.StatusOK,
+			subscriptionFilter: &SubscriptionFilter{OwningApplication: "example-app", EventTypes: []string{"example-event"}, ConsumerGroup: "example-group"},
+			subscriptionIDResponseByID: map[string]string{
+				"id_1": `{
+					"items": []
+				}`,
+				"id_2": `{
+					"items": [
+						{
+							"event_type": "example-event",
+							"partitions": [
+								{
+									"partition": "0",
+									"state": "assigned",
+									"unconsumed_events": 7,
+									"consumer_lag_seconds": 5,
+									"stream_id": "example-id",
+									"assignment_type": "auto"
+								}
+							]
+						}
+					]
+				}`,
+			},
+			unconsumedEvents:   7,
+			consumerLagSeconds: 5,
+		},
 	} {
 		tt.Run(ti.msg, func(t *testing.T) {
 			mux := http.NewServeMux()
@@ -203,8 +234,20 @@ func TestQuery(tt *testing.T) {
 				assert.NoError(t, err)
 			})
 			mux.HandleFunc("/subscriptions/{id}/stats", func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(ti.status)
-				_, err := w.Write([]byte(ti.subscriptionIDResponseBody))
+				subscriptionID := r.PathValue("id")
+
+				status := ti.status
+				if s, ok := ti.subscriptionIDStatusByID[subscriptionID]; ok {
+					status = s
+				}
+
+				body := ti.subscriptionIDResponseBody
+				if b, ok := ti.subscriptionIDResponseByID[subscriptionID]; ok {
+					body = b
+				}
+
+				w.WriteHeader(status)
+				_, err := w.Write([]byte(body))
 				assert.NoError(t, err)
 			})
 			ts := httptest.NewServer(mux)
