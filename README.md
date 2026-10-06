@@ -1043,6 +1043,37 @@ spec:
         averageValue: "10"
 ```
 
+### Schedule groups
+
+Individual entries in a `ScalingSchedule` or `ClusterScalingSchedule` can be
+assigned to one or more `scheduleGroups`. An HPA can use the
+`schedule-group` key in its object metric selector to include only entries
+assigned to the selected groups:
+
+```yaml
+# On an entry under spec.schedules:
+scheduleGroups:
+- cyber-week
+- checkout-load-test
+```
+
+```yaml
+# On the HPA's Object metric:
+metric:
+  name: scheduling-event
+  selector:
+    matchExpressions:
+    - key: schedule-group
+      operator: In
+      values:
+      - checkout-load-test
+```
+
+`In` selects entries belonging to any listed group. An entry can belong to
+multiple groups. Entries without `scheduleGroups` are global and still apply
+to HPAs selecting a group. HPAs without a `schedule-group` selector continue
+to see all entries, preserving existing behavior.
+
 The name of the metric is equal to the name of the referenced object.
 The `target.averageValue` in this example is set to 10. This value will
 be used by the HPA controller to define the desired number of pods,

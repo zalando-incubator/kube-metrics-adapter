@@ -116,6 +116,14 @@ spec:
                       - startTime
                       - timezone
                       type: object
+                    scheduleGroups:
+                      description: |-
+                        ScheduleGroups associates this schedule with one or more schedule groups.
+                        HPAs can select groups using the "schedule-group" metric label. When
+                        omitted, the schedule applies to all HPAs, including those selecting a group.
+                      items:
+                        type: string
+                      type: array
                     type:
                       description: |-
                         Defines if the schedule is a OneTime schedule or

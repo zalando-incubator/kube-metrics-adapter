@@ -240,6 +240,14 @@ func calculateMetrics(spec v1.ScalingScheduleSpec, defaultScalingWindow time.Dur
 
 	value := int64(0)
 	for _, schedule := range spec.Schedules {
+		matches, err := scheduledscaling.ScheduleMatchesMetricSelector(schedule, metric.Selector)
+		if err != nil {
+			return nil, err
+		}
+		if !matches {
+			continue
+		}
+
 		startTime, endTime, err := scheduledscaling.ScheduleStartEnd(now, schedule, defaultTimeZone)
 		if err != nil {
 			return nil, err
