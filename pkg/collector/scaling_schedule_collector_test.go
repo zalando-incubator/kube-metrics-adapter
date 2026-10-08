@@ -727,6 +727,15 @@ func TestCalculateMetricsFiltersScheduleGroups(t *testing.T) {
 			}}},
 			expectedMetric: 10,
 		},
+		{
+			name: "unknown group selects only unscoped entries",
+			selector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "schedule-group",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"does-not-exist"},
+			}}},
+			expectedMetric: 10,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			metrics, err := calculateMetrics(
