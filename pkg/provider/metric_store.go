@@ -2,14 +2,13 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"sort"
-	"strings"
+	"encoding/json"
 	"sync"
 	"time"
 
 	"github.com/zalando-incubator/kube-metrics-adapter/pkg/collector"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,17 +42,17 @@ type MetricStore struct {
 type metricName string
 type objectNamespace string
 type objectName string
-type labelsHash string
+type labelsKey string
 
 type customMetricStore map[metricName]groupToNamespaceStore
 type groupToNamespaceStore map[schema.GroupResource]namespaceToObjectStore
-type namespaceToObjectStore map[objectNamespace]objectToLabelsHashStore
-type objectToLabelsHashStore map[objectName]labelsHashToCustomMetricStore
-type labelsHashToCustomMetricStore map[labelsHash]customMetricsStoredMetric
+type namespaceToObjectStore map[objectNamespace]objectToLabelsKeyStore
+type objectToLabelsKeyStore map[objectName]labelsKeyToCustomMetricStore
+type labelsKeyToCustomMetricStore map[labelsKey]customMetricsStoredMetric
 
-type externalMetricStore map[objectNamespace]namespacesTolabelsHashStore
-type namespacesTolabelsHashStore map[metricName]labelsHashToExternalMetricStore
-type labelsHashToExternalMetricStore map[labelsHash]externalMetricsStoredMetric
+type externalMetricStore map[objectNamespace]namespacesToLabelsKeyStore
+type namespacesToLabelsKeyStore map[metricName]labelsKeyToExternalMetricStore
+type labelsKeyToExternalMetricStore map[labelsKey]externalMetricsStoredMetric
 
 // NewMetricStore initializes an empty Metrics Store.
 func NewMetricStore(ttlCalculator func() time.Time) *MetricStore {
@@ -134,11 +133,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 		TTL:   s.metricsTTLCalculator(), // TODO: make TTL configurable
 	}
 
-	selector := value.Metric.Selector
-	labelsKey := labelsHash("")
-	if selector != nil {
-		labelsKey = hashLabelMap(selector.MatchLabels)
-	}
+	labelsKey := labelSelectorKey(value.Metric.Selector)
 
 	metric := metricName(value.Metric.Name)
 	namespace := objectNamespace(value.DescribedObject.Namespace)
@@ -148,8 +143,8 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 	if !ok {
 		s.customMetricsStore[metric] = groupToNamespaceStore{
 			groupResource: {
-				namespace: objectToLabelsHashStore{
-					object: labelsHashToCustomMetricStore{
+				namespace: objectToLabelsKeyStore{
+					object: labelsKeyToCustomMetricStore{
 						labelsKey: customMetric,
 					},
 				},
@@ -162,7 +157,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 	if !ok {
 		group2namespace[groupResource] = namespaceToObjectStore{
 			namespace: {
-				object: labelsHashToCustomMetricStore{
+				object: labelsKeyToCustomMetricStore{
 					labelsKey: customMetric,
 				},
 			},
@@ -172,8 +167,8 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 
 	object2label, ok := namespace2object[namespace]
 	if !ok {
-		namespace2object[namespace] = objectToLabelsHashStore{
-			object: labelsHashToCustomMetricStore{
+		namespace2object[namespace] = objectToLabelsKeyStore{
+			object: labelsKeyToCustomMetricStore{
 				labelsKey: customMetric,
 			},
 		}
@@ -182,7 +177,7 @@ func (s *MetricStore) insertCustomMetric(value custom_metrics.MetricValue) {
 
 	labels2metric, ok := object2label[object]
 	if !ok {
-		object2label[object] = labelsHashToCustomMetricStore{
+		object2label[object] = labelsKeyToCustomMetricStore{
 			labelsKey: customMetric,
 		}
 		return
@@ -201,7 +196,7 @@ func (s *MetricStore) insertExternalMetric(namespace objectNamespace, metric ext
 		TTL:   s.metricsTTLCalculator(), // TODO: make TTL configurable
 	}
 
-	labelsKey := hashLabelMap(metric.MetricLabels)
+	labelsKey := labelSetKey(metric.MetricLabels)
 
 	metricName := metricName(metric.MetricName)
 
@@ -209,12 +204,12 @@ func (s *MetricStore) insertExternalMetric(namespace objectNamespace, metric ext
 		if labels, ok := metrics[metricName]; ok {
 			labels[labelsKey] = storedMetric
 		} else {
-			metrics[metricName] = labelsHashToExternalMetricStore{
+			metrics[metricName] = labelsKeyToExternalMetricStore{
 				labelsKey: storedMetric,
 			}
 		}
 	} else {
-		s.externalMetricsStore[namespace] = namespacesTolabelsHashStore{
+		s.externalMetricsStore[namespace] = namespacesToLabelsKeyStore{
 			metricName: {
 				labelsKey: storedMetric,
 			},
@@ -222,33 +217,50 @@ func (s *MetricStore) insertExternalMetric(namespace objectNamespace, metric ext
 	}
 }
 
-// hashLabelMap converts a map into a sorted string to provide a stable
-// representation of a labels map.
-func hashLabelMap(labels map[string]string) labelsHash {
-	strLabels := make([]string, 0, len(labels))
-	for k, v := range labels {
-		strLabels = append(strLabels, fmt.Sprintf("%s=%s", k, v))
-	}
-	sort.Strings(strLabels)
-	return labelsHash(strings.Join(strLabels, ","))
+// labelSetKey returns the canonical string representation of a label set.
+func labelSetKey(metricLabels map[string]string) labelsKey {
+	return labelsKey(labels.Set(metricLabels).String())
 }
 
-func parseHashLabelMap(s labelsHash) labels.Set {
-	labels := map[string]string{}
-
-	if s == "" {
-		return labels
+// labelSelectorKey creates a stable key for the full metric selector.
+// MatchExpressions are part of the selector identity too; keying only on
+// MatchLabels causes distinct expression selectors to overwrite each other.
+func labelSelectorKey(selector *metav1.LabelSelector) labelsKey {
+	if selector == nil {
+		return labelsKey("")
 	}
 
-	keyValues := strings.Split(string(s), ",")
-
-	for _, keyValue := range keyValues {
-		splittedKeyValue := strings.Split(keyValue, "=")
-		key, value := splittedKeyValue[0], splittedKeyValue[1]
-		labels[key] = value
+	parsed, err := metav1.LabelSelectorAsSelector(selector)
+	if err == nil {
+		return labelsKey(parsed.String())
 	}
 
-	return labels
+	// Invalid selectors should be rejected by Kubernetes validation, but keep
+	// distinct invalid values separate if one reaches the in-memory store.
+	encoded, _ := json.Marshal(selector)
+	return labelsKey(string(encoded))
+}
+
+// metricSelectorMatches matches a request selector against a stored metric.
+// MatchLabels represent concrete metric labels and support normal label
+// selector matching. When the stored selector contains MatchExpressions, it
+// is the metric identity echoed by the collector rather than a concrete label
+// set; in that case only an equivalent request selector (or an empty selector)
+// identifies the stored metric.
+func metricSelectorMatches(requestSelector labels.Selector, metricSelector *metav1.LabelSelector) bool {
+	if requestSelector == nil || requestSelector.Empty() {
+		return true
+	}
+	if metricSelector == nil {
+		return false
+	}
+
+	if len(metricSelector.MatchExpressions) > 0 {
+		parsed, err := metav1.LabelSelectorAsSelector(metricSelector)
+		return err == nil && requestSelector.String() == parsed.String()
+	}
+
+	return requestSelector.Matches(labels.Set(metricSelector.MatchLabels))
 }
 
 // GetMetricsBySelector gets metric from the customMetricsStore using a label selector to
@@ -273,7 +285,7 @@ func (s *MetricStore) GetMetricsBySelector(_ context.Context, namespace objectNa
 		for _, object2labels := range namespace2object {
 			for _, labels2metric := range object2labels {
 				for _, metric := range labels2metric {
-					if selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
+					if metricSelectorMatches(selector, metric.Value.Metric.Selector) {
 						matchedMetrics = append(matchedMetrics, metric.Value)
 					}
 				}
@@ -282,7 +294,7 @@ func (s *MetricStore) GetMetricsBySelector(_ context.Context, namespace objectNa
 	} else if object2labels, ok := namespace2object[namespace]; ok {
 		for _, labels2hash := range object2labels {
 			for _, metric := range labels2hash {
-				if metric.Value.Metric.Selector != nil && selector.Matches(labels.Set(metric.Value.Metric.Selector.MatchLabels)) {
+				if metricSelectorMatches(selector, metric.Value.Metric.Selector) {
 					matchedMetrics = append(matchedMetrics, metric.Value)
 				}
 			}
@@ -316,8 +328,8 @@ func (s *MetricStore) GetMetricsByName(_ context.Context, object types.Namespace
 
 		for _, object2label := range namespace2object {
 			if label2metric, ok := object2label[objectName(namespace)]; ok {
-				for metric, value := range label2metric {
-					if selector.Matches(parseHashLabelMap(metric)) {
+				for _, value := range label2metric {
+					if metricSelectorMatches(selector, value.Value.Metric.Selector) {
 						return &value.Value
 					}
 				}
@@ -325,8 +337,8 @@ func (s *MetricStore) GetMetricsByName(_ context.Context, object types.Namespace
 		}
 	} else if object2label, ok := namespace2object[namespace]; ok {
 		if label2metric, ok := object2label[name]; ok {
-			for metric, value := range label2metric {
-				if selector.Matches(parseHashLabelMap(metric)) {
+			for _, value := range label2metric {
+				if metricSelectorMatches(selector, value.Value.Metric.Selector) {
 					return &value.Value
 				}
 			}
@@ -409,9 +421,9 @@ func (s *MetricStore) RemoveExpired() {
 		for group, namespace2object := range group2namespace {
 			for namespace, object2label := range namespace2object {
 				for object, label2metric := range object2label {
-					for labelsHash, metric := range label2metric {
+					for labelsKey, metric := range label2metric {
 						if metric.TTL.Before(time.Now().UTC()) {
-							delete(label2metric, labelsHash)
+							delete(label2metric, labelsKey)
 						}
 					}
 					if len(label2metric) == 0 {

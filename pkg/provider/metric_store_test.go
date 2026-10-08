@@ -685,6 +685,92 @@ func TestMultipleMetricValues(t *testing.T) {
 	}
 }
 
+func TestMetricStoreMatchExpressions(t *testing.T) {
+	info := provider.CustomMetricInfo{
+		GroupResource: schema.GroupResource{},
+		Namespaced:    true,
+		Metric:        "metric-per-unit",
+	}
+	name := types.NamespacedName{Namespace: "default", Name: "metricObject"}
+
+	selectors := []metav1.LabelSelector{
+		{
+			MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "sub-scope",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"campaign", "load-test"},
+			}},
+		},
+		{
+			MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "sub-scope",
+				Operator: metav1.LabelSelectorOpNotIn,
+				Values:   []string{"internal"},
+			}},
+		},
+		{
+			MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "sub-scope",
+				Operator: metav1.LabelSelectorOpExists,
+			}},
+		},
+		{
+			MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "sub-scope",
+				Operator: metav1.LabelSelectorOpDoesNotExist,
+			}},
+		},
+	}
+
+	store := NewMetricStore(time.Now)
+	for i, selector := range selectors {
+		store.Insert(collector.CollectedMetric{
+			Type: autoscalingv2.ObjectMetricSourceType,
+			Custom: custom_metrics.MetricValue{
+				Metric: newMetricIdentifier(info.Metric, selector),
+				Value:  *resource.NewQuantity(int64(i+1), resource.DecimalSI),
+				DescribedObject: custom_metrics.ObjectReference{
+					Name:       name.Name,
+					Namespace:  name.Namespace,
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+			},
+		})
+	}
+
+	for i, selector := range selectors {
+		requestSelector, err := metav1.LabelSelectorAsSelector(&selector)
+		require.NoError(t, err)
+
+		metric := store.GetMetricsByName(context.Background(), name, info, requestSelector)
+		require.NotNil(t, metric)
+		require.Equal(t, int64(i+1), metric.Value.Value())
+
+		metrics := store.GetMetricsBySelector(context.Background(), objectNamespace(name.Namespace), requestSelector, info)
+		require.Len(t, metrics.Items, 1)
+		require.Equal(t, int64(i+1), metrics.Items[0].Value.Value())
+	}
+
+	// Selector ordering is not significant in Kubernetes LabelSelectors.
+	reorderedSelector := selectors[0].DeepCopy()
+	reorderedSelector.MatchExpressions[0].Values = []string{"load-test", "campaign"}
+	reorderedRequestSelector, err := metav1.LabelSelectorAsSelector(reorderedSelector)
+	require.NoError(t, err)
+	reorderedMetric := store.GetMetricsByName(context.Background(), name, info, reorderedRequestSelector)
+	require.NotNil(t, reorderedMetric)
+	require.Equal(t, int64(1), reorderedMetric.Value.Value())
+
+	// An empty selector still lists all stored metrics, including those whose
+	// selectors contain expressions.
+	allMetrics := store.GetMetricsBySelector(context.Background(), objectNamespace(name.Namespace), labels.Everything(), info)
+	require.Len(t, allMetrics.Items, len(selectors))
+
+	otherSelector, err := labels.Parse("sub-scope in (other)")
+	require.NoError(t, err)
+	require.Nil(t, store.GetMetricsByName(context.Background(), name, info, otherSelector))
+}
+
 func TestCustomMetricsStorageErrors(t *testing.T) {
 	var metricStoreTests = []struct {
 		test   string
