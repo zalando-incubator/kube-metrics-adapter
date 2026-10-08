@@ -473,3 +473,94 @@ func TestAdjustScaling(t *testing.T) {
 		})
 	}
 }
+
+func TestAdjustScalingFiltersScheduleGroups(t *testing.T) {
+	kubeClient := fake.NewSimpleClientset()
+	scalingScheduleClient := zfake.NewSimpleClientset()
+	controller := NewController(
+		scalingScheduleClient.ZalandoV1(),
+		kubeClient,
+		&mockScaler{client: kubeClient},
+		nil,
+		nil,
+		time.Now,
+		time.Hour,
+		"Europe/Berlin",
+		0.10,
+	)
+
+	replicas := int32(9)
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "deployment-1", Namespace: "default"},
+		Spec:       appsv1.DeploymentSpec{Replicas: &replicas},
+	}
+	_, err := kubeClient.AppsV1().Deployments("default").Create(context.Background(), deployment, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	start := v1.ScheduleDate(time.Now().Add(-10 * time.Minute).Format(time.RFC3339))
+	clusterScalingSchedule := &v1.ClusterScalingSchedule{
+		ObjectMeta: metav1.ObjectMeta{Name: "schedule-1"},
+		Spec: v1.ScalingScheduleSpec{Schedules: []v1.Schedule{
+			{
+				Type:            v1.OneTimeSchedule,
+				Date:            &start,
+				DurationMinutes: 15,
+				Value:           94,
+				ScheduleGroups:  []string{"load-test"},
+			},
+			{
+				Type:            v1.OneTimeSchedule,
+				Date:            &start,
+				DurationMinutes: 15,
+				Value:           110,
+				ScheduleGroups:  []string{"campaign"},
+			},
+		}},
+	}
+
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{Name: "hpa-1", Namespace: "default"},
+		Status:     autoscalingv2.HorizontalPodAutoscalerStatus{CurrentReplicas: 9},
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			MaxReplicas: 100,
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Name:       "deployment-1",
+			},
+			Metrics: []autoscalingv2.MetricSpec{{
+				Type: autoscalingv2.ObjectMetricSourceType,
+				Object: &autoscalingv2.ObjectMetricSource{
+					DescribedObject: autoscalingv2.CrossVersionObjectReference{
+						APIVersion: "zalando.org/v1",
+						Kind:       "ClusterScalingSchedule",
+						Name:       "schedule-1",
+					},
+					Metric: autoscalingv2.MetricIdentifier{
+						Name: "schedule-1",
+						Selector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{
+							Key:      "schedule-group",
+							Operator: metav1.LabelSelectorOpIn,
+							Values:   []string{"load-test"},
+						}}},
+					},
+					Target: autoscalingv2.MetricTarget{
+						Type:         autoscalingv2.AverageValueMetricType,
+						AverageValue: resource.NewQuantity(10, resource.DecimalSI),
+					},
+				},
+			}},
+		},
+	}
+	hpa, err = kubeClient.AutoscalingV2().HorizontalPodAutoscalers("default").Create(context.Background(), hpa, metav1.CreateOptions{})
+	require.NoError(t, err)
+	_, err = kubeClient.AutoscalingV2().HorizontalPodAutoscalers("default").UpdateStatus(context.Background(), hpa, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
+	err = controller.adjustScaling(context.Background(), []v1.ScalingScheduler{clusterScalingSchedule})
+	require.NoError(t, err)
+
+	deployment, err = kubeClient.AppsV1().Deployments("default").Get(context.Background(), "deployment-1", metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, int32(10), ptr.Deref(deployment.Spec.Replicas, 0), "campaign-only schedules must not affect the load-test HPA")
+}

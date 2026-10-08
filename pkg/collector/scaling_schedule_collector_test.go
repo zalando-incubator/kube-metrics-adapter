@@ -12,6 +12,7 @@ import (
 	scheduledscaling "github.com/zalando-incubator/kube-metrics-adapter/pkg/controller/scheduledscaling"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/metrics/pkg/apis/custom_metrics"
 )
 
 const (
@@ -668,6 +669,87 @@ func TestScalingScheduleCollector(t *testing.T) {
 
 			clusterCollectedFirstRun, err := clusterCollectorFirstRun.GetMetrics(context.Background())
 			checkCollectedMetrics(t, clusterCollectedFirstRun, "ClusterScalingSchedule")
+		})
+	}
+}
+
+func TestCalculateMetricsFiltersScheduleGroups(t *testing.T) {
+	now := time.Date(2026, time.November, 10, 8, 0, 0, 0, time.UTC)
+	start := v1.ScheduleDate(now.Add(-time.Minute).Format(time.RFC3339))
+	spec := v1.ScalingScheduleSpec{Schedules: []v1.Schedule{
+		{Type: v1.OneTimeSchedule, Date: &start, DurationMinutes: 10, Value: 120, ScheduleGroups: []string{"campaign", "campaign-alias"}},
+		{Type: v1.OneTimeSchedule, Date: &start, DurationMinutes: 10, Value: 80, ScheduleGroups: []string{"load-test"}},
+		{Type: v1.OneTimeSchedule, Date: &start, DurationMinutes: 10, Value: 10},
+	}}
+
+	for _, tc := range []struct {
+		name           string
+		selector       *metav1.LabelSelector
+		expectedMetric int64
+	}{
+		{
+			name:           "legacy unfiltered HPA sees all groups",
+			expectedMetric: 120,
+		},
+		{
+			name: "single group selector filters events",
+			selector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "schedule-group",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"load-test"},
+			}}},
+			expectedMetric: 80,
+		},
+		{
+			name: "multiple group selector values select their union",
+			selector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "schedule-group",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"load-test", "campaign"},
+			}}},
+			expectedMetric: 120,
+		},
+		{
+			name: "an entry can be selected through any assigned group",
+			selector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "schedule-group",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"campaign-alias"},
+			}}},
+			expectedMetric: 120,
+		},
+		{
+			name: "unscoped entries remain global",
+			selector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "schedule-group",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"staging"},
+			}}},
+			expectedMetric: 10,
+		},
+		{
+			name: "unknown group selects only unscoped entries",
+			selector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "schedule-group",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"does-not-exist"},
+			}}},
+			expectedMetric: 10,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			metrics, err := calculateMetrics(
+				spec,
+				0,
+				"UTC",
+				defaultRampSteps,
+				now,
+				custom_metrics.ObjectReference{},
+				autoscalingv2.MetricIdentifier{Name: "schedule", Selector: tc.selector},
+			)
+			require.NoError(t, err)
+			require.Len(t, metrics, 1)
+			require.Equal(t, tc.expectedMetric, metrics[0].Custom.Value.Value())
 		})
 	}
 }

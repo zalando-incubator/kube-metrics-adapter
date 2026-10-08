@@ -15,6 +15,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	kube_record "k8s.io/client-go/tools/record"
 )
@@ -229,10 +230,10 @@ func (c *Controller) runOnce(ctx context.Context) error {
 	return nil
 }
 
-// activeScheduledScaling returns a map of the current active schedules and the
-// max value per schedule.
-func (c *Controller) activeScheduledScaling(schedules []v1.ScalingScheduler) map[string]int64 {
-	currentActiveSchedules := make(map[string]int64)
+// activeScheduledScaling returns the active entries for each schedule. Entries
+// are kept separate so each HPA's metric selector can choose its own groups.
+func (c *Controller) activeScheduledScaling(schedules []v1.ScalingScheduler) map[string][]v1.Schedule {
+	currentActiveSchedules := make(map[string][]v1.Schedule)
 
 	for _, schedule := range schedules {
 		activeSchedules, err := c.activeSchedules(schedule.ResourceSpec())
@@ -245,13 +246,7 @@ func (c *Controller) activeScheduledScaling(schedules []v1.ScalingScheduler) map
 			continue
 		}
 
-		maxValue := int64(0)
-		for _, activeSchedule := range activeSchedules {
-			if activeSchedule.Value > maxValue {
-				maxValue = activeSchedule.Value
-			}
-		}
-		currentActiveSchedules[schedule.Identifier()] = maxValue
+		currentActiveSchedules[schedule.Identifier()] = activeSchedules
 	}
 
 	return currentActiveSchedules
@@ -260,13 +255,16 @@ func (c *Controller) activeScheduledScaling(schedules []v1.ScalingScheduler) map
 // adjustHPAScaling adjusts the scaling for a single HPA based on the active
 // scaling schedules. An adjustment is made if the current HPA scale is below
 // the desired and the change is within the HPA tolerance.
-func (c *Controller) adjustHPAScaling(ctx context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, activeSchedules map[string]int64) error {
+func (c *Controller) adjustHPAScaling(ctx context.Context, hpa *autoscalingv2.HorizontalPodAutoscaler, activeSchedules map[string][]v1.Schedule) error {
 	current := int64(hpa.Status.CurrentReplicas)
 	if current == 0 {
 		return nil
 	}
 
-	highestExpected, usageRatio, highestObject := highestActiveSchedule(hpa, activeSchedules, current)
+	highestExpected, usageRatio, highestObject, err := highestActiveSchedule(hpa, activeSchedules, current)
+	if err != nil {
+		return err
+	}
 
 	highestExpected = int64(math.Min(float64(highestExpected), float64(hpa.Spec.MaxReplicas)))
 
@@ -304,7 +302,7 @@ func (c *Controller) adjustHPAScaling(ctx context.Context, hpa *autoscalingv2.Ho
 
 // highestActiveSchedule returns the highest active schedule value and
 // corresponding object.
-func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSchedules map[string]int64, currentReplicas int64) (int64, float64, autoscalingv2.CrossVersionObjectReference) {
+func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSchedules map[string][]v1.Schedule, currentReplicas int64) (int64, float64, autoscalingv2.CrossVersionObjectReference, error) {
 	var highestExpected int64
 	var usageRatio float64
 	var highestObject autoscalingv2.CrossVersionObjectReference
@@ -333,9 +331,25 @@ func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSch
 		var value int64
 		switch metric.Object.DescribedObject.Kind {
 		case "ScalingSchedule":
-			value = activeSchedules[hpa.Namespace+"/"+scheduleName]
+			for _, schedule := range activeSchedules[hpa.Namespace+"/"+scheduleName] {
+				matches, err := ScheduleMatchesMetricSelector(schedule, metric.Object.Metric.Selector)
+				if err != nil {
+					return 0, 0, autoscalingv2.CrossVersionObjectReference{}, err
+				}
+				if matches && schedule.Value > value {
+					value = schedule.Value
+				}
+			}
 		case "ClusterScalingSchedule":
-			value = activeSchedules[scheduleName]
+			for _, schedule := range activeSchedules[scheduleName] {
+				matches, err := ScheduleMatchesMetricSelector(schedule, metric.Object.Metric.Selector)
+				if err != nil {
+					return 0, 0, autoscalingv2.CrossVersionObjectReference{}, err
+				}
+				if matches && schedule.Value > value {
+					value = schedule.Value
+				}
+			}
 		}
 
 		expected := int64(math.Ceil(float64(value) / target))
@@ -346,7 +360,7 @@ func highestActiveSchedule(hpa *autoscalingv2.HorizontalPodAutoscaler, activeSch
 		}
 	}
 
-	return highestExpected, usageRatio, highestObject
+	return highestExpected, usageRatio, highestObject, nil
 }
 
 func (c *Controller) adjustScaling(ctx context.Context, schedules []v1.ScalingScheduler) error {
@@ -497,4 +511,41 @@ func Between(timestamp, start, end time.Time) bool {
 		return false
 	}
 	return timestamp.Before(end)
+}
+
+// ScheduleMatchesMetricSelector reports whether a schedule entry belongs to
+// the schedule-group selected by an HPA metric. Other metric selector labels
+// are left unchanged; schedule groups are the only schedule-entry dimension.
+// Entries without groups are global and apply regardless of the selector.
+func ScheduleMatchesMetricSelector(schedule v1.Schedule, metricSelector *metav1.LabelSelector) (bool, error) {
+	if len(schedule.ScheduleGroups) == 0 || metricSelector == nil {
+		return true, nil
+	}
+
+	groupSelector := &metav1.LabelSelector{}
+	if value, ok := metricSelector.MatchLabels["schedule-group"]; ok {
+		groupSelector.MatchLabels = map[string]string{"schedule-group": value}
+	}
+	for _, requirement := range metricSelector.MatchExpressions {
+		if requirement.Key == "schedule-group" {
+			groupSelector.MatchExpressions = append(groupSelector.MatchExpressions, requirement)
+		}
+	}
+
+	if len(groupSelector.MatchLabels) == 0 && len(groupSelector.MatchExpressions) == 0 {
+		return true, nil
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(groupSelector)
+	if err != nil {
+		return false, fmt.Errorf("invalid schedule-group selector: %w", err)
+	}
+
+	for _, group := range schedule.ScheduleGroups {
+		if selector.Matches(labels.Set{"schedule-group": group}) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

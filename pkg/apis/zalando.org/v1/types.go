@@ -92,6 +92,11 @@ type ScalingScheduleSpec struct {
 // +k8s:deepcopy-gen=true
 type Schedule struct {
 	Type ScheduleType `json:"type"`
+	// ScheduleGroups associates this schedule with one or more schedule groups.
+	// HPAs can select groups using the "schedule-group" metric label. When
+	// omitted, the schedule applies to all HPAs, including those selecting a group.
+	// +optional
+	ScheduleGroups []string `json:"scheduleGroups,omitempty"`
 	// Defines the details of a Repeating schedule.
 	// +optional
 	Period *SchedulePeriod `json:"period,omitempty"`
