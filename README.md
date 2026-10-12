@@ -621,6 +621,47 @@ The `matchLabels` are used by `kube-metrics-adapter` to configure a collector
 that will get the queue length for an SQS queue named `foobar` in region
 `eu-central-1`.
 
+### Include in-flight messages
+
+By default, `sqs-queue-length` returns only `ApproximateNumberOfMessages`, the
+approximate number of visible messages available to receive. Receiving a
+message removes it from this count while a worker processes it.
+
+For long-running consumers, set the `include-in-flight` selector label to
+`"true"` to count both visible and in-flight messages:
+
+```yaml
+metric:
+  name: worker-sqs-outstanding-messages
+  selector:
+    matchLabels:
+      type: sqs-queue-length
+      queue-name: foobar
+      region: eu-central-1
+      include-in-flight: "true"
+```
+
+With this option, the collector requests both attributes in one
+`GetQueueAttributes` call and returns
+`ApproximateNumberOfMessages + ApproximateNumberOfMessagesNotVisible`.
+Omitting the option or setting it to `"false"` preserves visible-only counting.
+Invalid boolean values prevent collector creation. Missing, malformed, negative,
+or overflowing required counts fail collection rather than returning an
+under-reported metric. The existing `sqs:GetQueueAttributes` permission is
+sufficient; no additional IAM actions are required.
+
+Both counts are approximate, and delayed messages are not included. Counting
+in-flight messages can maintain sufficient worker capacity, but does not ensure
+that Kubernetes terminates idle pods instead of busy pods during scale-down.
+
+Use this option in the metric's selector labels, not only in annotations. If
+visible-only and combined metrics coexist for the same queue in the same
+namespace, give them different metric names. A visible-only selector omitting
+`include-in-flight` can otherwise also match the combined series.
+
+Deploy an adapter version supporting this option before enabling it on an HPA.
+Older versions ignore the new label and continue to count only visible messages.
+
 The AWS account of the queue currently depends on how `kube-metrics-adapter` is
 configured to get AWS credentials. The normal assumption is that you run the
 adapter in a cluster running in the AWS account where the queue is defined.
