@@ -36,7 +36,7 @@ func (r NoResultError) Error() string {
 }
 
 type PrometheusCollectorPlugin struct {
-	promAPI           promv1.API
+	promAPI            promv1.API
 	client             kubernetes.Interface
 	additionalPromAPIs map[string]promv1.API
 }
@@ -174,7 +174,7 @@ func NewPrometheusCollector(client kubernetes.Interface, promAPI promv1.API, add
 
 func (c *PrometheusCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, error) {
 	// TODO: use real context
-	value, _, err := c.promAPI.Query(ctx, c.query, time.Now().UTC())
+	value, _, _, err := c.promAPI.Query(ctx, c.query, time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}
