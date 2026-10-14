@@ -122,17 +122,17 @@ func (c *AWSSQSCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, er
 	for _, attribute := range params.AttributeNames {
 		value, ok := resp.Attributes[string(attribute)]
 		if !ok {
-			return nil, fmt.Errorf("missing %s for queue '%s'", attribute, c.queueName)
+			return nil, fmt.Errorf("missing %s for queue %q", attribute, c.queueName)
 		}
 		count, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid %s for queue '%s': %w", attribute, c.queueName, err)
+			return nil, fmt.Errorf("invalid %s for queue %q: %w", attribute, c.queueName, err)
 		}
 		if count < 0 {
-			return nil, fmt.Errorf("negative %s for queue '%s'", attribute, c.queueName)
+			return nil, fmt.Errorf("negative %s for queue %q", attribute, c.queueName)
 		}
 		if count > math.MaxInt64-total {
-			return nil, fmt.Errorf("queue length overflow for queue '%s'", c.queueName)
+			return nil, fmt.Errorf("queue length overflow for queue %q", c.queueName)
 		}
 		total += count
 	}
