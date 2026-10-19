@@ -25,9 +25,9 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// ClusterScalingSchedules returns a ClusterScalingScheduleInformer.
-	ClusterScalingSchedules() ClusterScalingScheduleInformer
+	ClusterScalingSchedules() TypedClusterScalingScheduleInformer
 	// ScalingSchedules returns a ScalingScheduleInformer.
-	ScalingSchedules() ScalingScheduleInformer
+	ScalingSchedules() TypedScalingScheduleInformer
 }
 
 type version struct {
@@ -41,12 +41,12 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// ClusterScalingSchedules returns a ClusterScalingScheduleInformer.
-func (v *version) ClusterScalingSchedules() ClusterScalingScheduleInformer {
+// ClusterScalingSchedules returns a TypedClusterScalingScheduleInformer.
+func (v *version) ClusterScalingSchedules() TypedClusterScalingScheduleInformer {
 	return &clusterScalingScheduleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ScalingSchedules returns a ScalingScheduleInformer.
-func (v *version) ScalingSchedules() ScalingScheduleInformer {
+// ScalingSchedules returns a TypedScalingScheduleInformer.
+func (v *version) ScalingSchedules() TypedScalingScheduleInformer {
 	return &scalingScheduleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
