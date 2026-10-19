@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -19,6 +20,7 @@ const (
 	AWSSQSQueueLengthMetric = "sqs-queue-length"
 	sqsQueueNameLabelKey    = "queue-name"
 	sqsQueueRegionLabelKey  = "region"
+	sqsIncludeInFlightKey   = "include-in-flight"
 )
 
 type AWSCollectorPlugin struct {
@@ -41,13 +43,14 @@ type sqsiface interface {
 }
 
 type AWSSQSCollector struct {
-	sqs        sqsiface
-	interval   time.Duration
-	queueURL   string
-	queueName  string
-	namespace  string
-	metric     autoscalingv2.MetricIdentifier
-	metricType autoscalingv2.MetricSourceType
+	sqs             sqsiface
+	interval        time.Duration
+	queueURL        string
+	queueName       string
+	namespace       string
+	metric          autoscalingv2.MetricIdentifier
+	metricType      autoscalingv2.MetricSourceType
+	includeInFlight bool
 }
 
 func NewAWSSQSCollector(ctx context.Context, configs map[string]aws.Config, hpa *autoscalingv2.HorizontalPodAutoscaler, config *MetricConfig, interval time.Duration) (*AWSSQSCollector, error) {
@@ -62,6 +65,15 @@ func NewAWSSQSCollector(ctx context.Context, configs map[string]aws.Config, hpa 
 	region, ok := config.Config[sqsQueueRegionLabelKey]
 	if !ok {
 		return nil, fmt.Errorf("sqs queue region is not specified on metric")
+	}
+
+	var includeInFlight bool
+	if value, ok := config.Config[sqsIncludeInFlightKey]; ok {
+		var err error
+		includeInFlight, err = strconv.ParseBool(value)
+		if err != nil {
+			return nil, fmt.Errorf("invalid %s value %q: %w", sqsIncludeInFlightKey, value, err)
+		}
 	}
 
 	cfg, ok := configs[region]
@@ -80,13 +92,14 @@ func NewAWSSQSCollector(ctx context.Context, configs map[string]aws.Config, hpa 
 	}
 
 	return &AWSSQSCollector{
-		sqs:        service,
-		interval:   interval,
-		queueURL:   aws.ToString(resp.QueueUrl),
-		queueName:  name,
-		namespace:  hpa.Namespace,
-		metric:     config.Metric,
-		metricType: config.Type,
+		sqs:             service,
+		interval:        interval,
+		queueURL:        aws.ToString(resp.QueueUrl),
+		queueName:       name,
+		namespace:       hpa.Namespace,
+		metric:          config.Metric,
+		metricType:      config.Type,
+		includeInFlight: includeInFlight,
 	}, nil
 }
 
@@ -96,32 +109,46 @@ func (c *AWSSQSCollector) GetMetrics(ctx context.Context) ([]CollectedMetric, er
 		AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameApproximateNumberOfMessages},
 	}
 
+	if c.includeInFlight {
+		params.AttributeNames = append(params.AttributeNames, types.QueueAttributeNameApproximateNumberOfMessagesNotVisible)
+	}
+
 	resp, err := c.sqs.GetQueueAttributes(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	if v, ok := resp.Attributes[string(types.QueueAttributeNameApproximateNumberOfMessages)]; ok {
-		i, err := strconv.Atoi(v)
+	var total int64
+	for _, attribute := range params.AttributeNames {
+		value, ok := resp.Attributes[string(attribute)]
+		if !ok {
+			return nil, fmt.Errorf("missing %s for queue %q", attribute, c.queueName)
+		}
+		count, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid %s for queue %q: %w", attribute, c.queueName, err)
 		}
-
-		metricValue := CollectedMetric{
-			Namespace: c.namespace,
-			Type:      c.metricType,
-			External: external_metrics.ExternalMetricValue{
-				MetricName:   c.metric.Name,
-				MetricLabels: c.metric.Selector.MatchLabels,
-				Timestamp:    metav1.Time{Time: time.Now().UTC()},
-				Value:        *resource.NewQuantity(int64(i), resource.DecimalSI),
-			},
+		if count < 0 {
+			return nil, fmt.Errorf("negative %s for queue %q", attribute, c.queueName)
 		}
-
-		return []CollectedMetric{metricValue}, nil
+		if count > math.MaxInt64-total {
+			return nil, fmt.Errorf("queue length overflow for queue %q", c.queueName)
+		}
+		total += count
 	}
 
-	return nil, fmt.Errorf("failed to get queue length for '%s'", c.queueName)
+	metricValue := CollectedMetric{
+		Namespace: c.namespace,
+		Type:      c.metricType,
+		External: external_metrics.ExternalMetricValue{
+			MetricName:   c.metric.Name,
+			MetricLabels: c.metric.Selector.MatchLabels,
+			Timestamp:    metav1.Time{Time: time.Now().UTC()},
+			Value:        *resource.NewQuantity(total, resource.DecimalSI),
+		},
+	}
+
+	return []CollectedMetric{metricValue}, nil
 }
 
 // Interval returns the interval at which the collector should run.

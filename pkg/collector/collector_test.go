@@ -112,6 +112,33 @@ func TestMetricTypeName_String(t *testing.T) {
 	}
 }
 
+func TestParseHPAMetricsPreservesSQSInFlightOption(t *testing.T) {
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			Metrics: []autoscalingv2.MetricSpec{{
+				Type: autoscalingv2.ExternalMetricSourceType,
+				External: &autoscalingv2.ExternalMetricSource{
+					Metric: autoscalingv2.MetricIdentifier{
+						Name: "worker-sqs-queue-length",
+						Selector: &metav1.LabelSelector{MatchLabels: map[string]string{
+							"type":              "sqs-queue-length",
+							"queue-name":        "worker-queue",
+							"region":            "eu-central-1",
+							"include-in-flight": "true",
+						}},
+					},
+				},
+			}},
+		},
+	}
+
+	configs, err := ParseHPAMetrics(hpa)
+	require.NoError(t, err)
+	require.Len(t, configs, 1)
+	require.Equal(t, "true", configs[0].Config["include-in-flight"])
+	require.Equal(t, "true", configs[0].Metric.Selector.MatchLabels["include-in-flight"])
+}
+
 func TestNewCollector(t *testing.T) {
 	for _, tc := range []struct {
 		msg               string
