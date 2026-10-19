@@ -659,13 +659,6 @@ visible-only and combined metrics coexist for the same queue in the same
 namespace, give them different metric names. A visible-only selector omitting
 `include-in-flight` can otherwise also match the combined series.
 
-Deploy an adapter version supporting this option before enabling it on an HPA.
-Older versions ignore the new label and continue to count only visible messages.
-
-The AWS account of the queue currently depends on how `kube-metrics-adapter` is
-configured to get AWS credentials. The normal assumption is that you run the
-adapter in a cluster running in the AWS account where the queue is defined.
-Please open an issue if you would like support for other use cases.
 
 ## ZMON collector
 
