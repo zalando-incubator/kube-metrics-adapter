@@ -34,11 +34,39 @@ import (
 )
 
 // ScalingScheduleInformer provides access to a shared informer and lister for
-// ScalingSchedules.
+// ScalingSchedules. Prefer using the type-safe variant (see [TypedScalingScheduleInformer]).
 type ScalingScheduleInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() zalandoorgv1.ScalingScheduleLister
 }
+
+// TypedScalingScheduleInformer provides access to a shared informer and lister for
+// ScalingSchedules, including the type-safe TypedInformer variant.
+// It is a superset of ScalingScheduleInformer.
+type TypedScalingScheduleInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ScalingScheduleIndexInformer
+	Lister() zalandoorgv1.ScalingScheduleLister
+}
+
+// ScalingScheduleIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ScalingScheduleIndexInformer cache.TypedSharedIndexInformer[*apiszalandoorgv1.ScalingSchedule]
+
+// ScalingScheduleHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ScalingSchedule.
+type ScalingScheduleHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiszalandoorgv1.ScalingSchedule]
+
+// ScalingScheduleDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ScalingSchedule.
+type ScalingScheduleDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiszalandoorgv1.ScalingSchedule]
+
+// ScalingScheduleFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ScalingSchedule.
+type ScalingScheduleFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiszalandoorgv1.ScalingSchedule]
+
+// ScalingScheduleIndexers is a specialization of [cache.TypedIndexers] for ScalingSchedule.
+type ScalingScheduleIndexers = cache.TypedIndexers[*apiszalandoorgv1.ScalingSchedule]
+
+// DeletedScalingSchedule is a specialization of [cache.DeletedObject] for ScalingSchedule.
+type DeletedScalingSchedule = cache.DeletedObject[*apiszalandoorgv1.ScalingSchedule]
 
 type scalingScheduleInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -49,25 +77,49 @@ type scalingScheduleInformer struct {
 // NewScalingScheduleInformer constructs a new informer for ScalingSchedule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedScalingScheduleInformer]).
 func NewScalingScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewScalingScheduleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedScalingScheduleInformer constructs a new informer for ScalingSchedule type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedScalingScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ScalingScheduleIndexers) ScalingScheduleIndexInformer {
+	return NewTypedScalingScheduleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredScalingScheduleInformer constructs a new informer for ScalingSchedule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredScalingScheduleInformer]).
 func NewFilteredScalingScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewScalingScheduleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedScalingScheduleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredScalingScheduleInformer constructs a new informer for ScalingSchedule type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredScalingScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ScalingScheduleIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ScalingScheduleIndexInformer {
+	return NewTypedScalingScheduleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewScalingScheduleInformerWithOptions constructs a new informer for ScalingSchedule type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedScalingScheduleInformerWithOptions]).
 func NewScalingScheduleInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedScalingScheduleInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedScalingScheduleInformerWithOptions constructs a new informer for ScalingSchedule type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedScalingScheduleInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) ScalingScheduleIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "zalando.org", Version: "v1", Resource: "scalingschedules"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiszalandoorgv1.ScalingSchedule](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -100,17 +152,57 @@ func NewScalingScheduleInformerWithOptions(client versioned.Interface, namespace
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *scalingScheduleInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewScalingScheduleInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedScalingScheduleInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *scalingScheduleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiszalandoorgv1.ScalingSchedule{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *scalingScheduleInformer) TypedInformer() ScalingScheduleIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiszalandoorgv1.ScalingSchedule](f.factory.InformerFor(&apiszalandoorgv1.ScalingSchedule{}, f.defaultInformer))
 }
 
 func (f *scalingScheduleInformer) Lister() zalandoorgv1.ScalingScheduleLister {
 	return zalandoorgv1.NewScalingScheduleLister(f.Informer().GetIndexer())
+}
+
+// ToTypedScalingScheduleInformer converts an untyped informer into a TypedScalingScheduleInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ScalingSchedule. If that is not the case, calling type-safe methods of the returned
+// TypedScalingScheduleInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedScalingScheduleInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedScalingScheduleInformer(informer ScalingScheduleInformer) TypedScalingScheduleInformer {
+	if informer, ok := informer.(TypedScalingScheduleInformer); ok {
+		return informer
+	}
+	return &scalingScheduleTypedInformerAdapter{informer}
+}
+
+type scalingScheduleTypedInformerAdapter struct {
+	ScalingScheduleInformer
+}
+
+func (a *scalingScheduleTypedInformerAdapter) TypedInformer() ScalingScheduleIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiszalandoorgv1.ScalingSchedule](a.Informer())
+}
+
+// ToScalingScheduleIndexInformer converts an untyped informer into a ScalingScheduleIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ScalingSchedule. If that is not the case, calling type-safe methods of the returned
+// ScalingScheduleIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ScalingScheduleIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToScalingScheduleIndexInformer(informer cache.SharedIndexInformer) ScalingScheduleIndexInformer {
+	if informer, ok := informer.(ScalingScheduleIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiszalandoorgv1.ScalingSchedule](informer)
 }
